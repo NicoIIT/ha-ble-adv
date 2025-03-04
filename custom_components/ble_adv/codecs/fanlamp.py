@@ -1,0 +1,264 @@
+"""Fanlamp Pro Encoders."""
+
+from binascii import crc_hqx
+from random import randint
+from typing import ClassVar
+
+from Crypto.Cipher import AES
+
+from .models import (
+    BleAdvCodec,
+    BleAdvConfig,
+    BleAdvEncCmd,
+    CTLightCmd,
+    DeviceCmd,
+    Fan3SpeedCmd,
+    Fan6SpeedCmd,
+    FanCmd,
+    LightCmd,
+    RGBLightCmd,
+    Trans,
+)
+from .models import EncoderMatcher as EncCmd
+from .utils import reverse_all, whiten
+
+
+class FanLampEncoder(BleAdvCodec):
+    """Base Fanlamp encoder."""
+
+    def __init__(self, prefix: bytearray) -> None:
+        """Init with prefix."""
+        self._prefix = prefix
+        super().__init__()
+
+    def _crc16(self, buffer: bytes, seed: int) -> int:
+        """CRC16 CCITT computing."""
+        return crc_hqx(buffer, seed)
+
+
+class FanLampEncoderV1(FanLampEncoder):
+    """FanLamp V1 encoder."""
+
+    def __init__(self, pair_arg2: int, pair_arg_only_on_pair: bool = True, xor1: bool = False, supp_prefix: int = 0, forced_crc2: int = 0) -> None:
+        """Init with args."""
+        super().__init__(bytearray([0xAA, 0x98, 0x43, 0xAF, 0x0B, 0x46, 0x46, 0x46]))
+        self._len = 24
+        if supp_prefix != 0:
+            self._prefix.insert(0, supp_prefix)
+        self._crc2_seed = self._crc16(self._prefix[1:6], 0xFFFF)
+        self._pair_arg2 = pair_arg2
+        self._pair_arg_only_on_pair = pair_arg_only_on_pair
+        self._xor1 = xor1
+        self._forced_crc2 = forced_crc2
+        self._with_crc2 = (self._forced_crc2 != 0) or (supp_prefix == 0)
+
+    def _crc2(self, buffer: bytes) -> int:
+        """Compute CRC 2 as ccitt crc16."""
+        return self._forced_crc2 if self._forced_crc2 != 0 else self._crc16(buffer, self._crc2_seed)
+
+    def decode(self, buffer: bytes) -> tuple[BleAdvEncCmd | None, BleAdvConfig | None]:
+        """Decode an incoming buffer into an encoder command and a config."""
+        decoded = reverse_all(whiten(buffer, 0x6F))
+        self.log_buffer(decoded, "Decoded")
+        if not self.check_eq_buf(self._prefix, decoded, "Prefix"):
+            return None, None
+        decoded = decoded[len(self._prefix) :]
+        seed = int.from_bytes(decoded[10:12])
+        seed8 = seed & 0xFF
+        is_pair_cmd: bool = decoded[0] == 0x28
+        if not self.check_eq(self._crc16(decoded[:12], seed ^ 0xFFFF), int.from_bytes(decoded[12:14]), "CRC"):
+            return None, None
+        if (is_pair_cmd or not self._pair_arg_only_on_pair) and not self.check_eq(self._pair_arg2, decoded[5], "Arg2"):
+            return None, None
+        if not is_pair_cmd and self._pair_arg_only_on_pair and not self.check_eq(0, decoded[5], "Arg2 only on Pair"):
+            return None, None
+        if not self.check_eq(seed8 ^ 1 if self._xor1 else seed8, decoded[9], "r2"):
+            return None, None
+        if self._with_crc2:
+            if not self.check_eq(self._crc2(decoded[:-2]), int.from_bytes(decoded[14:16]), "CRC2"):
+                return None, None
+
+        conf = BleAdvConfig()
+        enc_cmd = BleAdvEncCmd(decoded[0])
+        group_index = int.from_bytes(decoded[1:3], "little")
+        conf.index = (group_index & 0x0F00) >> 8
+        enc_cmd.arg0 = decoded[3]
+        enc_cmd.arg1 = decoded[4]
+        enc_cmd.arg2 = decoded[5]
+        conf.tx_count = decoded[6]
+        enc_cmd.param = decoded[7]
+        conf.seed = seed
+        conf.id = group_index + ((seed8 ^ decoded[8]) << 16)
+        return enc_cmd, conf
+
+    def encode(self, enc_cmd: BleAdvEncCmd, conf: BleAdvConfig) -> bytes:
+        """Encode an encoder command and a config into a buffer."""
+        is_pair_cmd: bool = enc_cmd.cmd == 0x28
+        obuf = bytearray()
+        obuf.append(enc_cmd.cmd)
+        obuf += (conf.id & 0xF0FF + ((conf.index & 0x0F) << 8)).to_bytes(2, "little")
+        obuf.append(conf.id & 0xFF if is_pair_cmd else enc_cmd.arg0)
+        obuf.append((conf.id >> 8) & 0xF0 if is_pair_cmd else enc_cmd.arg1)
+        obuf.append(self._pair_arg2 if (is_pair_cmd or not self._pair_arg_only_on_pair) else enc_cmd.arg2)
+        obuf.append(conf.tx_count)
+        obuf.append(enc_cmd.param)
+        seed = conf.seed if conf.seed != 0 else randint(0, 0xFFF5)
+        seed8 = seed & 0xFF
+        obuf.append(seed8 ^ 1 if self._xor1 else seed8 ^ ((conf.id >> 16) & 0xFF))
+        obuf.append(seed8 ^ 1 if self._xor1 else seed8)
+        obuf += seed.to_bytes(2)
+        obuf += self._crc16(obuf, seed ^ 0xFFFF).to_bytes(2)
+        if self._with_crc2:
+            obuf += self._crc2(obuf).to_bytes(2)
+        else:
+            obuf.append(0xAA)
+        obuf = bytearray(self._prefix) + obuf
+        self.log_buffer(obuf, "before encoding")
+        return whiten(reverse_all(obuf), 0x6F)
+
+
+class FanLampEncoderV2(FanLampEncoder):
+    """FanLamp V2 encoder."""
+
+    XBOXES: ClassVar[list[int]] = [
+        0xB7, 0xFD, 0x93, 0x26, 0x36, 0x3F, 0xF7, 0xCC, 0x34, 0xA5, 0xE5, 0xF1, 0x71, 0xD8, 0x31, 0x15,
+        0x04, 0xC7, 0x23, 0xC3, 0x18, 0x96, 0x05, 0x9A, 0x07, 0x12, 0x80, 0xE2, 0xEB, 0x27, 0xB2, 0x75,
+        0xD0, 0xEF, 0xAA, 0xFB, 0x43, 0x4D, 0x33, 0x85, 0x45, 0xF9, 0x02, 0x7F, 0x50, 0x3C, 0x9F, 0xA8,
+        0x51, 0xA3, 0x40, 0x8F, 0x92, 0x9D, 0x38, 0xF5, 0xBC, 0xB6, 0xDA, 0x21, 0x10, 0xFF, 0xF3, 0xD2,
+        0xE0, 0x32, 0x3A, 0x0A, 0x49, 0x06, 0x24, 0x5C, 0xC2, 0xD3, 0xAC, 0x62, 0x91, 0x95, 0xE4, 0x79,
+        0xE7, 0xC8, 0x37, 0x6D, 0x8D, 0xD5, 0x4E, 0xA9, 0x6C, 0x56, 0xF4, 0xEA, 0x65, 0x7A, 0xAE, 0x08,
+        0xE1, 0xF8, 0x98, 0x11, 0x69, 0xD9, 0x8E, 0x94, 0x9B, 0x1E, 0x87, 0xE9, 0xCE, 0x55, 0x28, 0xDF,
+        0x8C, 0xA1, 0x89, 0x0D, 0xBF, 0xE6, 0x42, 0x68, 0x41, 0x99, 0x2D, 0x0F, 0xB0, 0x54, 0xBB, 0x16,
+    ]  # fmt: skip
+
+    def __init__(self, prefix: list[int], device_type: int, with_sign: bool) -> None:
+        """Init with args."""
+        super().__init__(bytearray(prefix))
+        self._len = 24
+        self._device_type = device_type
+        self._with_sign = with_sign
+
+    def _whiten(self, buffer: bytes, seed: int, salt: int = 0) -> bytes:
+        """Whiten / Unwhiten buffer with seed."""
+        obuf = []
+        for i, val in enumerate(buffer):
+            obuf.append((self.XBOXES[((seed + i + 9) & 0x1F) + (salt & 0x3) * 0x20]) ^ seed ^ val)
+        return bytes(obuf)
+
+    def _sign(self, buffer: bytes, tx_count: int, seed: int) -> int:
+        """Compute uint16 AES ECB sign."""
+        key = bytes([seed & 0xFF, (seed >> 8) & 0xFF, tx_count, 0x0D, 0xBF, 0xE6, 0x42, 0x68, 0x41, 0x99, 0x2D, 0x0F, 0xB0, 0x54, 0xBB, 0x16])
+        cipher = AES.new(key, AES.MODE_ECB)
+        ciphertext = cipher.encrypt(buffer)
+        sign = int.from_bytes(ciphertext[0:2], "little")
+        return sign if sign != 0 else 0xFFFF
+
+    def decode(self, buffer: bytes) -> tuple[BleAdvEncCmd | None, BleAdvConfig | None]:
+        """Decode an incoming buffer into an encoder command and a config."""
+        seed = int.from_bytes(buffer[-4:-2], "little")
+        if not self.check_eq(self._crc16(buffer[:-2], seed ^ 0xFFFF), int.from_bytes(buffer[-2:], "little"), "CRC"):
+            return None, None
+        decoded = buffer[0:2] + self._whiten(buffer[2:-4], seed & 0xFF)
+        self.log_buffer(decoded, "Decoded")
+        if not self.check_eq_buf(self._prefix, decoded, "Prefix"):
+            return None, None
+        sign = int.from_bytes(decoded[17:19], "little")
+        if self._with_sign and not self.check_eq(self._sign(decoded[1:17], decoded[3], seed), sign, "Sign"):
+            return None, None
+        if not self._with_sign and not self.check_eq(0, sign, "NO Sign"):
+            return None, None
+        decoded = decoded[len(self._prefix) :]
+        if not self.check_eq(self._device_type, int.from_bytes(decoded[1:3], "little"), "Device Type"):
+            return None, None
+
+        conf = BleAdvConfig()
+        conf.seed = seed
+        conf.tx_count = decoded[0]
+        conf.id = int.from_bytes(decoded[3:7], "little")
+        conf.index = decoded[7]
+        enc_cmd = BleAdvEncCmd(decoded[8])
+        enc_cmd.param = decoded[10]
+        enc_cmd.arg0 = decoded[11]
+        enc_cmd.arg1 = decoded[12]
+        enc_cmd.arg2 = decoded[13]
+        return enc_cmd, conf
+
+    def encode(self, enc_cmd: BleAdvEncCmd, conf: BleAdvConfig) -> bytes:
+        """Encode an encoder command and a config into a buffer."""
+        seed = conf.seed if conf.seed != 0 else randint(1, 0xFFF5)
+        obuf = bytearray(self._prefix)
+        obuf.append(conf.tx_count)
+        obuf += self._device_type.to_bytes(2, "little")
+        obuf += conf.id.to_bytes(4, "little")
+        obuf.append(conf.index)
+        obuf.append(enc_cmd.cmd)
+        obuf.append(0)
+        obuf.append(enc_cmd.param)
+        obuf.append(enc_cmd.arg0)
+        obuf.append(enc_cmd.arg1)
+        obuf.append(enc_cmd.arg2)
+        obuf += (self._sign(bytes(obuf[1:17]), conf.tx_count, seed) if self._with_sign else 0).to_bytes(2, "little")
+        obuf.append(0)
+        self.log_buffer(obuf, "before encoding")
+        obuf = obuf[0:2] + self._whiten(obuf[2:], seed & 0xFF)
+        obuf += seed.to_bytes(2, "little")
+        obuf += self._crc16(obuf, seed ^ 0xFFFF).to_bytes(2, "little")
+        return obuf
+
+
+def _get_fan_translators(speed_attr: str, speed_count_attr: str) -> list[Trans]:
+    return [
+        Trans(Fan3SpeedCmd().act("on", False), EncCmd(0x31).eq(speed_count_attr, 0).eq(speed_attr, 0)),
+        Trans(Fan3SpeedCmd().act("on", True).act("speed"), EncCmd(0x31).eq(speed_count_attr, 0).min(speed_attr, 1)).copy("speed", speed_attr),
+        Trans(FanCmd().act("dir", True), EncCmd(0x15).eq("arg0", 0)),  # Forward
+        Trans(FanCmd().act("dir", False), EncCmd(0x15).eq("arg0", 1)),  # Reverse
+        Trans(FanCmd().act("osc", True), EncCmd(0x16).eq("arg0", 1)),
+        Trans(FanCmd().act("osc", False), EncCmd(0x16).eq("arg0", 0)),
+        Trans(FanCmd().act("cmd", "toggle"), EncCmd(0x33)).no_direct(),
+    ]
+
+
+def _get_device_translators() -> list[Trans]:
+    return [
+        Trans(DeviceCmd().act("cmd", "pair"), EncCmd(0x28)),
+        Trans(DeviceCmd().act("cmd", "unpair"), EncCmd(0x45)),
+        Trans(DeviceCmd().act("on", False), EncCmd(0x6F)).no_direct(),
+    ]
+
+
+def _get_light_translators(param_attr: str, cold_attr: str, warm_attr: str) -> list[Trans]:
+    return [
+        Trans(LightCmd().act("on", True), EncCmd(0x10)),
+        Trans(LightCmd().act("on", False), EncCmd(0x11)),
+        Trans(LightCmd(1).act("on", True), EncCmd(0x12)),
+        Trans(LightCmd(1).act("on", False), EncCmd(0x13)),
+        Trans(CTLightCmd().act("cold").act("warm"), EncCmd(0x21).eq(param_attr, 0)).copy("cold", cold_attr, 255).copy("warm", warm_attr, 255),
+        Trans(LightCmd().act("cmd", "toggle"), EncCmd(0x09)).no_direct(),
+        Trans(CTLightCmd().act("cold", 0.1).act("warm", 0.1), EncCmd(0x23)).no_direct(),  # night mode
+        Trans(CTLightCmd().act("cmd", "K+").eq("step", 0.1), EncCmd(0x21).eq(param_attr, 0x24)).no_direct(),
+        Trans(CTLightCmd().act("cmd", "K-").eq("step", 0.1), EncCmd(0x21).eq(param_attr, 0x18)).no_direct(),
+        Trans(CTLightCmd().act("cmd", "B+").eq("step", 0.1), EncCmd(0x21).eq(param_attr, 0x14)).no_direct(),
+        Trans(CTLightCmd().act("cmd", "B-").eq("step", 0.1), EncCmd(0x21).eq(param_attr, 0x28)).no_direct(),
+    ]
+
+
+TRANS_FANLAMP_V1 = [
+    *_get_light_translators("param", "arg0", "arg1"),
+    Trans(Fan6SpeedCmd().act("on", False), EncCmd(0x32).eq("arg1", 6).eq("arg0", 0)),
+    Trans(Fan6SpeedCmd().act("on", True).act("speed"), EncCmd(0x32).eq("arg1", 6).min("arg0", 1)).copy("speed", "arg0"),
+    *_get_fan_translators("arg0", "arg1"),
+    *_get_device_translators(),
+    Trans(DeviceCmd().act("cmd", "timer"), EncCmd(0x51)).copy("s", "arg0", 1.0 / 60.0).split_value("arg0", ["arg0"], 256),
+]
+
+TRANS_FANLAMP_V2 = [
+    *_get_light_translators("arg0", "arg1", "arg2"),
+    Trans(RGBLightCmd().act("rf").act("gf").act("bf"), EncCmd(0x22)).copy("rf", "arg0", 255).copy("gf", "arg1", 255).copy("bf", "arg2", 255),
+    Trans(RGBLightCmd().act("cmd", "B+").eq("step", 0.1), EncCmd(0x22).eq("arg0", 0x14)).no_direct(),  # NOT TESTED
+    Trans(RGBLightCmd().act("cmd", "B-").eq("step", 0.1), EncCmd(0x22).eq("arg0", 0x28)).no_direct(),  # NOT TESTED
+    Trans(Fan6SpeedCmd().act("on", False), EncCmd(0x31).eq("arg0", 0x20).eq("arg1", 0)),
+    Trans(Fan6SpeedCmd().act("on", True).act("speed"), EncCmd(0x31).eq("arg0", 0x20).min("arg1", 1)).copy("speed", "arg1"),
+    *_get_fan_translators("arg1", "arg0"),
+    *_get_device_translators(),
+    Trans(DeviceCmd().act("cmd", "timer"), EncCmd(0x41)).copy("s", "arg0", 1.0 / 60.0).split_value("arg0", ["arg0", "arg1"], 256),
+]

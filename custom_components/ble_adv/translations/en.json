@@ -1,0 +1,160 @@
+{
+    "title" : "Bluetooth Low Energy Advertising Controlled Devices",
+    "config": {
+      "step": {
+        "user": {
+          "menu_options": {
+            "manual": "Manual Input",
+            "wait_config": "Duplicate Paired Phone App config (Recommended)",
+            "pair": "Pairing"
+          }
+        },
+        "manual": {
+          "title": "Manual Input",
+          "description": "For experienced users, migrating from ESPHome for instance",
+          "data": {
+              "name": "Device name",
+              "codec_id": "Codec",
+              "adapter_id": "BLE ADV Adapter",
+              "forced_id": "Forced Id",
+              "index": "Index"
+          }   
+        },
+        "wait_config": {
+          "title": "Listening to configuration from Paired Phone App"
+        },
+        "blink": {
+          "title": "Configuration Test"
+        },
+        "pair": {
+          "title": "Pairing",
+          "description": "Please select the Phone App from the list below, cut the power of your device, reinstate it and press the **Submit** button within 5s (this will send the pair commands)",
+          "data": {
+            "adapter_id": "BLE ADV Adapter",
+            "phone_app": "Phone Application"
+          }
+        },
+        "confirm": {
+          "title": "Validation",
+          "description": "Testing {conf}. Did the light blink?",
+          "menu_options": {
+            "confirm_yes": "Yes",
+            "confirm_no": "No, try another."
+          }
+        },
+        "finalize": {
+          "title": "Controlled Entities",
+          "description": "Select the entities to create and their characteristics",
+          "data": {
+            "name": "Device name"
+          },
+          "sections": {
+            "light_0": {
+              "name": "Main Light",
+              "data": {
+                "type": "Type",
+                "min_brightness": "Minimum Brightness"
+              }
+            },
+            "light_1": {
+              "name": "Second Light",
+              "data": {
+                "type": "Type",
+                "min_brightness": "Minimum Brightness"
+              }
+            },
+            "light_2": {
+              "name": "Third Light",
+              "data": {
+                "type": "Type",
+                "min_brightness": "Minimum Brightness"
+              }
+            },
+            "fan_0": {
+              "name": "Main Fan",
+              "data": {
+                "type": "Type",
+                "direction": "Supports Direction",
+                "oscillating": "Supports Oscillation"
+              }
+            },
+            "fan_1": {
+              "name": "Second Fan",
+              "data": {
+                "type": "Type",
+                "direction": "Supports Direction",
+                "oscillating": "Supports Oscillation"
+              }
+            },
+            "fan_2": {
+              "name": "Third Fan",
+              "data": {
+                "type": "Type",
+                "direction": "Supports Direction",
+                "oscillating": "Supports Oscillation"
+              }
+            },
+            "technical": {
+              "name": "Technical",
+              "description": "Each command is advertised (3 * 'Repetitions') times, at given 'Interval' (ms)",
+              "data": {
+                "interval": "Interval",
+                "repeat": "Repetitions"
+              }
+            }
+          }
+        }
+      },
+      "progress": {
+        "wait_config": "Please press any button (preferably Pair) on the phone app controlling your device.",
+        "agg_config": "Aggregating configuration data.",
+        "blink": "Making the light blink with configuration {conf}"
+      },
+      "abort": {
+        "no_config": "No configuration have been found or tested successfully.",
+        "reconfigure_successful": "Reconfigure successful!",
+        "already_configured": "A device with the same (codec / id / index) is already configured"
+      }
+    },
+    "selector": {
+      "ble_adv_type_light": {
+        "options": {
+          "cww": "Cold / Warm White",
+          "onoff": "On / Off only",
+          "rgb": "RGB",
+          "none": "None"
+        }
+      },
+      "ble_adv_type_fan": {
+        "options": {
+          "3speed": "3 Levels Fan",
+          "6speed": "6 Levels Fan",
+          "none": "None"
+        }
+      }
+    },
+    "entity": {
+      "fan": {
+        "fan_0": {
+          "name": "Main Fan"
+        },
+        "fan_1": {
+          "name": "Second Fan"
+        },
+        "fan_2": {
+          "name": "Third Fan"
+        }
+      },
+      "light": {
+        "light_0": {
+          "name": "Main Light"
+        },
+        "light_1": {
+          "name": "Second Light"
+        },
+        "light_2": {
+          "name": "Third Light"
+        }
+      }
+    }
+}

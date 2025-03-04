@@ -1,5 +1,5 @@
 {
-    "name": "ludeeus/integration_blueprint",
+    "name": "NicoIIT/ble_adv",
     "image": "mcr.microsoft.com/devcontainers/python:3.13",
     "postCreateCommand": "scripts/setup",
     "forwardPorts": [
@@ -11,6 +11,12 @@
             "onAutoForward": "notify"
         }
     },
+    "containerEnv": {
+        "TUNNEL_SOCKET_FILE": "/tunnel_socket/hci.sock"
+    },
+    "mounts": [
+        "source=/data/tunnel_socket,target=/tunnel_socket,type=bind,consistency=cached"
+    ],
     "customizations": {
         "vscode": {
             "extensions": [
@@ -29,6 +35,9 @@
                 "files.trimTrailingWhitespace": true,
                 "python.analysis.typeCheckingMode": "basic",
                 "python.analysis.autoImportCompletions": true,
+                "python.analysis.extraPaths": [
+                    "/home/${remoteEnv:USER}/.local/lib/python3.13/site-packages"
+                ],
                 "python.defaultInterpreterPath": "/usr/local/bin/python",
                 "[python]": {
                     "editor.defaultFormatter": "charliermarsh.ruff"

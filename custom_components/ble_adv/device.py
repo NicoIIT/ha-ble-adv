@@ -1,0 +1,233 @@
+"""Provides the BleAdvDevice."""
+
+from __future__ import annotations
+
+import logging
+import traceback
+from abc import ABC, abstractmethod
+from datetime import datetime, timedelta
+from functools import wraps
+from typing import Any, ClassVar
+
+from homeassistant.const import STATE_ON
+from homeassistant.core import CALLBACK_TYPE, HomeAssistant, callback
+from homeassistant.helpers.device_registry import DeviceInfo
+from homeassistant.helpers.event import async_track_point_in_utc_time
+from homeassistant.helpers.restore_state import RestoreEntity
+from homeassistant.util import dt as dt_util
+
+from .adapters import BleAdvQueueItem
+from .codecs.models import AttrType, BleAdvAdvertisement, BleAdvCodec, BleAdvConfig, BleAdvEntAttr
+from .const import DOMAIN
+from .coordinator import BleAdvCoordinator, MatchingCallback
+
+_LOGGER = logging.getLogger(__name__)
+
+
+def handle_change(method):  # noqa: ANN001, ANN201
+    """Decorate entity methods applying changes.
+
+    The state attributes are saved before the change
+    and given to method 'async_after_change' that compares them to current
+    and calls the relevant device method to process the change
+    """
+
+    @wraps(method)
+    async def _impl(self: BleAdvEntity, *method_args, **method_kwargs):  # noqa: ANN002, ANN003, ANN202
+        before_attrs = self.get_attrs()
+        method_output = await method(self, *method_args, **method_kwargs)
+        await self.async_after_change(before_attrs)
+        return method_output
+
+    return _impl
+
+
+class BleAdvEntity(ABC, RestoreEntity):
+    """Base Ble Adv Entity class."""
+
+    _restored_attributes: ClassVar[list[tuple[str, Any]]] = []
+    _attr_has_entity_name = True
+
+    def __init__(self, base_type: str, device: BleAdvDevice, index: int = 0) -> None:
+        self._device: BleAdvDevice = device
+        self._index: int = index
+        self._base_type: str = base_type
+        self._attr_device_info: DeviceInfo = device.device_info
+        self._attr_unique_id: str = f"{device.unique_id}_{base_type}_{index}"
+        self._attr_translation_key: str = f"{base_type}_{index}"
+        self._device.add_entity(self)
+
+    @property
+    def id(self) -> tuple[str, int]:
+        """Entity ID."""
+        return (self._base_type, self._index)
+
+    @abstractmethod
+    def get_attrs(self) -> dict[str, AttrType]:
+        """Get the attrs."""
+
+    def apply_attrs(self, ent_attr: BleAdvEntAttr) -> None:
+        """Apply Attributes to the Entity."""
+        if "on" in ent_attr.chg_attrs:
+            self._attr_is_on = ent_attr.attrs.get("on")
+        if "cmd" in ent_attr.chg_attrs and ent_attr.attrs.get("cmd") == "toggle":
+            self._attr_is_on = not self._attr_is_on
+
+    def get_change_rate(self, before_attrs: dict[str, AttrType], after_attrs: dict[str, AttrType]) -> int:  # noqa: ARG002
+        """Compute the change rate for the attribute."""
+        return 0
+
+    async def async_after_change(self, before_attrs: dict[str, AttrType]) -> None:
+        """Process to be done after change is detected on Entity."""
+        attrs = self.get_attrs()
+        changed_attrs = [x for x, y in attrs.items() if y != before_attrs.get(x)]
+        if changed_attrs:
+            chg_rate = self.get_change_rate(before_attrs, attrs)
+            await self._device.apply_change(BleAdvEntAttr(changed_attrs, attrs, self._base_type, self._index), chg_rate)
+
+    async def async_added_to_hass(self) -> None:
+        """Restore state."""
+        await super().async_added_to_hass()
+
+        if last_state := await self.async_get_last_state():
+            self._attr_is_on = last_state.state == STATE_ON
+            for attribute, default_value in self._restored_attributes:
+                val = last_state.attributes.get(attribute, None)
+                setattr(self, f"_attr_{attribute}", val if val is not None else default_value)
+        else:
+            self._attr_is_on = False
+            for attribute, default_value in self._restored_attributes:
+                setattr(self, f"_attr_{attribute}", default_value)
+
+
+class MatchingDeviceCallback(MatchingCallback):
+    """Callback checking if callback is matching the device."""
+
+    def __init__(self, device: BleAdvDevice) -> None:
+        self.device: BleAdvDevice = device
+
+    async def handle(self, codec_id: str, adapter_id: str, config: BleAdvConfig, ent_attrs: list[BleAdvEntAttr]) -> bool:
+        """Handle the callback."""
+        if (
+            (codec_id != self.device.codec_id)
+            or (adapter_id != self.device.adapter_id)
+            or (config.id != self.device.config.id)
+            or (config.index != self.device.config.index)
+        ):
+            return False
+        await self.device.async_on_command(ent_attrs)
+        return True
+
+    def __repr__(self) -> str:
+        return f"adapter_id: {self.device.adapter_id}, codec_id: {self.device.codec_id}, config: {self.device.config}"
+
+
+class BleAdvDevice:
+    """Class to control the device."""
+
+    def __init__(
+        self,
+        hass: HomeAssistant,
+        logger: logging.Logger,
+        unique_id: str,
+        name: str,
+        codec_id: str,
+        adapter_id: str,
+        repeat: int,
+        interval: int,
+        config: BleAdvConfig,
+        coordinator: BleAdvCoordinator,
+    ) -> None:
+        self.hass: HomeAssistant = hass
+        self.logger: logging.Logger = logger
+        self.unique_id: str = unique_id
+        self.name: str = name
+        self.codec_id: str = codec_id
+        self.adapter_id: str = adapter_id
+        self.repeat: int = int(repeat)
+        self.interval: int = int(interval)
+        self.config: BleAdvConfig = config
+        self.coordinator: BleAdvCoordinator = coordinator
+        self.entities: dict[Any, BleAdvEntity] = {}
+        self._timer_cancel: CALLBACK_TYPE | None = None
+
+    @property
+    def device_info(self) -> DeviceInfo:
+        """Return the device info."""
+        return DeviceInfo(
+            identifiers={(DOMAIN, self.unique_id)},
+            name=self.name,
+            hw_version=self.adapter_id,
+            model=self.codec_id,
+            model_id=f"0x{self.config.id:X} / {self.config.index}",
+        )
+
+    def add_entity(self, ent: BleAdvEntity) -> None:
+        """Add entity to this device."""
+        self.entities[ent.id] = ent
+
+    @callback
+    async def async_start(self) -> None:
+        """Start the Device: register to coordinator."""
+        await self.coordinator.register_callback(self.unique_id, MatchingDeviceCallback(self))
+
+    async def async_stop(self) -> None:
+        """Stop the device: unregister."""
+        await self.coordinator.unregister_callback(self.unique_id)
+
+    async def apply_change(self, ent_attr: BleAdvEntAttr, chg_rate: int = 0) -> None:
+        """Apply changes."""
+        self.logger.info(f"Tx: {self.config.tx_count}, Changes {ent_attr}, rate: {chg_rate}")
+        await self._async_cancel_timer()
+        try:
+            acodec: BleAdvCodec = self.coordinator.codecs[self.codec_id]
+            enc_cmds = acodec.ent_to_enc(ent_attr)
+            for enc_cmd in enc_cmds:
+                self.logger.info(f"Cmd: {enc_cmd}")
+                self.config.tx_count = (self.config.tx_count + 1) % 125
+                adv: BleAdvAdvertisement = acodec.encode_adv(enc_cmd, self.config)
+                qi: BleAdvQueueItem = BleAdvQueueItem(enc_cmd.cmd, self.repeat, chg_rate, self.interval, adv.to_raw())
+                await self.coordinator.get_adapter(self.adapter_id).enqueue(self.unique_id, qi)
+        except Exception:  # noqa: BLE001, We want to catch ALL Exceptions, log them, BUT continue running the loop
+            _LOGGER.error(traceback.format_exc())
+
+    async def async_on_command(self, ent_attrs: list[BleAdvEntAttr]) -> None:
+        """Process commands received."""
+        for ent_attr in ent_attrs:
+            if ent_attr.base_type == "device":
+                await self._async_on_device_command(ent_attr)
+            else:
+                ent = self.entities[(ent_attr.base_type, ent_attr.index)]
+                ent.apply_attrs(ent_attr)
+                ent.async_write_ha_state()
+
+    async def _async_on_device_command(self, ent_attr: BleAdvEntAttr) -> None:
+        self.logger.info(f"Device Command received: {ent_attr}")
+        if "cmd" in ent_attr.chg_attrs:
+            cmd = ent_attr.attrs.get("cmd")
+            if cmd == "timer":
+                expire = dt_util.utcnow() + timedelta(seconds=ent_attr.attrs["s"])  # type: ignore[none]
+                self.logger.info(f"Set Timer to expire at: {expire}")
+                await self._async_cancel_timer()
+                self._timer_cancel = async_track_point_in_utc_time(self.hass, self._async_timeout, expire)
+            elif cmd in ("pair", "unpair"):
+                pass
+            else:
+                self.logger.warning(f"Unexpected command '{cmd}'.")
+        else:
+            await self._async_cmd_all(ent_attr)
+
+    async def _async_cancel_timer(self) -> None:
+        if self._timer_cancel:
+            self._timer_cancel()
+            self._timer_cancel = None
+            self.logger.info("Timer cancelled.")
+
+    async def _async_timeout(self, now: datetime) -> None:  # noqa: ARG002
+        self.logger.info("Timer expired: switch all entities OFF.")
+        await self._async_cmd_all(BleAdvEntAttr(["on"], {"on": False}, "", 0))
+
+    async def _async_cmd_all(self, ent_attr: BleAdvEntAttr) -> None:
+        for ent in self.entities.values():
+            ent.apply_attrs(ent_attr)
+            ent.async_write_ha_state()
