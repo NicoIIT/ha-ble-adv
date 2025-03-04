@@ -1,8 +1,8 @@
 # ruff: noqa: S101, A005
 """Codec Tests."""
 
-from custom_components.ble_adv.codecs import get_codecs
-from custom_components.ble_adv.codecs.models import BleAdvAdvertisement
+from ble_adv.codecs import get_codecs
+from ble_adv.codecs.models import BleAdvAdvertisement
 
 CODECS = get_codecs()
 

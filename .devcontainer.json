@@ -1,7 +1,7 @@
 {
     "name": "NicoIIT/ble_adv",
     "image": "mcr.microsoft.com/devcontainers/python:3.13",
-    "postCreateCommand": "scripts/setup",
+    "postCreateCommand": "python3 -m pip install --requirement requirements.txt",
     "forwardPorts": [
         8123
     ],
@@ -12,7 +12,8 @@
         }
     },
     "containerEnv": {
-        "TUNNEL_SOCKET_FILE": "/tunnel_socket/hci.sock"
+        "TUNNEL_SOCKET_FILE": "/tunnel_socket/hci.sock",
+        "PYTHONPATH": ":${containerWorkspaceFolder}/custom_components"
     },
     "mounts": [
         "source=/data/tunnel_socket,target=/tunnel_socket,type=bind,consistency=cached"
@@ -41,6 +42,29 @@
                 "python.defaultInterpreterPath": "/usr/local/bin/python",
                 "[python]": {
                     "editor.defaultFormatter": "charliermarsh.ruff"
+                },
+                "tasks": {
+                    "version": "2.0.0",
+                    "tasks": [
+                        {
+                            "label": "lint",
+                            "type": "shell",
+                            "command": "ruff format . && ruff check . --fix",
+                            "problemMatcher": []
+                        },
+                        {
+                            "label": "test",
+                            "type": "shell",
+                            "command": "pytest",
+                            "problemMatcher": []
+                        },
+                        {
+                            "label": "run",
+                            "type": "shell",
+                            "command": "hass --config config --debug",
+                            "problemMatcher": []
+                        }
+                    ]
                 }
             }
         }
