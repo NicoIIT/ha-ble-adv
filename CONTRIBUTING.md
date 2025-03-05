@@ -7,17 +7,27 @@ Contributing to this project should be as easy and transparent as possible, whet
 - Submitting a fix
 - Proposing new features
 
-## Github is used for everything
+## Github and Visual Studio Code devcontainer as a basis
 
 Github is used to host code, to track issues and feature requests, as well as accept pull requests.
+Visual Studio Code devcontainer is used to create an immediatly up and running workspace with everything you need to work.
 
-Pull requests are the best way to propose changes to the codebase.
+Should you want to propose changes please follow:
 
-1. Fork the repo and create your branch from `main`.
-2. If you've changed something, update the documentation.
-3. Make sure your code lints (using `scripts/lint`).
-4. Test you contribution.
-5. Issue that pull request!
+1. Fork the repo or update your fork from original repo
+2. create your working branch from `main`. We will use `dev` as working branch name in what follows. As a general rule, do NEVER work on the `main` branch of a Fork, it is the one to be kept in sync with the `main` branch of the original repo and should not contain local developments.
+3. Use Visual Studio Code [devcontainer feature from githup repo](https://code.visualstudio.com/docs/devcontainers/containers#_quick-start-open-a-git-repository-or-github-pr-in-an-isolated-container-volume) to create your Visual Studio Code workspace, including =`run tasks` ready to use:
+    * lint: check formatting
+    * test: run python tests
+    * run: starts an instance of Home Assistant with forwarded ports, available at `http://localhost:8123`
+4. Perform your changes, add relevant tests and documentation.
+5. Ensure `lint` and `test` tasks run OK, and that the integration is behaving OK in `run`.
+6. Commit your changes and push them to your `dev` branch.
+7. Open a Pull Request from your `dev` branch to the `main` branch of the original repo.
+8. Check that the Actions on github run OK on your PR, correct if needed.
+9. Wait for review, approval and merge.
+10. Delete your working branch when the PR is merged
+
 
 ## Any contributions you make will be under the MIT Software License
 
@@ -41,20 +51,7 @@ Report a bug by [opening a new issue](../../issues/new/choose); it's that easy!
 - Notes (possibly including why you think this might be happening, or stuff you tried that didn't work)
 
 People *love* thorough bug reports. I'm not even kidding.
-
-## Use a Consistent Coding Style
-
-Use [black](https://github.com/ambv/black) to make sure the code follows the style.
-
-## Test your code modification
-
-This custom component is based on [integration_blueprint template](https://github.com/ludeeus/integration_blueprint).
-
-It comes with development environment in a container, easy to launch
-if you use Visual Studio Code. With this container you will have a stand alone
-Home Assistant instance running and already configured with the included
-[`configuration.yaml`](./config/configuration.yaml)
-file.
+People *hate* one line bug reports. If they have to ask you for details, it is more likely that your bug report will never be considered.
 
 ## License
 

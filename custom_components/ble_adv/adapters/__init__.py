@@ -5,6 +5,7 @@ import logging
 import socket
 import struct
 from abc import ABC, abstractmethod
+from binascii import hexlify
 from collections.abc import Awaitable, Callable
 
 from ..async_socket import AsyncSocket, AsyncSocketBase, AsyncTunnelSocket  # noqa: TID252
@@ -19,12 +20,13 @@ class AdapterError(Exception):
 class BleAdvQueueItem:
     """MultiQueue Item."""
 
-    def __init__(self, key: int, repeat: int, delay: int, *args) -> None:  # noqa: ANN002
+    def __init__(self, key: int, repeat: int, delay: int, interval: int, data: bytes) -> None:
         """Init MultiQueue Item."""
-        self.key = key
-        self.repeat = repeat
-        self.delay_after = delay
-        self.args = args
+        self.key: int = key
+        self.repeat: int = repeat
+        self.delay_after: int = delay
+        self.interval: int = interval
+        self.data: bytes = data
 
 
 type AdvRecvCallback = Callable[[str, bytes], Awaitable[None]]
@@ -46,6 +48,12 @@ class BleAdvAdapter(ABC):
         self._lock: asyncio.Lock = asyncio.Lock()
         self._processing: bool = True
         self._dequeue_task: asyncio.Task | None = None
+
+    def _log(self, message: str) -> None:
+        _LOGGER.info("[%s] %s.", self.name, message)
+
+    def _log_dbg(self, message: str) -> None:
+        _LOGGER.debug("[%s] %s.", self.name, message)
 
     async def async_init(self) -> None:
         """Async Init."""
@@ -138,7 +146,8 @@ class BleAdvAdapter(ABC):
                             break
                     self._add_event.clear()
                 if item is not None:
-                    await self._advertise(*item.args)
+                    self._log_dbg(f"Advertising {hexlify(item.data, '.').upper()}")
+                    await self._advertise(item.interval, item.data)
                     await self._lock_queue_for(self._cur_ind, lock_delay)
                     self._add_event.set()
             except Exception as exc:  # noqa: BLE001, We want to catch ALL Exceptions, log them, BUT continue running the loop
@@ -191,9 +200,6 @@ class BluetoothHCIAdapter(BleAdvAdapter):
         self._on_going_cmd = None
         self._opened = False
         self._adv_lock = asyncio.Lock()
-
-    def _log(self, message: str) -> None:
-        _LOGGER.info("[%s] %s.", self.name, message)
 
     async def open(self) -> None:
         """Open the adapters. Can throw exception if invalid."""

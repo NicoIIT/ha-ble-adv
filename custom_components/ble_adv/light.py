@@ -57,7 +57,7 @@ class BleAdvLightBase(LightEntity, BleAdvEntity):
     def __init__(self, light_type: str, min_br: float, device: BleAdvDevice, index: int) -> None:
         super().__init__(LIGHT_TYPE, device, index)
         self._light_type: str = light_type
-        self._min_brighntess = int(min_br / 100.0)
+        self._min_brighntess = float(min_br / 100.0)
 
     @handle_change
     async def async_turn_off(self, **kwargs) -> None:  # noqa: ANN003, ARG002
@@ -111,7 +111,7 @@ class BleAdvLightRGB(BleAdvLightBase):
     async def async_turn_on(self, **kwargs) -> None:  # noqa: ANN003
         """Turn device on."""
         if ATTR_BRIGHTNESS in kwargs:
-            self._set_brightness(kwargs[ATTR_BRIGHTNESS])
+            self._set_brightness(kwargs[ATTR_BRIGHTNESS] / 255.0)
         if ATTR_RGB_COLOR in kwargs:
             self._attr_rgb_color = kwargs[ATTR_RGB_COLOR]
         self._attr_is_on = True
@@ -174,7 +174,7 @@ class BleAdvLightCWW(BleAdvLightBase):
     async def async_turn_on(self, **kwargs) -> None:  # noqa: ANN003
         """Turn device on."""
         if ATTR_BRIGHTNESS in kwargs:
-            self._set_brightness(kwargs[ATTR_BRIGHTNESS])
+            self._set_brightness(kwargs[ATTR_BRIGHTNESS] / 255.0)
         if ATTR_COLOR_TEMP_KELVIN in kwargs:
             self._attr_color_temp_kelvin = kwargs[ATTR_COLOR_TEMP_KELVIN]
         self._attr_is_on = True
