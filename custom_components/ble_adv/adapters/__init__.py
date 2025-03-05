@@ -8,7 +8,7 @@ from abc import ABC, abstractmethod
 from binascii import hexlify
 from collections.abc import Awaitable, Callable
 
-from ..async_socket import AsyncSocket, AsyncSocketBase, AsyncTunnelSocket  # noqa: TID252
+from ..async_socket import AsyncSocketBase, create_async_socket  # noqa: TID252
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -46,7 +46,7 @@ class BleAdvAdapter(ABC):
         self._add_event: asyncio.Event = asyncio.Event()
         self._cur_ind: int = -1
         self._lock: asyncio.Lock = asyncio.Lock()
-        self._processing: bool = True
+        self._processing: bool = False
         self._dequeue_task: asyncio.Task | None = None
 
     def _log(self, message: str) -> None:
@@ -57,8 +57,20 @@ class BleAdvAdapter(ABC):
 
     async def async_init(self) -> None:
         """Async Init."""
+        self._processing = True
         self._dequeue_task = asyncio.create_task(self._dequeue())
         await self.open()
+
+    async def async_final(self) -> None:
+        """Async Final: clean-up to be ready for another init."""
+        async with self._lock:
+            self._processing = False
+            self._qlen = 0
+            self._cur_ind = -1
+            self._queues.clear()
+            self._queues_index.clear()
+            self._locked_tasks.clear()
+            self._add_event.set()
 
     @abstractmethod
     async def open(self) -> None:
@@ -89,14 +101,6 @@ class BleAdvAdapter(ABC):
         """Stop Scan."""
         await self._stop_scan()
         self._on_adv_recv = None
-        async with self._lock:
-            self._processing = False
-            self._qlen = 0
-            self._cur_ind = -1
-            self._queues.clear()
-            self._queues_index.clear()
-            self._locked_tasks.clear()
-            self._add_event.set()
 
     async def enqueue(self, queue_id: str, item: BleAdvQueueItem) -> None:
         """Enqueue an Adv in the queue_id."""
@@ -189,11 +193,10 @@ class BluetoothHCIAdapter(BleAdvAdapter):
         self,
         name: str,
         async_socket: AsyncSocketBase,
-        device_id: int,
     ) -> None:
         """Create Adapter."""
         super().__init__(name)
-        self.device_id = device_id
+        self.device_id = int(name[-1])
         self._async_socket = async_socket
         self._ext_adv = None
         self._cmd_event = asyncio.Event()
@@ -206,7 +209,7 @@ class BluetoothHCIAdapter(BleAdvAdapter):
         if self._opened:
             return
         self._opened = True
-        await self._async_socket.async_init(
+        fileno = await self._async_socket.async_init(
             self.name,
             self._recv,
             self._remote_close,
@@ -221,7 +224,7 @@ class BluetoothHCIAdapter(BleAdvAdapter):
         if ret_code == self.HCI_SUCCESS and data is not None:
             features = int.from_bytes(data)
             self._ext_adv = features & (1 << 12)
-        self._log("Connected")
+        self._log(f"Connected - fileno: {fileno}")
 
     async def close(self) -> None:
         """Close Adapter."""
@@ -323,7 +326,6 @@ class BluetoothHCIAdapter(BleAdvAdapter):
         await self._set_scan_enable(enabled=False)
 
 
-HCI_ADAPTERS = [BluetoothHCIAdapter(f"hci{i}", AsyncSocket(), i) for i in range(3)]
-HCI_TUNNEL_ADAPTERS = [BluetoothHCIAdapter(f"hci{i}_tunnel", AsyncTunnelSocket(), i) for i in range(3)]
-
-ALL_ADAPTERS = HCI_ADAPTERS + HCI_TUNNEL_ADAPTERS
+def get_adapter(device_id: str) -> BleAdvAdapter:
+    """Get the Adapter corresponding to the device_id and the potential tunneling config."""
+    return BluetoothHCIAdapter(device_id, create_async_socket())

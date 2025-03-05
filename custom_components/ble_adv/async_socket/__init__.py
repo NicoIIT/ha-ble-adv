@@ -31,18 +31,18 @@ class AsyncSocketBase(ABC):
         self._cmd_res: bytes | None = None
 
     @abstractmethod
-    async def _async_open_socket(self, name: str, *args) -> None:  # noqa: ANN002
+    async def _async_open_socket(self, name: str, *args) -> int:  # noqa: ANN002
         """Open the socket."""
 
     @abstractmethod
     async def _async_start_recv(self) -> None:
         """Init the socket."""
 
-    async def async_init(self, name: str, read_callback: SocketRecvCallback, close_callback: SocketCloseCallback, *args) -> None:  # noqa: ANN002
+    async def async_init(self, name: str, read_callback: SocketRecvCallback, close_callback: SocketCloseCallback, *args) -> int:  # noqa: ANN002
         """Async Initialize an async socket: setup the callbacks and create the socket."""
         self._on_recv = read_callback
         self._on_close = close_callback
-        await self._async_open_socket(name, *args)
+        return await self._async_open_socket(name, *args)
 
     async def async_start_recv(self) -> None:
         """Async start listening to the created socket."""
@@ -68,13 +68,16 @@ class AsyncSocketBase(ABC):
 
     @abstractmethod
     async def _async_call(self, method: str, *args) -> Any:  # noqa: ANN002, ANN401
-        """Call the socket method. MUST call _async_call_done() when finished or raise an exception."""
+        """Call the socket method. MUST call _base_call_result() when finished or _base_call_exception()."""
 
-    def _base_call_done(self, result: Any, is_exception: bool = False) -> None:  # noqa: ANN401
-        if is_exception:
-            self._cmd_exc = result
-        else:
-            self._cmd_res = result
+    def _base_call_result(self, result: Any) -> None:  # noqa: ANN401
+        self._cmd_exc = None
+        self._cmd_res = result
+        self._cmd_event.set()
+
+    def _base_call_exception(self, exception: BaseException) -> None:
+        self._cmd_res = None
+        self._cmd_exc = exception
         self._cmd_event.set()
 
     async def _async_call_base(self, method: str, *args) -> Any:  # noqa: ANN002, ANN401
@@ -103,8 +106,9 @@ class AsyncSocket(AsyncSocketBase):
         super().__init__()
         self._socket: socket.socket | None = None
 
-    async def _async_open_socket(self, name: str, *args) -> None:  # noqa: ARG002, ANN002
+    async def _async_open_socket(self, name: str, *args) -> int:  # noqa: ARG002, ANN002
         self._socket = socket.socket(*args)
+        return self._socket.fileno()
 
     async def _async_start_recv(self) -> None:
         await self._setup_recv_loop(self._async_recv)
@@ -117,10 +121,10 @@ class AsyncSocket(AsyncSocketBase):
         return data, data is not None
 
     def _call_done(self, future: asyncio.Future) -> None:
-        if future.exception():
-            self._base_call_done(future.exception(), True)
+        if (exc := future.exception()) is not None:
+            self._base_call_exception(exc)
         else:
-            self._base_call_done(future.result(), False)
+            self._base_call_result(future.result())
 
     async def _async_call(self, method: str, *args) -> None:  # noqa: ANN002
         future = asyncio.get_event_loop().run_in_executor(None, getattr(self._socket, method), *args)
@@ -143,13 +147,13 @@ class AsyncTunnelSocket(AsyncSocketBase):
         self._unix_reader = None
         self._unix_writer = None
 
-    async def _async_open_socket(self, name: str, *args) -> None:  # noqa: ANN002
+    async def _async_open_socket(self, name: str, *args) -> int:  # noqa: ANN002
         self._unix_reader, self._unix_writer = await asyncio.open_unix_connection(path=self.SOCKET_TUNNEL_FILE)
         await self._setup_recv_loop(self._async_recv)
-        await self._async_call_base("1", name, *args)
+        return await self._async_call_base("##CREATE", name, *args)
 
     async def _async_start_recv(self) -> None:
-        await self._async_call_base("2", 4096)
+        await self._async_call_base("##RECV", 4096)
 
     async def _async_recv(self) -> tuple[bytes | None, bool]:
         """Receive Data from socket."""
@@ -161,10 +165,10 @@ class AsyncTunnelSocket(AsyncSocketBase):
         data = await self._unix_reader.read(data_len)
         action, recv_data = pickle.loads(data)  # noqa: S301
         if action == 0:
-            self._base_call_done(recv_data, False)
+            self._base_call_result(recv_data)
             return None, True
         if action == 1:
-            self._base_call_done(recv_data, True)
+            self._base_call_exception(recv_data)
             return None, True
         if action == 10 and self._on_recv:
             return recv_data, True
@@ -173,13 +177,7 @@ class AsyncTunnelSocket(AsyncSocketBase):
     async def _async_call(self, method: str, *args) -> None:  # noqa: ANN002
         if self._unix_writer is None:
             return
-        if method[0].isdigit():
-            action = int(method)
-            eff_args = args
-        else:
-            action = 10
-            eff_args = [method, *args]
-        data = pickle.dumps((action, eff_args))
+        data = pickle.dumps((10, [method, *args]))
         self._unix_writer.write(len(data).to_bytes(2))
         self._unix_writer.write(data)
         await self._unix_writer.drain()
@@ -189,3 +187,8 @@ class AsyncTunnelSocket(AsyncSocketBase):
         if self._unix_writer:
             self._unix_writer.close()
             self._unix_writer = None
+
+
+def create_async_socket() -> AsyncSocketBase:
+    """Return the relevant async socket if the tunneling is properly configured."""
+    return AsyncTunnelSocket() if "TUNNEL_SOCKET_FILE" in os.environ else AsyncSocket()

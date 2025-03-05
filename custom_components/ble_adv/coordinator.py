@@ -61,12 +61,12 @@ class BleAdvCoordinator:
             self.logger.info("Adapters registered")
 
         self._callbacks[callback_id] = callback
-        self.logger.info(f"Registered callback with id '{id}': {callback}")
+        self.logger.info(f"Registered callback with id '{callback_id}': {callback}")
 
     async def unregister_callback(self, callback_id: str) -> None:
         """Unregister a callback by its id."""
         self._callbacks.pop(callback_id)
-        self.logger.info(f"Unregistered callback with id '{id}'")
+        self.logger.info(f"Unregistered callback with id '{callback_id}'")
         if len(self._callbacks) == 0:
             for adapter in self.adapters.values():
                 await adapter.stop_scan()

@@ -16,7 +16,8 @@
         "PYTHONPATH": ":${containerWorkspaceFolder}/custom_components"
     },
     "mounts": [
-        "source=/data/tunnel_socket,target=/tunnel_socket,type=bind,consistency=cached"
+        "source=/data/tunnel_socket,target=/tunnel_socket,type=bind,consistency=cached",
+        "source=/run/dbus,target=/run/dbus,type=bind,consistency=cached"
     ],
     "customizations": {
         "vscode": {

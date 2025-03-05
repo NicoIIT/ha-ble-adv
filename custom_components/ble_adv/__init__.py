@@ -1,14 +1,17 @@
 "ble_adv package."
 
+import contextlib
 import logging
 
+with contextlib.suppress(Exception):
+    from homeassistant.components.bluetooth.api import _get_manager as get_bt_manager
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import (
     CONF_NAME,
 )
 from homeassistant.core import HomeAssistant
 
-from .adapters import ALL_ADAPTERS
+from .adapters import get_adapter
 from .codecs import get_codecs
 from .codecs.models import BleAdvConfig
 from .const import CONF_ADAPTER_ID, CONF_CODEC_ID, CONF_COORDINATOR_ID, CONF_FORCED_ID, CONF_INDEX, DOMAIN, PLATFORMS
@@ -23,21 +26,26 @@ async def get_coordinator(hass: HomeAssistant) -> BleAdvCoordinator:
     hass.data.setdefault(DOMAIN, {})
     if CONF_COORDINATOR_ID not in hass.data[DOMAIN]:
         hass.data[DOMAIN][CONF_COORDINATOR_ID] = BleAdvCoordinator(hass, _LOGGER, get_codecs())
-        for adapter in ALL_ADAPTERS:
+        bt_adapters = await get_bt_manager(hass).async_get_bluetooth_adapters()
+        _LOGGER.debug(f"BT Adapters: {bt_adapters}")
+        for adapter_id in bt_adapters:
             try:
+                adapter = get_adapter(adapter_id)
                 await adapter.async_init()
                 await hass.data[DOMAIN][CONF_COORDINATOR_ID].add_adapter(adapter)
             except OSError as exc:
-                _LOGGER.info(f"Failed to init adapter {adapter.name}:{type(exc)}:{exc}, ignoring it")
+                _LOGGER.warning(f"Failed to init adapter {adapter.name}:{type(exc)}:{exc}, ignoring it")
                 await adapter.close()
     return hass.data[DOMAIN][CONF_COORDINATOR_ID]
 
 
-def clean_coordinator(hass: HomeAssistant) -> None:
+async def clean_coordinator(hass: HomeAssistant) -> None:
     """Clean coordinator if alone in the DOMAIN."""
     if (len(hass.data[DOMAIN]) == 1) and (CONF_COORDINATOR_ID in hass.data[DOMAIN]):
         _LOGGER.info("Removing coordinator")
-        hass.data[DOMAIN].pop(CONF_COORDINATOR_ID)
+        coordinator = hass.data[DOMAIN].pop(CONF_COORDINATOR_ID)
+        for adapter in coordinator.adapters.values():
+            await adapter.async_final()
         hass.data.pop(DOMAIN)
 
 
@@ -84,4 +92,4 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 async def async_remove_entry(hass: HomeAssistant, entry: ConfigEntry) -> None:
     """Remove a config entry."""
     _LOGGER.info(f"BLE ADV: Removing entry {entry.unique_id} / {entry.data}")
-    clean_coordinator(hass)
+    await clean_coordinator(hass)
