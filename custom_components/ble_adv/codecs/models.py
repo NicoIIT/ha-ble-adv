@@ -155,7 +155,7 @@ class EntityMatcher(CommonMatcher):
         return (
             (self._base_type == ent_attr.base_type)
             and (self._index == ent_attr.index)
-            and all(attr in ent_attr.chg_attrs for attr in self._actions)
+            and any(attr in ent_attr.chg_attrs for attr in self._actions)
             and all(ent_attr.attrs.get(attr) == val for attr, val in self._eqs.items())
             and all(ent_attr.attrs.get(attr) >= val for attr, val in self._mins.items())  # type: ignore[none]
             and all(ent_attr.attrs.get(attr) <= val for attr, val in self._maxs.items())  # type: ignore[none]
@@ -319,7 +319,7 @@ class BleAdvCodec(ABC):
         self._header: bytearray = bytearray()
         self._ble_type: int = 0
         self._ad_flag: int = 0
-        self._debug_mode: bool = True
+        self._debug_mode: bool = False
         self._len: int = 0
         self._translators: list[Trans] = []
 
