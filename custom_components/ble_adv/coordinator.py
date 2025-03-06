@@ -7,9 +7,10 @@ import traceback
 from abc import ABC, abstractmethod
 from datetime import datetime, timedelta
 
+from bluetooth_adapters import get_bluetooth_adapters
 from homeassistant.core import HomeAssistant
 
-from .adapters import BleAdvAdapter
+from .adapters import BleAdvAdapter, get_adapter
 from .codecs.models import BleAdvAdvertisement, BleAdvCodec, BleAdvConfig, BleAdvEntAttr, as_hex
 
 _LOGGER = logging.getLogger(__name__)
@@ -45,9 +46,23 @@ class BleAdvCoordinator:
         self._last_advs: dict[bytes, datetime] = {}
         self._callbacks: dict[str, MatchingCallback] = {}
 
-    async def add_adapter(self, adapter: BleAdvAdapter) -> None:
-        """Add a VALID adapter."""
-        self.adapters[adapter.name] = adapter
+    async def async_init(self) -> None:
+        """Async Init."""
+        bt_adapters = await get_bluetooth_adapters()
+        _LOGGER.debug(f"BT Adapters: {bt_adapters}")
+        for adapter_id in bt_adapters:
+            try:
+                adapter = get_adapter(adapter_id)
+                await adapter.async_init()
+                self.adapters[adapter.name] = adapter
+            except OSError as exc:
+                _LOGGER.warning(f"Failed to init adapter {adapter.name}:{type(exc)}:{exc}, ignoring it")
+                adapter.close()
+
+    async def async_final(self) -> None:
+        """Async Final: Clean-up."""
+        for adapter in self.adapters.values():
+            await adapter.async_final()
 
     def get_adapter(self, adapter_id: str) -> BleAdvAdapter:
         """Get the adapter."""

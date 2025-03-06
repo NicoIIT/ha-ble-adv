@@ -197,9 +197,10 @@ class BleAdvDevice:
             if ent_attr.base_type == "device":
                 await self._async_on_device_command(ent_attr)
             else:
-                ent = self.entities[(ent_attr.base_type, ent_attr.index)]
-                ent.apply_attrs(ent_attr)
-                ent.async_write_ha_state()
+                ent = self.entities.get(ent_attr.id)
+                if ent is not None:
+                    ent.apply_attrs(ent_attr)
+                    ent.async_write_ha_state()
 
     async def _async_on_device_command(self, ent_attr: BleAdvEntAttr) -> None:
         self.logger.info(f"Device Command received: {ent_attr}")

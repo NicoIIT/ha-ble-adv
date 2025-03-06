@@ -1,7 +1,7 @@
 """Async Socket Package."""
 
 import asyncio
-import logging
+import atexit
 import os
 import pickle
 import socket
@@ -9,8 +9,6 @@ from abc import ABC, abstractmethod
 from collections.abc import Awaitable, Callable, Coroutine
 from functools import partialmethod
 from typing import Any
-
-_LOGGER = logging.getLogger(__name__)
 
 type SocketRecvCallback = Callable[[bytes], Coroutine]
 type SocketCloseCallback = Callable[[], Coroutine]
@@ -108,6 +106,7 @@ class AsyncSocket(AsyncSocketBase):
 
     async def _async_open_socket(self, name: str, *args) -> int:  # noqa: ARG002, ANN002
         self._socket = socket.socket(*args)
+        atexit.register(self.close)
         return self._socket.fileno()
 
     async def _async_start_recv(self) -> None:

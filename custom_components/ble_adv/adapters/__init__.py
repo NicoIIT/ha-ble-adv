@@ -57,9 +57,9 @@ class BleAdvAdapter(ABC):
 
     async def async_init(self) -> None:
         """Async Init."""
+        await self.open()
         self._processing = True
         self._dequeue_task = asyncio.create_task(self._dequeue())
-        await self.open()
 
     async def async_final(self) -> None:
         """Async Final: clean-up to be ready for another init."""
@@ -77,7 +77,7 @@ class BleAdvAdapter(ABC):
         """Try to open the adapter, may throw Exceptions."""
 
     @abstractmethod
-    async def close(self) -> None:
+    def close(self) -> None:
         """Close the adapter."""
 
     @abstractmethod
@@ -226,7 +226,7 @@ class BluetoothHCIAdapter(BleAdvAdapter):
             self._ext_adv = features & (1 << 12)
         self._log(f"Connected - fileno: {fileno}")
 
-    async def close(self) -> None:
+    def close(self) -> None:
         """Close Adapter."""
         self._opened = False
         self._async_socket.close()

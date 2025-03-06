@@ -5,14 +5,12 @@
     "@NicoIIT"
   ],
   "config_flow": true,
-  "dependencies": [
-    "bluetooth"
-  ],
   "documentation": "https://github.com/NicoIIT/ha-ble-adv",
   "integration_type": "device",
   "iot_class": "assumed_state",
   "issue_tracker": "https://github.com/NicoIIT/ha-ble-adv/issues",
   "requirements": [
+    "bluetooth_adapters",
     "pycryptodome"
   ],
   "version": "1.0"

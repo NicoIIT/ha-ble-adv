@@ -85,6 +85,11 @@ class BleAdvEntAttr:
         self.base_type: str = base_type
         self.index: int = index
 
+    @property
+    def id(self) -> tuple[str, int]:
+        """Entity ID."""
+        return (self.base_type, self.index)
+
     def __repr__(self) -> str:
         return f"{self.base_type}_{self.index}: {self.chg_attrs} / {self.attrs}"
 
