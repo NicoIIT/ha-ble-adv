@@ -20,7 +20,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.util.percentage import percentage_to_ranged_value, ranged_value_to_percentage
 
-from .codecs.models import FAN_TYPE
+from .codecs.models import FAN_TYPE, FAN_TYPE_3SPEED
 from .const import DOMAIN
 from .device import BleAdvDevice, BleAdvEntAttr, BleAdvEntity, handle_change
 
@@ -45,26 +45,16 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
     async_add_entities(entities, True)
 
 
-class BleAdvFan(FanEntity, BleAdvEntity):
+class BleAdvFan(BleAdvEntity, FanEntity):
     """Ble Adv Fan Entity."""
 
-    _restored_attributes = [(ATTR_PERCENTAGE, 100), (ATTR_DIRECTION, DIRECTION_FORWARD), (ATTR_OSCILLATING, False)]
+    _state_attributes = frozenset([(ATTR_PERCENTAGE, 100), (ATTR_DIRECTION, DIRECTION_FORWARD), (ATTR_OSCILLATING, False)])
     _attr_direction = None
 
-    def __init__(self, device: BleAdvDevice, fan_type: str, features: FanEntityFeature, index: int) -> None:
-        super().__init__(FAN_TYPE, device, index)
-        self._type: str = fan_type
+    def __init__(self, device: BleAdvDevice, sub_type: str, features: FanEntityFeature, index: int) -> None:
+        super().__init__(FAN_TYPE, sub_type, device, index)
         self._attr_supported_features: FanEntityFeature = features
-        self._attr_speed_count: int = 3 if fan_type == "3speed" else 6
-
-    # redefining 'is_on' as the one at FanEntity level overrides the one at ToggleEntity level
-    # and is based on 'percentage' and 'modes', which means we have to put 0 as percentage to switch the Fan OFF
-    # but then when we switch it back ON we 'lost' the percentage... and have to save it somewhere else
-    # and it would then not be restored on HA restart...
-    @property
-    def is_on(self) -> bool | None:
-        """Return True if entity is on."""
-        return self._attr_is_on
+        self._attr_speed_count: int = 3 if sub_type == FAN_TYPE_3SPEED else 6
 
     # redefining 'current_direction' as the attribute name is messy, and not the one defined in the last_state
     @property
@@ -75,8 +65,7 @@ class BleAdvFan(FanEntity, BleAdvEntity):
     def get_attrs(self) -> dict[str, Any]:
         """Get the attrs."""
         return {
-            "on": self._attr_is_on,
-            "type": self._type,
+            **super().get_attrs(),
             "dir": self._attr_direction == DIRECTION_FORWARD,
             "osc": self._attr_oscillating,
             "speed": ceil(percentage_to_ranged_value((1, self._attr_speed_count), self._attr_percentage if self._attr_percentage is not None else 0)),
@@ -92,7 +81,7 @@ class BleAdvFan(FanEntity, BleAdvEntity):
         if "speed" in ent_attr.chg_attrs:
             self._attr_percentage = ranged_value_to_percentage((1, 6), ent_attr.attrs["speed"])  # type: ignore[none]
 
-    async def _async_set_percentage(self, percentage: int | None) -> None:
+    def _set_state_percentage(self, percentage: int | None) -> None:
         """Set the speed percentage of the fan."""
         if percentage is not None and percentage > 0:
             self._attr_percentage = percentage
@@ -101,30 +90,20 @@ class BleAdvFan(FanEntity, BleAdvEntity):
             self._attr_is_on = False
 
     @handle_change
-    async def async_turn_off(self, **kwargs) -> None:  # noqa: ANN003, ARG002
-        """Turn off the fan."""
-        self._attr_is_on = False
-
-    @handle_change
-    async def async_turn_on(self, speed: str | None = None, percentage: int | None = None, preset_mode: str | None = None, **kwargs) -> None:  # noqa: ANN003, ARG002
-        """Turn on the fan."""
-        await self._async_set_percentage(percentage if percentage is not None else self._attr_percentage)
-
-    @handle_change
     async def async_set_percentage(self, percentage: int) -> None:
         """Set the speed percentage of the fan."""
-        await self._async_set_percentage(percentage)
+        self._set_state_percentage(percentage)
 
     @handle_change
     async def async_set_direction(self, direction: str) -> None:
         """Set the direction of the fan."""
         if not self._attr_is_on:
-            await self._async_set_percentage(self._attr_percentage)
+            self._set_state_percentage(self._attr_percentage)
         self._attr_direction = direction
 
     @handle_change
     async def async_oscillate(self, oscillating: bool) -> None:
         """Oscillate the fan."""
         if not self._attr_is_on:
-            await self._async_set_percentage(self._attr_percentage)
+            self._set_state_percentage(self._attr_percentage)
         self._attr_oscillating = oscillating

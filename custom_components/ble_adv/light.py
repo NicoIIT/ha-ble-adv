@@ -22,7 +22,7 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .codecs.models import LIGHT_TYPE, LIGHT_TYPE_CWW, LIGHT_TYPE_ONOFF, LIGHT_TYPE_RGB
 from .const import DOMAIN
-from .device import BleAdvDevice, BleAdvEntAttr, BleAdvEntity, handle_change
+from .device import BleAdvDevice, BleAdvEntAttr, BleAdvEntity
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -36,11 +36,11 @@ def create_entity(options: dict[str, str | float], device: BleAdvDevice, index: 
     light_type: str = str(options["type"])
     min_br: int = int(options.get("min_brightness", 3))
     if light_type == LIGHT_TYPE_RGB:
-        return BleAdvLightRGB(light_type, min_br, device, index)
+        return BleAdvLightRGB(light_type, device, index, min_br)
     if light_type == LIGHT_TYPE_CWW:
-        return BleAdvLightCWW(light_type, min_br, device, index)
+        return BleAdvLightCWW(light_type, device, index, min_br)
     if light_type == LIGHT_TYPE_ONOFF:
-        return BleAdvLightBinary(light_type, min_br, device, index)
+        return BleAdvLightBinary(light_type, device, index)
     raise BleAdvLightError("Invalid Type")
 
 
@@ -51,28 +51,36 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
     async_add_entities(entities, True)
 
 
-class BleAdvLightBase(LightEntity, BleAdvEntity):
+class BleAdvLightBase(BleAdvEntity, LightEntity):
     """Base Light."""
 
-    def __init__(self, light_type: str, min_br: float, device: BleAdvDevice, index: int) -> None:
-        super().__init__(LIGHT_TYPE, device, index)
-        self._light_type: str = light_type
-        self._min_brighntess = float(min_br / 100.0)
+    def __init__(self, sub_type: str, device: BleAdvDevice, index: int) -> None:
+        super().__init__(LIGHT_TYPE, sub_type, device, index)
 
-    @handle_change
-    async def async_turn_off(self, **kwargs) -> None:  # noqa: ANN003, ARG002
-        """Turn off the fan."""
-        self._attr_is_on = False
+
+class BleAdvLightBinary(BleAdvLightBase):
+    """Binary Light."""
+
+    _attr_supported_color_modes = {ColorMode.ONOFF}
+
+
+class BleAdvLightWithBrightness(BleAdvLightBase):
+    """Base Light with Brightness."""
+
+    def __init__(self, sub_type: str, device: BleAdvDevice, index: int, min_br: float) -> None:
+        super().__init__(sub_type, device, index)
+        self._min_brighntess = float(min_br / 100.0)
 
     def _pct(self, val: float, min_val: float = 0.0, max_val: float = 1.0) -> float:
         return min(max_val, max(min_val, val))
 
-    def _set_brightness(self, br: float) -> None:
-        """Set Brightness taking into account the min."""
+    def _set_state_brightness(self, brightness: int) -> None:
+        self._set_br(brightness / 255.0)
+
+    def _set_br(self, br: float) -> None:
         self._attr_brightness = int(255.0 * self._pct(br, self._min_brighntess))
 
-    def _get_brightness(self) -> float:
-        """Get Brightness."""
+    def _get_br(self) -> float:
         return self._attr_brightness / 255.0 if self._attr_brightness is not None else 0
 
     def get_change_rate(self, before_attrs: dict[str, Any], after_attrs: dict[str, Any]) -> float:
@@ -85,36 +93,25 @@ class BleAdvLightBase(LightEntity, BleAdvEntity):
 
     def get_attrs(self) -> dict[str, Any]:
         """Get the attrs."""
-        return {"on": self._attr_is_on, "type": self._light_type}
+        return {**super().get_attrs(), "br": self._get_br()}
+
+    def apply_attrs(self, ent_attr: BleAdvEntAttr) -> None:
+        """Apply attributes to entity."""
+        super().apply_attrs(ent_attr)
+        if "br" in ent_attr.chg_attrs:
+            self._set_br(ent_attr.get_attr_as_float("br"))
+        elif "cmd" in ent_attr.chg_attrs:
+            if ent_attr.attrs.get("cmd") == "B+":
+                self._set_br(self._get_br() + ent_attr.get_attr_as_float("step"))
+            elif ent_attr.attrs.get("cmd") == "B-":
+                self._set_br(self._get_br() - ent_attr.get_attr_as_float("step"))
 
 
-class BleAdvLightBinary(BleAdvLightBase):
-    """Binary Light."""
-
-    _attr_supported_color_modes = {ColorMode.ONOFF}
-    _attr_color_mode = ColorMode.ONOFF
-
-    @handle_change
-    async def async_turn_on(self, **kwargs) -> None:  # noqa: ANN003, ARG002
-        """Turn device on."""
-        self._attr_is_on = True
-
-
-class BleAdvLightRGB(BleAdvLightBase):
+class BleAdvLightRGB(BleAdvLightWithBrightness):
     """RGB Light."""
 
     _attr_supported_color_modes = {ColorMode.RGB}
-    _attr_color_mode = ColorMode.RGB
-    _restored_attributes = [(ATTR_BRIGHTNESS, 255), (ATTR_RGB_COLOR, (255, 255, 255))]
-
-    @handle_change
-    async def async_turn_on(self, **kwargs) -> None:  # noqa: ANN003
-        """Turn device on."""
-        if ATTR_BRIGHTNESS in kwargs:
-            self._set_brightness(kwargs[ATTR_BRIGHTNESS] / 255.0)
-        if ATTR_RGB_COLOR in kwargs:
-            self._attr_rgb_color = kwargs[ATTR_RGB_COLOR]
-        self._attr_is_on = True
+    _state_attributes = frozenset([(ATTR_BRIGHTNESS, 255), (ATTR_RGB_COLOR, (255, 255, 255))])
 
     def _get_rgb(self) -> tuple[float, float, float]:
         """Get RGB tuple."""
@@ -127,57 +124,31 @@ class BleAdvLightRGB(BleAdvLightBase):
 
     def get_attrs(self) -> dict[str, Any]:
         """Get the attrs."""
-        br = self._get_brightness()
+        br = self._get_br()
         r, g, b = self._get_rgb()
-        return {
-            **super().get_attrs(),
-            "br": br,
-            "r": r,
-            "g": g,
-            "b": b,
-            "rf": r * br,
-            "gf": g * br,
-            "bf": b * br,
-        }
+        return {**super().get_attrs(), "r": r, "g": g, "b": b, "rf": r * br, "gf": g * br, "bf": b * br}
 
     def apply_attrs(self, ent_attr: BleAdvEntAttr) -> None:
         """Apply attributes to entity."""
         super().apply_attrs(ent_attr)
-        if "br" in ent_attr.chg_attrs:
-            self._set_brightness(ent_attr.get_attr_as_float("br"))
-        elif "r" in ent_attr.chg_attrs or "g" in ent_attr.chg_attrs or "b" in ent_attr.chg_attrs:
+        if "r" in ent_attr.chg_attrs or "g" in ent_attr.chg_attrs or "b" in ent_attr.chg_attrs:
             self._set_rgb(ent_attr.get_attr_as_float("r"), ent_attr.get_attr_as_float("g"), ent_attr.get_attr_as_float("b"))
         elif "rf" in ent_attr.chg_attrs or "gf" in ent_attr.chg_attrs or "bf" in ent_attr.chg_attrs:
             r = ent_attr.get_attr_as_float("rf")
             g = ent_attr.get_attr_as_float("gf")
             b = ent_attr.get_attr_as_float("bf")
             br = max(r, g, b)
-            self._set_brightness(br)
+            self._set_br(br)
             self._set_rgb(r / br, g / br, b / br)
-        elif "cmd" in ent_attr.chg_attrs:
-            if ent_attr.attrs.get("cmd") == "B+":
-                self._set_brightness(self._get_brightness() + ent_attr.get_attr_as_float("step"))
-            elif ent_attr.attrs.get("cmd") == "B-":
-                self._set_brightness(self._get_brightness() - ent_attr.get_attr_as_float("step"))
 
 
-class BleAdvLightCWW(BleAdvLightBase):
+class BleAdvLightCWW(BleAdvLightWithBrightness):
     """CWW Light."""
 
     _attr_min_color_temp_kelvin = DEFAULT_MIN_KELVIN
     _attr_max_color_temp_kelvin = DEFAULT_MAX_KELVIN
     _attr_supported_color_modes = {ColorMode.COLOR_TEMP}
-    _attr_color_mode = ColorMode.COLOR_TEMP
-    _restored_attributes = [(ATTR_BRIGHTNESS, 255), (ATTR_COLOR_TEMP_KELVIN, DEFAULT_MAX_KELVIN)]
-
-    @handle_change
-    async def async_turn_on(self, **kwargs) -> None:  # noqa: ANN003
-        """Turn device on."""
-        if ATTR_BRIGHTNESS in kwargs:
-            self._set_brightness(kwargs[ATTR_BRIGHTNESS] / 255.0)
-        if ATTR_COLOR_TEMP_KELVIN in kwargs:
-            self._attr_color_temp_kelvin = kwargs[ATTR_COLOR_TEMP_KELVIN]
-        self._attr_is_on = True
+    _state_attributes = frozenset([(ATTR_BRIGHTNESS, 255), (ATTR_COLOR_TEMP_KELVIN, DEFAULT_MAX_KELVIN)])
 
     def _set_ct(self, ct_percent: float) -> None:
         self._attr_color_temp_kelvin = int(DEFAULT_MIN_KELVIN + (DEFAULT_MAX_KELVIN - DEFAULT_MIN_KELVIN) * self._pct(ct_percent))
@@ -188,15 +159,9 @@ class BleAdvLightCWW(BleAdvLightBase):
 
     def get_attrs(self) -> dict[str, Any]:
         """Get the attrs."""
-        br = self._get_brightness()
+        br = self._get_br()
         ct = self._get_ct()
-        return {
-            **super().get_attrs(),
-            "br": br,
-            "ct": ct,
-            "warm": br * (1.0 - ct),
-            "cold": br * ct,
-        }
+        return {**super().get_attrs(), "ct": ct, "warm": br * (1.0 - ct), "cold": br * ct}
 
     def apply_attrs(self, ent_attr: BleAdvEntAttr) -> None:
         """Apply attributes to entity."""
@@ -204,24 +169,16 @@ class BleAdvLightCWW(BleAdvLightBase):
         if "cold" in ent_attr.chg_attrs and "warm" in ent_attr.chg_attrs:
             cold = ent_attr.get_attr_as_float("cold")
             warm = ent_attr.get_attr_as_float("warm")
-            self._set_brightness(max(cold, warm))
+            self._set_br(max(cold, warm))
             self._set_ct(cold / (cold + warm))
-        elif "cold" in ent_attr.chg_attrs and "br" in ent_attr.chg_attrs:
-            self._set_brightness(ent_attr.get_attr_as_float("br"))
+        elif "cold" in ent_attr.chg_attrs:
             self._set_ct(ent_attr.get_attr_as_float("cold"))
-        elif "warm" in ent_attr.chg_attrs and "br" in ent_attr.chg_attrs:
-            self._set_brightness(ent_attr.get_attr_as_float("br"))
+        elif "warm" in ent_attr.chg_attrs:
             self._set_ct(1.0 - ent_attr.get_attr_as_float("cold"))
-        elif "br" in ent_attr.chg_attrs:
-            self._set_brightness(ent_attr.get_attr_as_float("br"))
         elif "ct" in ent_attr.chg_attrs:
             self._set_ct(ent_attr.get_attr_as_float("ct"))
         elif "cmd" in ent_attr.chg_attrs:
-            if ent_attr.attrs.get("cmd") == "B+":
-                self._set_brightness(self._get_brightness() + ent_attr.get_attr_as_float("step"))
-            elif ent_attr.attrs.get("cmd") == "B-":
-                self._set_brightness(self._get_brightness() - ent_attr.get_attr_as_float("step"))
-            elif ent_attr.attrs.get("cmd") == "K+":
+            if ent_attr.attrs.get("cmd") == "K+":
                 self._set_ct(self._get_ct() + ent_attr.get_attr_as_float("step"))
             elif ent_attr.attrs.get("cmd") == "K-":
                 self._set_ct(self._get_ct() - ent_attr.get_attr_as_float("step"))

@@ -4,10 +4,9 @@ from __future__ import annotations
 
 import logging
 import traceback
-from abc import ABC, abstractmethod
 from datetime import datetime, timedelta
 from functools import wraps
-from typing import Any, ClassVar
+from typing import Any
 
 from homeassistant.const import STATE_ON
 from homeassistant.core import CALLBACK_TYPE, HomeAssistant, callback
@@ -42,16 +41,17 @@ def handle_change(method):  # noqa: ANN001, ANN201
     return _impl
 
 
-class BleAdvEntity(ABC, RestoreEntity):
+class BleAdvEntity(RestoreEntity):
     """Base Ble Adv Entity class."""
 
-    _restored_attributes: ClassVar[list[tuple[str, Any]]] = []
+    _state_attributes: frozenset[tuple[str, Any]] = frozenset()
     _attr_has_entity_name = True
 
-    def __init__(self, base_type: str, device: BleAdvDevice, index: int = 0) -> None:
+    def __init__(self, base_type: str, sub_type: str, device: BleAdvDevice, index: int = 0) -> None:
         self._device: BleAdvDevice = device
         self._index: int = index
         self._base_type: str = base_type
+        self._sub_type: str = sub_type
         self._attr_device_info: DeviceInfo = device.device_info
         self._attr_unique_id: str = f"{device.unique_id}_{base_type}_{index}"
         self._attr_translation_key: str = f"{base_type}_{index}"
@@ -62,9 +62,46 @@ class BleAdvEntity(ABC, RestoreEntity):
         """Entity ID."""
         return (self._base_type, self._index)
 
-    @abstractmethod
-    def get_attrs(self) -> dict[str, AttrType]:
+    # redefining 'is_on' as the one at ToggleEntity level, to override redefinitions by Base Entities
+    @property
+    def is_on(self) -> bool | None:
+        """Return True if entity is on."""
+        return self._attr_is_on
+
+    def set_state_attribute(self, attr_name: str, attr_value: Any) -> None:  # noqa: ANN401
+        """Set a state attribute, potentially using overriden '_set_state_<attr_name>' function."""
+        set_fct_name = f"_set_state_{attr_name}"
+        if hasattr(self, set_fct_name):
+            getattr(self, set_fct_name)(attr_value)
+        else:
+            setattr(self, f"_attr_{attr_name}", attr_value)
+
+    @handle_change
+    async def async_turn_off(self, **kwargs) -> None:  # noqa: ANN003, ARG002
+        """Turn off the Entity."""
+        self._attr_is_on = False
+
+    @handle_change
+    async def async_turn_on(self, *args, **kwargs) -> None:  # noqa: ANN002, ANN003, ARG002
+        """Turn Entity on."""
+        for attr_name, _ in self._state_attributes:
+            if (val := kwargs.get(attr_name)) is not None:
+                self.set_state_attribute(attr_name, val)
+        self._attr_is_on = True
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        """Return extra attributes: saved attributes when the light is Off."""
+        data: dict[str, Any] = {}
+        if self._attr_is_on:
+            return data
+        for attribute, _ in self._state_attributes:
+            data[f"last_{attribute}"] = getattr(self, f"_attr_{attribute}")
+        return data
+
+    def get_attrs(self) -> dict[str, Any]:
         """Get the attrs."""
+        return {"on": self._attr_is_on, "type": self._sub_type}
 
     def apply_attrs(self, ent_attr: BleAdvEntAttr) -> None:
         """Apply Attributes to the Entity."""
@@ -86,18 +123,18 @@ class BleAdvEntity(ABC, RestoreEntity):
             await self._device.apply_change(BleAdvEntAttr(changed_attrs, attrs, self._base_type, self._index), chg_rate)
 
     async def async_added_to_hass(self) -> None:
-        """Restore state."""
+        """Restore state and state attributes."""
         await super().async_added_to_hass()
 
         if last_state := await self.async_get_last_state():
             self._attr_is_on = last_state.state == STATE_ON
-            for attribute, default_value in self._restored_attributes:
-                val = last_state.attributes.get(attribute, None)
-                setattr(self, f"_attr_{attribute}", val if val is not None else default_value)
+            for attr_name, default_value in self._state_attributes:
+                val = last_state.attributes.get(attr_name if self._attr_is_on else f"last_{attr_name}")
+                self.set_state_attribute(attr_name, val if val is not None else default_value)
         else:
             self._attr_is_on = False
-            for attribute, default_value in self._restored_attributes:
-                setattr(self, f"_attr_{attribute}", default_value)
+            for attr_name, default_value in self._state_attributes:
+                self.set_state_attribute(attr_name, default_value)
 
 
 class MatchingDeviceCallback(MatchingCallback):
