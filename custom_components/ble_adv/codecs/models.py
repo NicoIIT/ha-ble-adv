@@ -5,16 +5,19 @@ from abc import ABC, abstractmethod
 from binascii import hexlify
 from typing import Any, Self
 
+from .const import (
+    ATTR_SUB_TYPE,
+    DEVICE_TYPE,
+    FAN_TYPE,
+    FAN_TYPE_3SPEED,
+    FAN_TYPE_6SPEED,
+    LIGHT_TYPE,
+    LIGHT_TYPE_CWW,
+    LIGHT_TYPE_ONOFF,
+    LIGHT_TYPE_RGB,
+)
+
 _LOGGER = logging.getLogger(__name__)
-
-FAN_TYPE = "fan"
-FAN_TYPE_3SPEED = "3speed"
-FAN_TYPE_6SPEED = "6speed"
-
-LIGHT_TYPE = "light"
-LIGHT_TYPE_ONOFF = "onoff"
-LIGHT_TYPE_RGB = "rgb"
-LIGHT_TYPE_CWW = "cww"
 
 
 def as_hex(buffer: bytes) -> bytes:
@@ -145,7 +148,7 @@ class EntityMatcher(CommonMatcher):
         self._index: int = index
         self._actions: list[str] = []
         if (sub_type is not None) and enforced_sub_type:
-            self._eqs["type"] = sub_type
+            self._eqs[ATTR_SUB_TYPE] = sub_type
 
     def __repr__(self) -> str:
         return f"{self._base_type}_{self._index} / {self._actions}"
@@ -222,7 +225,7 @@ class DeviceCmd(EntityMatcher):
     """Specific Device Matcher."""
 
     def __init__(self) -> None:
-        super().__init__("device", 0)
+        super().__init__(DEVICE_TYPE, 0)
 
 
 class EncoderMatcher(CommonMatcher):

@@ -16,12 +16,13 @@ from homeassistant.components.fan import (
     FanEntityFeature,
 )
 from homeassistant.config_entries import ConfigEntry
+from homeassistant.const import CONF_TYPE
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.util.percentage import percentage_to_ranged_value, ranged_value_to_percentage
 
-from .codecs.models import FAN_TYPE, FAN_TYPE_3SPEED
-from .const import DOMAIN
+from .codecs.const import ATTR_DIR, ATTR_OSC, ATTR_SPEED, FAN_TYPE, FAN_TYPE_3SPEED
+from .const import CONF_FANS, CONF_USE_DIR, CONF_USE_OSC, DOMAIN
 from .device import BleAdvDevice, BleAdvEntAttr, BleAdvEntity, handle_change
 
 _LOGGER = logging.getLogger(__name__)
@@ -30,18 +31,18 @@ _LOGGER = logging.getLogger(__name__)
 def create_entity(options: dict[str, str], device: BleAdvDevice, index: int) -> BleAdvFan:
     """Create a Fan Entity from the entry."""
     features = FanEntityFeature.TURN_ON | FanEntityFeature.TURN_OFF | FanEntityFeature.SET_SPEED
-    if options.get("oscillating", False):
+    if options.get(CONF_USE_OSC, False):
         features |= FanEntityFeature.OSCILLATE
-    if options.get("direction", False):
+    if options.get(CONF_USE_DIR, False):
         features |= FanEntityFeature.DIRECTION
 
-    return BleAdvFan(device, options["type"], features, index)
+    return BleAdvFan(device, options[CONF_TYPE], features, index)
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback) -> None:
     """Entry setup."""
     device: BleAdvDevice = hass.data[DOMAIN][entry.entry_id]
-    entities = [create_entity(options, device, i) for i, options in enumerate(entry.data[FAN_TYPE])]
+    entities = [create_entity(options, device, i) for i, options in enumerate(entry.data[CONF_FANS])]
     async_add_entities(entities, True)
 
 
@@ -66,20 +67,22 @@ class BleAdvFan(BleAdvEntity, FanEntity):
         """Get the attrs."""
         return {
             **super().get_attrs(),
-            "dir": self._attr_direction == DIRECTION_FORWARD,
-            "osc": self._attr_oscillating,
-            "speed": ceil(percentage_to_ranged_value((1, self._attr_speed_count), self._attr_percentage if self._attr_percentage is not None else 0)),
+            ATTR_DIR: self._attr_direction == DIRECTION_FORWARD,
+            ATTR_OSC: self._attr_oscillating,
+            ATTR_SPEED: ceil(
+                percentage_to_ranged_value((1, self._attr_speed_count), self._attr_percentage if self._attr_percentage is not None else 0)
+            ),
         }
 
     def apply_attrs(self, ent_attr: BleAdvEntAttr) -> None:
         """Apply the attributes to this Entity."""
         super().apply_attrs(ent_attr)
-        if "dir" in ent_attr.chg_attrs:
-            self._attr_direction = DIRECTION_FORWARD if ent_attr.attrs["dir"] else DIRECTION_REVERSE
-        if "osc" in ent_attr.chg_attrs:
-            self._attr_oscillating = ent_attr.attrs["osc"]  # type: ignore[none]
-        if "speed" in ent_attr.chg_attrs:
-            self._attr_percentage = ranged_value_to_percentage((1, 6), ent_attr.attrs["speed"])  # type: ignore[none]
+        if ATTR_DIR in ent_attr.chg_attrs:
+            self._attr_direction = DIRECTION_FORWARD if ent_attr.attrs[ATTR_DIR] else DIRECTION_REVERSE
+        if ATTR_OSC in ent_attr.chg_attrs:
+            self._attr_oscillating = ent_attr.attrs[ATTR_OSC]  # type: ignore[none]
+        if ATTR_SPEED in ent_attr.chg_attrs:
+            self._attr_percentage = ranged_value_to_percentage((1, 6), ent_attr.attrs[ATTR_SPEED])  # type: ignore[none]
 
     def _set_state_percentage(self, percentage: int | None) -> None:
         """Set the speed percentage of the fan."""

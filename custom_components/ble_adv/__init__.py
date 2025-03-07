@@ -4,13 +4,26 @@ import logging
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import (
+    CONF_DEVICE,
     CONF_NAME,
 )
 from homeassistant.core import HomeAssistant
 
 from .codecs import get_codecs
 from .codecs.models import BleAdvConfig
-from .const import CONF_ADAPTER_ID, CONF_CODEC_ID, CONF_COORDINATOR_ID, CONF_FORCED_ID, CONF_INDEX, DOMAIN, PLATFORMS
+from .const import (
+    CONF_ADAPTER_ID,
+    CONF_CODEC_ID,
+    CONF_COORDINATOR_ID,
+    CONF_DURATION,
+    CONF_FORCED_ID,
+    CONF_INDEX,
+    CONF_INTERVAL,
+    CONF_REPEAT,
+    CONF_TECHNICAL,
+    DOMAIN,
+    PLATFORMS,
+)
 from .coordinator import BleAdvCoordinator
 from .device import BleAdvDevice
 
@@ -45,17 +58,19 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         return False
 
     hass.data.setdefault(DOMAIN, {})
-
+    device_conf = entry.data[CONF_DEVICE]
+    tech_conf = entry.data[CONF_TECHNICAL]
     device = BleAdvDevice(
         hass,
         _LOGGER,
         entry.unique_id,
-        entry.data[CONF_NAME],
-        entry.data[CONF_CODEC_ID],
-        entry.data[CONF_ADAPTER_ID],
-        entry.data["technical"]["repeat"],
-        entry.data["technical"]["interval"],
-        BleAdvConfig(entry.data[CONF_FORCED_ID], entry.data[CONF_INDEX]),
+        device_conf[CONF_NAME],
+        device_conf[CONF_CODEC_ID],
+        device_conf[CONF_ADAPTER_ID],
+        tech_conf[CONF_REPEAT],
+        tech_conf[CONF_INTERVAL],
+        tech_conf[CONF_DURATION],
+        BleAdvConfig(device_conf[CONF_FORCED_ID], device_conf[CONF_INDEX]),
         await get_coordinator(hass),
     )
 

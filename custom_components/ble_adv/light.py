@@ -17,11 +17,33 @@ from homeassistant.components.light.const import (
     ColorMode,
 )
 from homeassistant.config_entries import ConfigEntry
+from homeassistant.const import CONF_TYPE
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-from .codecs.models import LIGHT_TYPE, LIGHT_TYPE_CWW, LIGHT_TYPE_ONOFF, LIGHT_TYPE_RGB
-from .const import DOMAIN
+from .codecs.const import (
+    ATTR_BLUE,
+    ATTR_BLUE_F,
+    ATTR_BR,
+    ATTR_CMD,
+    ATTR_CMD_BR_DOWN,
+    ATTR_CMD_BR_UP,
+    ATTR_CMD_CT_DOWN,
+    ATTR_CMD_CT_UP,
+    ATTR_COLD,
+    ATTR_CT,
+    ATTR_GREEN,
+    ATTR_GREEN_F,
+    ATTR_RED,
+    ATTR_RED_F,
+    ATTR_STEP,
+    ATTR_WARM,
+    LIGHT_TYPE,
+    LIGHT_TYPE_CWW,
+    LIGHT_TYPE_ONOFF,
+    LIGHT_TYPE_RGB,
+)
+from .const import CONF_LIGHTS, CONF_MIN_BRIGHTNESS, DOMAIN
 from .device import BleAdvDevice, BleAdvEntAttr, BleAdvEntity
 
 _LOGGER = logging.getLogger(__name__)
@@ -33,8 +55,8 @@ class BleAdvLightError(Exception):
 
 def create_entity(options: dict[str, str | float], device: BleAdvDevice, index: int) -> BleAdvLightBase:
     """Create a Light Entity from the entry."""
-    light_type: str = str(options["type"])
-    min_br: int = int(options.get("min_brightness", 3))
+    light_type: str = str(options[CONF_TYPE])
+    min_br: int = int(options.get(CONF_MIN_BRIGHTNESS, 3))
     if light_type == LIGHT_TYPE_RGB:
         return BleAdvLightRGB(light_type, device, index, min_br)
     if light_type == LIGHT_TYPE_CWW:
@@ -47,7 +69,7 @@ def create_entity(options: dict[str, str | float], device: BleAdvDevice, index: 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback) -> None:
     """Entr setup."""
     device: BleAdvDevice = hass.data[DOMAIN][entry.entry_id]
-    entities = [create_entity(options, device, i) for i, options in enumerate(entry.data[LIGHT_TYPE])]
+    entities = [create_entity(options, device, i) for i, options in enumerate(entry.data[CONF_LIGHTS])]
     async_add_entities(entities, True)
 
 
@@ -83,28 +105,20 @@ class BleAdvLightWithBrightness(BleAdvLightBase):
     def _get_br(self) -> float:
         return self._attr_brightness / 255.0 if self._attr_brightness is not None else 0
 
-    def get_change_rate(self, before_attrs: dict[str, Any], after_attrs: dict[str, Any]) -> float:
-        """Compute change rate."""
-        br_before = before_attrs.get("br", 0) if before_attrs.get("on") else 0
-        br_after_on = before_attrs.get("br", 0)
-        br_after = after_attrs.get("br", 0) if after_attrs.get("on") else 0
-        _LOGGER.info(f"{br_before} / {br_after_on} / {br_after}")
-        return max(abs(br_after - br_after_on), abs(br_after_on - br_before))
-
     def get_attrs(self) -> dict[str, Any]:
         """Get the attrs."""
-        return {**super().get_attrs(), "br": self._get_br()}
+        return {**super().get_attrs(), ATTR_BR: self._get_br()}
 
     def apply_attrs(self, ent_attr: BleAdvEntAttr) -> None:
         """Apply attributes to entity."""
         super().apply_attrs(ent_attr)
-        if "br" in ent_attr.chg_attrs:
-            self._set_br(ent_attr.get_attr_as_float("br"))
-        elif "cmd" in ent_attr.chg_attrs:
-            if ent_attr.attrs.get("cmd") == "B+":
-                self._set_br(self._get_br() + ent_attr.get_attr_as_float("step"))
-            elif ent_attr.attrs.get("cmd") == "B-":
-                self._set_br(self._get_br() - ent_attr.get_attr_as_float("step"))
+        if ATTR_BR in ent_attr.chg_attrs:
+            self._set_br(ent_attr.get_attr_as_float(ATTR_BR))
+        elif ATTR_CMD in ent_attr.chg_attrs:
+            if ent_attr.attrs.get(ATTR_CMD) == ATTR_CMD_BR_UP:
+                self._set_br(self._get_br() + ent_attr.get_attr_as_float(ATTR_STEP))
+            elif ent_attr.attrs.get(ATTR_CMD) == ATTR_CMD_BR_DOWN:
+                self._set_br(self._get_br() - ent_attr.get_attr_as_float(ATTR_STEP))
 
 
 class BleAdvLightRGB(BleAdvLightWithBrightness):
@@ -126,17 +140,17 @@ class BleAdvLightRGB(BleAdvLightWithBrightness):
         """Get the attrs."""
         br = self._get_br()
         r, g, b = self._get_rgb()
-        return {**super().get_attrs(), "r": r, "g": g, "b": b, "rf": r * br, "gf": g * br, "bf": b * br}
+        return {**super().get_attrs(), ATTR_RED: r, ATTR_GREEN: g, ATTR_BLUE: b, ATTR_RED_F: r * br, ATTR_GREEN_F: g * br, ATTR_BLUE_F: b * br}
 
     def apply_attrs(self, ent_attr: BleAdvEntAttr) -> None:
         """Apply attributes to entity."""
         super().apply_attrs(ent_attr)
-        if "r" in ent_attr.chg_attrs or "g" in ent_attr.chg_attrs or "b" in ent_attr.chg_attrs:
-            self._set_rgb(ent_attr.get_attr_as_float("r"), ent_attr.get_attr_as_float("g"), ent_attr.get_attr_as_float("b"))
-        elif "rf" in ent_attr.chg_attrs or "gf" in ent_attr.chg_attrs or "bf" in ent_attr.chg_attrs:
-            r = ent_attr.get_attr_as_float("rf")
-            g = ent_attr.get_attr_as_float("gf")
-            b = ent_attr.get_attr_as_float("bf")
+        if ATTR_RED in ent_attr.chg_attrs or ATTR_GREEN in ent_attr.chg_attrs or ATTR_BLUE in ent_attr.chg_attrs:
+            self._set_rgb(ent_attr.get_attr_as_float(ATTR_RED), ent_attr.get_attr_as_float(ATTR_GREEN), ent_attr.get_attr_as_float(ATTR_BLUE))
+        elif ATTR_RED_F in ent_attr.chg_attrs or ATTR_GREEN_F in ent_attr.chg_attrs or ATTR_BLUE_F in ent_attr.chg_attrs:
+            r = ent_attr.get_attr_as_float(ATTR_RED_F)
+            g = ent_attr.get_attr_as_float(ATTR_GREEN_F)
+            b = ent_attr.get_attr_as_float(ATTR_BLUE_F)
             br = max(r, g, b)
             self._set_br(br)
             self._set_rgb(r / br, g / br, b / br)
@@ -161,24 +175,24 @@ class BleAdvLightCWW(BleAdvLightWithBrightness):
         """Get the attrs."""
         br = self._get_br()
         ct = self._get_ct()
-        return {**super().get_attrs(), "ct": ct, "warm": br * (1.0 - ct), "cold": br * ct}
+        return {**super().get_attrs(), ATTR_CT: ct, ATTR_WARM: br * (1.0 - ct), ATTR_COLD: br * ct}
 
     def apply_attrs(self, ent_attr: BleAdvEntAttr) -> None:
         """Apply attributes to entity."""
         super().apply_attrs(ent_attr)
-        if "cold" in ent_attr.chg_attrs and "warm" in ent_attr.chg_attrs:
-            cold = ent_attr.get_attr_as_float("cold")
-            warm = ent_attr.get_attr_as_float("warm")
+        if ATTR_COLD in ent_attr.chg_attrs and ATTR_WARM in ent_attr.chg_attrs:
+            cold = ent_attr.get_attr_as_float(ATTR_COLD)
+            warm = ent_attr.get_attr_as_float(ATTR_WARM)
             self._set_br(max(cold, warm))
             self._set_ct(cold / (cold + warm))
-        elif "cold" in ent_attr.chg_attrs:
-            self._set_ct(ent_attr.get_attr_as_float("cold"))
-        elif "warm" in ent_attr.chg_attrs:
-            self._set_ct(1.0 - ent_attr.get_attr_as_float("cold"))
-        elif "ct" in ent_attr.chg_attrs:
-            self._set_ct(ent_attr.get_attr_as_float("ct"))
-        elif "cmd" in ent_attr.chg_attrs:
-            if ent_attr.attrs.get("cmd") == "K+":
-                self._set_ct(self._get_ct() + ent_attr.get_attr_as_float("step"))
-            elif ent_attr.attrs.get("cmd") == "K-":
-                self._set_ct(self._get_ct() - ent_attr.get_attr_as_float("step"))
+        elif ATTR_COLD in ent_attr.chg_attrs:
+            self._set_ct(ent_attr.get_attr_as_float(ATTR_COLD))
+        elif ATTR_WARM in ent_attr.chg_attrs:
+            self._set_ct(1.0 - ent_attr.get_attr_as_float(ATTR_WARM))
+        elif ATTR_CT in ent_attr.chg_attrs:
+            self._set_ct(ent_attr.get_attr_as_float(ATTR_CT))
+        elif ATTR_CMD in ent_attr.chg_attrs:
+            if ent_attr.attrs.get(ATTR_CMD) == ATTR_CMD_CT_UP:
+                self._set_ct(self._get_ct() + ent_attr.get_attr_as_float(ATTR_STEP))
+            elif ent_attr.attrs.get(ATTR_CMD) == ATTR_CMD_CT_DOWN:
+                self._set_ct(self._get_ct() - ent_attr.get_attr_as_float(ATTR_STEP))

@@ -117,7 +117,7 @@ class BleAdvAdapter(ABC):
             self._add_event.set()
 
     async def _unlock_queue(self, qind: int, delay: int) -> None:
-        await asyncio.sleep(delay)
+        await asyncio.sleep(delay / 1000.0)
         self._locked_tasks[qind] = None
         self._add_event.set()
 

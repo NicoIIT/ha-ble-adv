@@ -6,6 +6,28 @@ from typing import ClassVar
 
 from Crypto.Cipher import AES
 
+from .const import (
+    ATTR_BLUE_F,
+    ATTR_CMD,
+    ATTR_CMD_BR_DOWN,
+    ATTR_CMD_BR_UP,
+    ATTR_CMD_CT_DOWN,
+    ATTR_CMD_CT_UP,
+    ATTR_CMD_PAIR,
+    ATTR_CMD_TIMER,
+    ATTR_CMD_TOGGLE,
+    ATTR_CMD_UNPAIR,
+    ATTR_COLD,
+    ATTR_DIR,
+    ATTR_GREEN_F,
+    ATTR_ON,
+    ATTR_OSC,
+    ATTR_RED_F,
+    ATTR_SPEED,
+    ATTR_STEP,
+    ATTR_TIME,
+    ATTR_WARM,
+)
 from .models import (
     BleAdvCodec,
     BleAdvConfig,
@@ -208,57 +230,64 @@ class FanLampEncoderV2(FanLampEncoder):
 
 def _get_fan_translators(speed_attr: str, speed_count_attr: str) -> list[Trans]:
     return [
-        Trans(Fan3SpeedCmd().act("on", False), EncCmd(0x31).eq(speed_count_attr, 0).eq(speed_attr, 0)),
-        Trans(Fan3SpeedCmd().act("on", True).act("speed"), EncCmd(0x31).eq(speed_count_attr, 0).min(speed_attr, 1)).copy("speed", speed_attr),
-        Trans(FanCmd().act("dir", True), EncCmd(0x15).eq("arg0", 0)),  # Forward
-        Trans(FanCmd().act("dir", False), EncCmd(0x15).eq("arg0", 1)),  # Reverse
-        Trans(FanCmd().act("osc", True), EncCmd(0x16).eq("arg0", 1)),
-        Trans(FanCmd().act("osc", False), EncCmd(0x16).eq("arg0", 0)),
-        Trans(FanCmd().act("cmd", "toggle"), EncCmd(0x33)).no_direct(),
+        Trans(Fan3SpeedCmd().act(ATTR_ON, False), EncCmd(0x31).eq(speed_count_attr, 0).eq(speed_attr, 0)),
+        Trans(Fan3SpeedCmd().act(ATTR_ON, True).act(ATTR_SPEED), EncCmd(0x31).eq(speed_count_attr, 0).min(speed_attr, 1)).copy(
+            ATTR_SPEED, speed_attr
+        ),
+        Trans(FanCmd().act(ATTR_DIR, True), EncCmd(0x15).eq("arg0", 0)),  # Forward
+        Trans(FanCmd().act(ATTR_DIR, False), EncCmd(0x15).eq("arg0", 1)),  # Reverse
+        Trans(FanCmd().act(ATTR_OSC, True), EncCmd(0x16).eq("arg0", 1)),
+        Trans(FanCmd().act(ATTR_OSC, False), EncCmd(0x16).eq("arg0", 0)),
+        Trans(FanCmd().act(ATTR_CMD, ATTR_CMD_TOGGLE), EncCmd(0x33)).no_direct(),
     ]
 
 
 def _get_device_translators() -> list[Trans]:
     return [
-        Trans(DeviceCmd().act("cmd", "pair"), EncCmd(0x28)),
-        Trans(DeviceCmd().act("cmd", "unpair"), EncCmd(0x45)),
-        Trans(DeviceCmd().act("on", False), EncCmd(0x6F)).no_direct(),
+        Trans(DeviceCmd().act(ATTR_CMD, ATTR_CMD_PAIR), EncCmd(0x28)),
+        Trans(DeviceCmd().act(ATTR_CMD, ATTR_CMD_UNPAIR), EncCmd(0x45)),
+        Trans(DeviceCmd().act(ATTR_ON, False), EncCmd(0x6F)).no_direct(),
     ]
 
 
 def _get_light_translators(param_attr: str, cold_attr: str, warm_attr: str) -> list[Trans]:
     return [
-        Trans(LightCmd().act("on", True), EncCmd(0x10)),
-        Trans(LightCmd().act("on", False), EncCmd(0x11)),
-        Trans(LightCmd(1).act("on", True), EncCmd(0x12)),
-        Trans(LightCmd(1).act("on", False), EncCmd(0x13)),
-        Trans(CTLightCmd().act("cold").act("warm"), EncCmd(0x21).eq(param_attr, 0)).copy("cold", cold_attr, 255).copy("warm", warm_attr, 255),
-        Trans(LightCmd().act("cmd", "toggle"), EncCmd(0x09)).no_direct(),
-        Trans(CTLightCmd().act("cold", 0.1).act("warm", 0.1), EncCmd(0x23)).no_direct(),  # night mode
-        Trans(CTLightCmd().act("cmd", "K+").eq("step", 0.1), EncCmd(0x21).eq(param_attr, 0x24)).no_direct(),
-        Trans(CTLightCmd().act("cmd", "K-").eq("step", 0.1), EncCmd(0x21).eq(param_attr, 0x18)).no_direct(),
-        Trans(CTLightCmd().act("cmd", "B+").eq("step", 0.1), EncCmd(0x21).eq(param_attr, 0x14)).no_direct(),
-        Trans(CTLightCmd().act("cmd", "B-").eq("step", 0.1), EncCmd(0x21).eq(param_attr, 0x28)).no_direct(),
+        Trans(LightCmd().act(ATTR_ON, True), EncCmd(0x10)),
+        Trans(LightCmd().act(ATTR_ON, False), EncCmd(0x11)),
+        Trans(LightCmd(1).act(ATTR_ON, True), EncCmd(0x12)),
+        Trans(LightCmd(1).act(ATTR_ON, False), EncCmd(0x13)),
+        Trans(CTLightCmd().act(ATTR_COLD).act(ATTR_WARM), EncCmd(0x21).eq(param_attr, 0))
+        .copy(ATTR_COLD, cold_attr, 255)
+        .copy(ATTR_WARM, warm_attr, 255),
+        Trans(LightCmd().act(ATTR_CMD, ATTR_CMD_TOGGLE), EncCmd(0x09)).no_direct(),
+        Trans(CTLightCmd().act(ATTR_COLD, 0.1).act(ATTR_WARM, 0.1), EncCmd(0x23)).no_direct(),  # night mode
+        Trans(CTLightCmd().act(ATTR_CMD, ATTR_CMD_CT_UP).eq(ATTR_STEP, 0.1), EncCmd(0x21).eq(param_attr, 0x24)).no_direct(),
+        Trans(CTLightCmd().act(ATTR_CMD, ATTR_CMD_CT_DOWN).eq(ATTR_STEP, 0.1), EncCmd(0x21).eq(param_attr, 0x18)).no_direct(),
+        Trans(CTLightCmd().act(ATTR_CMD, ATTR_CMD_BR_UP).eq(ATTR_STEP, 0.1), EncCmd(0x21).eq(param_attr, 0x14)).no_direct(),
+        Trans(CTLightCmd().act(ATTR_CMD, ATTR_CMD_BR_DOWN).eq(ATTR_STEP, 0.1), EncCmd(0x21).eq(param_attr, 0x28)).no_direct(),
     ]
 
 
 TRANS_FANLAMP_V1 = [
     *_get_light_translators("param", "arg0", "arg1"),
-    Trans(Fan6SpeedCmd().act("on", False), EncCmd(0x32).eq("arg1", 6).eq("arg0", 0)),
-    Trans(Fan6SpeedCmd().act("on", True).act("speed"), EncCmd(0x32).eq("arg1", 6).min("arg0", 1)).copy("speed", "arg0"),
+    Trans(Fan6SpeedCmd().act(ATTR_ON, False), EncCmd(0x32).eq("arg1", 6).eq("arg0", 0)),
+    Trans(Fan6SpeedCmd().act(ATTR_ON, True).act(ATTR_SPEED), EncCmd(0x32).eq("arg1", 6).min("arg0", 1)).copy(ATTR_SPEED, "arg0"),
     *_get_fan_translators("arg0", "arg1"),
     *_get_device_translators(),
-    Trans(DeviceCmd().act("cmd", "timer"), EncCmd(0x51)).copy("s", "arg0", 1.0 / 60.0).split_value("arg0", ["arg0"], 256),
+    Trans(DeviceCmd().act(ATTR_CMD, ATTR_CMD_TIMER), EncCmd(0x51)).copy(ATTR_TIME, "arg0", 1.0 / 60.0).split_value("arg0", ["arg0"], 256),
 ]
 
 TRANS_FANLAMP_V2 = [
     *_get_light_translators("arg0", "arg1", "arg2"),
-    Trans(RGBLightCmd().act("rf").act("gf").act("bf"), EncCmd(0x22)).copy("rf", "arg0", 255).copy("gf", "arg1", 255).copy("bf", "arg2", 255),
-    Trans(RGBLightCmd().act("cmd", "B+").eq("step", 0.1), EncCmd(0x22).eq("arg0", 0x14)).no_direct(),  # NOT TESTED
-    Trans(RGBLightCmd().act("cmd", "B-").eq("step", 0.1), EncCmd(0x22).eq("arg0", 0x28)).no_direct(),  # NOT TESTED
-    Trans(Fan6SpeedCmd().act("on", False), EncCmd(0x31).eq("arg0", 0x20).eq("arg1", 0)),
-    Trans(Fan6SpeedCmd().act("on", True).act("speed"), EncCmd(0x31).eq("arg0", 0x20).min("arg1", 1)).copy("speed", "arg1"),
+    Trans(RGBLightCmd().act(ATTR_RED_F).act(ATTR_GREEN_F).act(ATTR_BLUE_F), EncCmd(0x22))
+    .copy(ATTR_RED_F, "arg0", 255)
+    .copy(ATTR_GREEN_F, "arg1", 255)
+    .copy(ATTR_BLUE_F, "arg2", 255),
+    Trans(RGBLightCmd().act(ATTR_CMD, ATTR_CMD_BR_UP).eq(ATTR_STEP, 0.1), EncCmd(0x22).eq("arg0", 0x14)).no_direct(),  # NOT TESTED
+    Trans(RGBLightCmd().act(ATTR_CMD, ATTR_CMD_BR_DOWN).eq(ATTR_STEP, 0.1), EncCmd(0x22).eq("arg0", 0x28)).no_direct(),  # NOT TESTED
+    Trans(Fan6SpeedCmd().act(ATTR_ON, False), EncCmd(0x31).eq("arg0", 0x20).eq("arg1", 0)),
+    Trans(Fan6SpeedCmd().act(ATTR_ON, True).act(ATTR_SPEED), EncCmd(0x31).eq("arg0", 0x20).min("arg1", 1)).copy(ATTR_SPEED, "arg1"),
     *_get_fan_translators("arg1", "arg0"),
     *_get_device_translators(),
-    Trans(DeviceCmd().act("cmd", "timer"), EncCmd(0x41)).copy("s", "arg0", 1.0 / 60.0).split_value("arg0", ["arg0", "arg1"], 256),
+    Trans(DeviceCmd().act(ATTR_CMD, ATTR_CMD_TIMER), EncCmd(0x41)).copy(ATTR_TIME, "arg0", 1.0 / 60.0).split_value("arg0", ["arg0", "arg1"], 256),
 ]

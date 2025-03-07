@@ -16,7 +16,24 @@ from homeassistant.helpers.restore_state import RestoreEntity
 from homeassistant.util import dt as dt_util
 
 from .adapters import BleAdvQueueItem
-from .codecs.models import AttrType, BleAdvAdvertisement, BleAdvCodec, BleAdvConfig, BleAdvEntAttr
+from .codecs.const import (
+    ATTR_CMD,
+    ATTR_CMD_PAIR,
+    ATTR_CMD_TIMER,
+    ATTR_CMD_TOGGLE,
+    ATTR_CMD_UNPAIR,
+    ATTR_ON,
+    ATTR_SUB_TYPE,
+    ATTR_TIME,
+    DEVICE_TYPE,
+)
+from .codecs.models import (
+    AttrType,
+    BleAdvAdvertisement,
+    BleAdvCodec,
+    BleAdvConfig,
+    BleAdvEntAttr,
+)
 from .const import DOMAIN
 from .coordinator import BleAdvCoordinator, MatchingCallback
 
@@ -101,40 +118,36 @@ class BleAdvEntity(RestoreEntity):
 
     def get_attrs(self) -> dict[str, Any]:
         """Get the attrs."""
-        return {"on": self._attr_is_on, "type": self._sub_type}
+        return {ATTR_ON: self._attr_is_on, ATTR_SUB_TYPE: self._sub_type}
 
     def apply_attrs(self, ent_attr: BleAdvEntAttr) -> None:
         """Apply Attributes to the Entity."""
-        if "on" in ent_attr.chg_attrs:
-            self._attr_is_on = ent_attr.attrs.get("on")
-        if "cmd" in ent_attr.chg_attrs and ent_attr.attrs.get("cmd") == "toggle":
+        if ATTR_ON in ent_attr.chg_attrs:
+            self._attr_is_on = ent_attr.attrs.get(ATTR_ON)
+        if ATTR_CMD in ent_attr.chg_attrs and ent_attr.attrs.get(ATTR_CMD) == ATTR_CMD_TOGGLE:
             self._attr_is_on = not self._attr_is_on
-
-    def get_change_rate(self, before_attrs: dict[str, AttrType], after_attrs: dict[str, AttrType]) -> int:  # noqa: ARG002
-        """Compute the change rate for the attribute."""
-        return 0
 
     async def async_after_change(self, before_attrs: dict[str, AttrType]) -> None:
         """Process to be done after change is detected on Entity."""
         attrs = self.get_attrs()
         changed_attrs = [x for x, y in attrs.items() if y != before_attrs.get(x)]
         if changed_attrs:
-            chg_rate = self.get_change_rate(before_attrs, attrs)
-            await self._device.apply_change(BleAdvEntAttr(changed_attrs, attrs, self._base_type, self._index), chg_rate)
+            await self._device.apply_change(BleAdvEntAttr(changed_attrs, attrs, self._base_type, self._index))
 
     async def async_added_to_hass(self) -> None:
         """Restore state and state attributes."""
         await super().async_added_to_hass()
 
         if last_state := await self.async_get_last_state():
-            self._attr_is_on = last_state.state == STATE_ON
+            is_on: bool = last_state.state == STATE_ON
             for attr_name, default_value in self._state_attributes:
-                val = last_state.attributes.get(attr_name if self._attr_is_on else f"last_{attr_name}")
+                val = last_state.attributes.get(attr_name if is_on else f"last_{attr_name}")
                 self.set_state_attribute(attr_name, val if val is not None else default_value)
+            self._attr_is_on = is_on
         else:
-            self._attr_is_on = False
             for attr_name, default_value in self._state_attributes:
                 self.set_state_attribute(attr_name, default_value)
+            self._attr_is_on = False
 
 
 class MatchingDeviceCallback(MatchingCallback):
@@ -172,6 +185,7 @@ class BleAdvDevice:
         adapter_id: str,
         repeat: int,
         interval: int,
+        duration: int,
         config: BleAdvConfig,
         coordinator: BleAdvCoordinator,
     ) -> None:
@@ -183,6 +197,7 @@ class BleAdvDevice:
         self.adapter_id: str = adapter_id
         self.repeat: int = int(repeat)
         self.interval: int = int(interval)
+        self.duration: int = int(duration)
         self.config: BleAdvConfig = config
         self.coordinator: BleAdvCoordinator = coordinator
         self.entities: dict[Any, BleAdvEntity] = {}
@@ -212,9 +227,9 @@ class BleAdvDevice:
         """Stop the device: unregister."""
         await self.coordinator.unregister_callback(self.unique_id)
 
-    async def apply_change(self, ent_attr: BleAdvEntAttr, chg_rate: int = 0) -> None:
+    async def apply_change(self, ent_attr: BleAdvEntAttr) -> None:
         """Apply changes."""
-        self.logger.info(f"Tx: {self.config.tx_count}, Changes {ent_attr}, rate: {chg_rate}")
+        self.logger.info(f"Tx: {self.config.tx_count}, Changes {ent_attr}")
         await self._async_cancel_timer()
         try:
             acodec: BleAdvCodec = self.coordinator.codecs[self.codec_id]
@@ -223,7 +238,7 @@ class BleAdvDevice:
                 self.logger.info(f"Cmd: {enc_cmd}")
                 self.config.tx_count = (self.config.tx_count + 1) % 125
                 adv: BleAdvAdvertisement = acodec.encode_adv(enc_cmd, self.config)
-                qi: BleAdvQueueItem = BleAdvQueueItem(enc_cmd.cmd, self.repeat, chg_rate, self.interval, adv.to_raw())
+                qi: BleAdvQueueItem = BleAdvQueueItem(enc_cmd.cmd, self.repeat, self.duration, self.interval, adv.to_raw())
                 await self.coordinator.get_adapter(self.adapter_id).enqueue(self.unique_id, qi)
         except Exception:  # noqa: BLE001, We want to catch ALL Exceptions, log them, BUT continue running the loop
             _LOGGER.error(traceback.format_exc())
@@ -231,7 +246,7 @@ class BleAdvDevice:
     async def async_on_command(self, ent_attrs: list[BleAdvEntAttr]) -> None:
         """Process commands received."""
         for ent_attr in ent_attrs:
-            if ent_attr.base_type == "device":
+            if ent_attr.base_type == DEVICE_TYPE:
                 await self._async_on_device_command(ent_attr)
             else:
                 ent = self.entities.get(ent_attr.id)
@@ -241,14 +256,14 @@ class BleAdvDevice:
 
     async def _async_on_device_command(self, ent_attr: BleAdvEntAttr) -> None:
         self.logger.info(f"Device Command received: {ent_attr}")
-        if "cmd" in ent_attr.chg_attrs:
-            cmd = ent_attr.attrs.get("cmd")
-            if cmd == "timer":
-                expire = dt_util.utcnow() + timedelta(seconds=ent_attr.attrs["s"])  # type: ignore[none]
+        if ATTR_CMD in ent_attr.chg_attrs:
+            cmd = ent_attr.attrs.get(ATTR_CMD)
+            if cmd == ATTR_CMD_TIMER:
+                expire = dt_util.utcnow() + timedelta(seconds=ent_attr.attrs[ATTR_TIME])  # type: ignore[none]
                 self.logger.info(f"Set Timer to expire at: {expire}")
                 await self._async_cancel_timer()
                 self._timer_cancel = async_track_point_in_utc_time(self.hass, self._async_timeout, expire)
-            elif cmd in ("pair", "unpair"):
+            elif cmd in (ATTR_CMD_PAIR, ATTR_CMD_UNPAIR):
                 pass
             else:
                 self.logger.warning(f"Unexpected command '{cmd}'.")
@@ -263,7 +278,7 @@ class BleAdvDevice:
 
     async def _async_timeout(self, now: datetime) -> None:  # noqa: ARG002
         self.logger.info("Timer expired: switch all entities OFF.")
-        await self._async_cmd_all(BleAdvEntAttr(["on"], {"on": False}, "", 0))
+        await self._async_cmd_all(BleAdvEntAttr([ATTR_ON], {ATTR_ON: False}, "", 0))
 
     async def _async_cmd_all(self, ent_attr: BleAdvEntAttr) -> None:
         for ent in self.entities.values():
