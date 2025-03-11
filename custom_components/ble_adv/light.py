@@ -84,6 +84,7 @@ class BleAdvLightBinary(BleAdvLightBase):
     """Binary Light."""
 
     _attr_supported_color_modes = {ColorMode.ONOFF}
+    _attr_color_mode = ColorMode.ONOFF
 
 
 class BleAdvLightWithBrightness(BleAdvLightBase):
@@ -125,6 +126,7 @@ class BleAdvLightRGB(BleAdvLightWithBrightness):
     """RGB Light."""
 
     _attr_supported_color_modes = {ColorMode.RGB}
+    _attr_color_mode = ColorMode.RGB
     _state_attributes = frozenset([(ATTR_BRIGHTNESS, 255), (ATTR_RGB_COLOR, (255, 255, 255))])
 
     def _get_rgb(self) -> tuple[float, float, float]:
@@ -162,6 +164,7 @@ class BleAdvLightCWW(BleAdvLightWithBrightness):
     _attr_min_color_temp_kelvin = DEFAULT_MIN_KELVIN
     _attr_max_color_temp_kelvin = DEFAULT_MAX_KELVIN
     _attr_supported_color_modes = {ColorMode.COLOR_TEMP}
+    _attr_color_mode = ColorMode.COLOR_TEMP
     _state_attributes = frozenset([(ATTR_BRIGHTNESS, 255), (ATTR_COLOR_TEMP_KELVIN, DEFAULT_MAX_KELVIN)])
 
     def _set_ct(self, ct_percent: float) -> None:

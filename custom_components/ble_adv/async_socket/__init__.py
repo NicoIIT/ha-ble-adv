@@ -50,7 +50,7 @@ class AsyncSocketBase(ABC):
     async def _setup_recv_loop(self, wait_recv_callback: SocketWaitRecvCallback) -> None:
         """Help function: starts a listening loop."""
         self._recv_task = asyncio.create_task(self._async_base_receive(wait_recv_callback))
-        await self._ready_recv_event.wait()
+        await asyncio.wait_for(self._ready_recv_event.wait(), 1)
 
     async def _async_base_receive(self, wait_recv_callback: SocketWaitRecvCallback) -> None:
         self._ready_recv_event.set()
@@ -83,7 +83,7 @@ class AsyncSocketBase(ABC):
         self._cmd_exc = None
         self._cmd_res = None
         await self._async_call(method, *args)
-        await self._cmd_event.wait()
+        await asyncio.wait_for(self._cmd_event.wait(), 1)
         if self._cmd_exc is not None:
             raise self._cmd_exc
         return self._cmd_res

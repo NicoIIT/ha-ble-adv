@@ -142,6 +142,8 @@ class BleAdvConfigFlow(ConfigFlow, domain=DOMAIN):
     async def async_step_user(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:  # noqa: ARG002
         """Handle the user step to setup a device."""
         self._coordinator: BleAdvCoordinator = await get_coordinator(self.hass)
+        if not self._coordinator.has_available_adapters():
+            return self.async_abort(reason="no_adapters")
         install_types = ["wait_config", "manual", "pair"]
         return self.async_show_menu(step_id="user", menu_options=install_types)
 

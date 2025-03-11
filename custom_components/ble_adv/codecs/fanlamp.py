@@ -80,25 +80,22 @@ class FanLampEncoderV1(FanLampEncoder):
 
     def decode(self, buffer: bytes) -> tuple[BleAdvEncCmd | None, BleAdvConfig | None]:
         """Decode an incoming buffer into an encoder command and a config."""
-        decoded = reverse_all(whiten(buffer, 0x6F))
-        self.log_buffer(decoded, "Decoded")
-        if not self.check_eq_buf(self._prefix, decoded, "Prefix"):
-            return None, None
-        decoded = decoded[len(self._prefix) :]
+        decoded_base = reverse_all(whiten(buffer, 0x6F))
+        self.log_buffer(decoded_base, "Decoded")
+        decoded = decoded_base[len(self._prefix) :]
         seed = int.from_bytes(decoded[10:12])
         seed8 = seed & 0xFF
         is_pair_cmd: bool = decoded[0] == 0x28
-        if not self.check_eq(self._crc16(decoded[:12], seed ^ 0xFFFF), int.from_bytes(decoded[12:14]), "CRC"):
+
+        if (
+            not self.is_eq_buf(self._prefix, decoded_base, "Prefix")
+            or not self.is_eq(self._crc16(decoded[:12], seed ^ 0xFFFF), int.from_bytes(decoded[12:14]), "CRC")
+            or ((is_pair_cmd or not self._pair_arg_only_on_pair) and not self.is_eq(self._pair_arg2, decoded[5], "Arg2"))
+            or (not is_pair_cmd and self._pair_arg_only_on_pair and not self.is_eq(0, decoded[5], "Arg2 only on Pair"))
+            or not self.is_eq(seed8 ^ 1 if self._xor1 else seed8, decoded[9], "r2")
+            or (self._with_crc2 and not self.is_eq(self._crc2(decoded[:-2]), int.from_bytes(decoded[14:16]), "CRC2"))
+        ):
             return None, None
-        if (is_pair_cmd or not self._pair_arg_only_on_pair) and not self.check_eq(self._pair_arg2, decoded[5], "Arg2"):
-            return None, None
-        if not is_pair_cmd and self._pair_arg_only_on_pair and not self.check_eq(0, decoded[5], "Arg2 only on Pair"):
-            return None, None
-        if not self.check_eq(seed8 ^ 1 if self._xor1 else seed8, decoded[9], "r2"):
-            return None, None
-        if self._with_crc2:
-            if not self.check_eq(self._crc2(decoded[:-2]), int.from_bytes(decoded[14:16]), "CRC2"):
-                return None, None
 
         conf = BleAdvConfig()
         enc_cmd = BleAdvEncCmd(decoded[0])
@@ -178,19 +175,21 @@ class FanLampEncoderV2(FanLampEncoder):
     def decode(self, buffer: bytes) -> tuple[BleAdvEncCmd | None, BleAdvConfig | None]:
         """Decode an incoming buffer into an encoder command and a config."""
         seed = int.from_bytes(buffer[-4:-2], "little")
-        if not self.check_eq(self._crc16(buffer[:-2], seed ^ 0xFFFF), int.from_bytes(buffer[-2:], "little"), "CRC"):
-            return None, None
-        decoded = buffer[0:2] + self._whiten(buffer[2:-4], seed & 0xFF)
-        self.log_buffer(decoded, "Decoded")
-        if not self.check_eq_buf(self._prefix, decoded, "Prefix"):
-            return None, None
-        sign = int.from_bytes(decoded[17:19], "little")
-        if self._with_sign and not self.check_eq(self._sign(decoded[1:17], decoded[3], seed), sign, "Sign"):
-            return None, None
-        if not self._with_sign and not self.check_eq(0, sign, "NO Sign"):
-            return None, None
-        decoded = decoded[len(self._prefix) :]
-        if not self.check_eq(self._device_type, int.from_bytes(decoded[1:3], "little"), "Device Type"):
+        crc_msg = int.from_bytes(buffer[-2:], "little")
+        crc_computed = self._crc16(buffer[:-2], seed ^ 0xFFFF)
+        decoded_base = buffer[0:2] + self._whiten(buffer[2:-4], seed & 0xFF)
+        self.log_buffer(decoded_base, "Decoded Base")
+        sign = int.from_bytes(decoded_base[17:19], "little")
+        decoded = decoded_base[len(self._prefix) :]
+        self.log_buffer(decoded, "Decoded No Prefix")
+
+        if (
+            not self.is_eq(crc_computed, crc_msg, "CRC")
+            or not self.is_eq_buf(self._prefix, decoded_base, "Prefix")
+            or (self._with_sign and not self.is_eq(self._sign(decoded_base[1:17], decoded_base[3], seed), sign, "Sign"))
+            or (not self._with_sign and not self.is_eq(0, sign, "NO Sign"))
+            or not self.is_eq(self._device_type, int.from_bytes(decoded[1:3], "little"), "Device Type")
+        ):
             return None, None
 
         conf = BleAdvConfig()

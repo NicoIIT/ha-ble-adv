@@ -7,7 +7,7 @@ import traceback
 from abc import ABC, abstractmethod
 from datetime import datetime, timedelta
 
-from bluetooth_adapters import get_bluetooth_adapters
+from bluetooth_adapters import get_adapters_from_hci
 from homeassistant.core import HomeAssistant
 
 from .adapters import BleAdvAdapter, get_adapter
@@ -48,15 +48,17 @@ class BleAdvCoordinator:
 
     async def async_init(self) -> None:
         """Async Init."""
-        bt_adapters = await get_bluetooth_adapters()
-        _LOGGER.debug(f"BT Adapters: {bt_adapters}")
+        bt_adapters: list[int] = list(get_adapters_from_hci().keys())
+        _LOGGER.debug(f"BT Adapters from hci: {bt_adapters}")
+        if not bt_adapters:
+            bt_adapters = list(range(3))
         for adapter_id in bt_adapters:
             try:
                 adapter = get_adapter(adapter_id)
                 await adapter.async_init()
                 self.adapters[adapter.name] = adapter
-            except OSError as exc:
-                _LOGGER.warning(f"Failed to init adapter {adapter.name}:{type(exc)}:{exc}, ignoring it")
+            except Exception as exc:
+                _LOGGER.info(f"Failed to init adapter {adapter.name}:{type(exc)}:{exc}, ignoring it")
                 adapter.close()
 
     async def async_final(self) -> None:
@@ -67,6 +69,10 @@ class BleAdvCoordinator:
     def get_adapter(self, adapter_id: str) -> BleAdvAdapter:
         """Get the adapter."""
         return self.adapters[adapter_id]
+
+    def has_available_adapters(self) -> bool:
+        """Check if the coordinator has available adapters."""
+        return any(adapter.available for adapter in self.adapters.values())
 
     async def register_callback(self, callback_id: str, callback: MatchingCallback) -> None:
         """Register a matching callback by its id."""
@@ -117,7 +123,7 @@ class BleAdvCoordinator:
                     for device_callback in self._callbacks.values():
                         await device_callback.handle(codec_id, adapter_id, conf, ent_attrs)
 
-        except Exception:  # noqa: BLE001, We want to catch ALL Exceptions, log them, BUT continue running the loop
+        except Exception:
             _LOGGER.error(traceback.format_exc())
 
 

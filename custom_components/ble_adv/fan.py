@@ -100,13 +100,11 @@ class BleAdvFan(BleAdvEntity, FanEntity):
     @handle_change
     async def async_set_direction(self, direction: str) -> None:
         """Set the direction of the fan."""
-        if not self._attr_is_on:
-            self._set_state_percentage(self._attr_percentage)
-        self._attr_direction = direction
+        if self._attr_is_on:
+            self._attr_direction = direction
 
     @handle_change
     async def async_oscillate(self, oscillating: bool) -> None:
         """Oscillate the fan."""
-        if not self._attr_is_on:
-            self._set_state_percentage(self._attr_percentage)
-        self._attr_oscillating = oscillating
+        if self._attr_is_on:
+            self._attr_oscillating = oscillating

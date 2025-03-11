@@ -109,12 +109,13 @@
     "progress": {
       "wait_config": "Please press any button (preferably Pair) on the phone app controlling your device.",
       "agg_config": "Aggregating configuration data.",
-      "blink": "Making the light blink with configuration {conf}"
+      "blink": "Making the light blink with configuration {conf}."
     },
     "abort": {
-      "no_config": "No configuration have been found or tested successfully.",
+      "no_adapters": "No Bluetooth adapter has been found. Aborting.",
+      "no_config": "No configuration has been found or tested successfully.",
       "reconfigure_successful": "Reconfigure successful!",
-      "already_configured": "A device with the same (codec / id / index) is already configured"
+      "already_configured": "A device with the same (codec / id / index) is already configured."
     }
   },
   "selector": {

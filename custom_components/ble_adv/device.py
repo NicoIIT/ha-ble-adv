@@ -75,6 +75,11 @@ class BleAdvEntity(RestoreEntity):
         self._device.add_entity(self)
 
     @property
+    def available(self) -> bool:
+        """Return True if the device is available."""
+        return self._device.available
+
+    @property
     def id(self) -> tuple[str, int]:
         """Entity ID."""
         return (self._base_type, self._index)
@@ -214,6 +219,11 @@ class BleAdvDevice:
             model_id=f"0x{self.config.id:X} / {self.config.index}",
         )
 
+    @property
+    def available(self) -> bool:
+        """Return True if the device is available: if the adapter is available."""
+        return self.adapter_id in self.coordinator.adapters and self.coordinator.get_adapter(self.adapter_id).available
+
     def add_entity(self, ent: BleAdvEntity) -> None:
         """Add entity to this device."""
         self.entities[ent.id] = ent
@@ -240,7 +250,7 @@ class BleAdvDevice:
                 adv: BleAdvAdvertisement = acodec.encode_adv(enc_cmd, self.config)
                 qi: BleAdvQueueItem = BleAdvQueueItem(enc_cmd.cmd, self.repeat, self.duration, self.interval, adv.to_raw())
                 await self.coordinator.get_adapter(self.adapter_id).enqueue(self.unique_id, qi)
-        except Exception:  # noqa: BLE001, We want to catch ALL Exceptions, log them, BUT continue running the loop
+        except Exception:
             _LOGGER.error(traceback.format_exc())
 
     async def async_on_command(self, ent_attrs: list[BleAdvEntAttr]) -> None:
@@ -250,7 +260,7 @@ class BleAdvDevice:
                 await self._async_on_device_command(ent_attr)
             else:
                 ent = self.entities.get(ent_attr.id)
-                if ent is not None:
+                if ent is not None and (ent.is_on or (ATTR_ON in ent_attr.chg_attrs and ent_attr.attrs[ATTR_ON])):
                     ent.apply_attrs(ent_attr)
                     ent.async_write_ha_state()
 

@@ -48,12 +48,18 @@ class BleAdvAdapter(ABC):
         self._lock: asyncio.Lock = asyncio.Lock()
         self._processing: bool = False
         self._dequeue_task: asyncio.Task | None = None
+        self._opened = False
 
     def _log(self, message: str) -> None:
         _LOGGER.info("[%s] %s.", self.name, message)
 
     def _log_dbg(self, message: str) -> None:
         _LOGGER.debug("[%s] %s.", self.name, message)
+
+    @property
+    def available(self) -> bool:
+        """Available."""
+        return self._opened
 
     async def async_init(self) -> None:
         """Async Init."""
@@ -154,7 +160,7 @@ class BleAdvAdapter(ABC):
                     await self._advertise(item.interval, item.data)
                     await self._lock_queue_for(self._cur_ind, lock_delay)
                     self._add_event.set()
-            except Exception as exc:  # noqa: BLE001, We want to catch ALL Exceptions, log them, BUT continue running the loop
+            except Exception as exc:
                 _LOGGER.warning(f"BleAdvAdapter - Exception in dequeue: {exc}")
 
 
@@ -191,24 +197,22 @@ class BluetoothHCIAdapter(BleAdvAdapter):
 
     def __init__(
         self,
-        name: str,
+        device_id: int,
         async_socket: AsyncSocketBase,
     ) -> None:
         """Create Adapter."""
-        super().__init__(name)
-        self.device_id = int(name[-1])
+        super().__init__(f"hci{device_id}")
+        self.device_id = device_id
         self._async_socket = async_socket
         self._ext_adv = None
         self._cmd_event = asyncio.Event()
         self._on_going_cmd = None
-        self._opened = False
         self._adv_lock = asyncio.Lock()
 
     async def open(self) -> None:
         """Open the adapters. Can throw exception if invalid."""
         if self._opened:
             return
-        self._opened = True
         fileno = await self._async_socket.async_init(
             self.name,
             self._recv,
@@ -220,6 +224,7 @@ class BluetoothHCIAdapter(BleAdvAdapter):
         await self._async_socket.async_bind((self.device_id,))
         await self._async_socket.async_setsockopt(socket.SOL_HCI, socket.HCI_FILTER, self.ADV_FILTER)  # type: ignore[none]
         await self._async_socket.async_start_recv()
+        self._opened = True
         ret_code, data = await self._send_hci_cmd(self.OCF_LE_READ_LOCAL_SUPPORTED_FEATURES)
         if ret_code == self.HCI_SUCCESS and data is not None:
             features = int.from_bytes(data)
@@ -253,12 +258,14 @@ class BluetoothHCIAdapter(BleAdvAdapter):
             nb_attempt += 1
             try:
                 await self.open()
-                self._log("Reconnected")
                 break
-            except OSError:
-                self._log(f"Reconnect failed ({nb_attempt}), retrying..")
+            except Exception as exc:
+                self._log_dbg(f"Reconnect failed ({nb_attempt}): {exc}, retrying..")
+                self.close()
 
     async def _send_hci_cmd(self, cmd_type: int, cmd_data: bytes = bytearray()) -> tuple[int, bytes | None]:
+        if not self._opened:
+            raise AdapterError("Adapter not available")
         data_len = len(cmd_data)
         op_code = cmd_type + (self.OGF_LE_CTL << 10)  # OCF on 10 bits, OGF on 6 bits
         cmd = struct.pack(f"<BHB{data_len}B", self.HCI_COMMAND_PKT, op_code, data_len, *cmd_data)
@@ -326,6 +333,6 @@ class BluetoothHCIAdapter(BleAdvAdapter):
         await self._set_scan_enable(enabled=False)
 
 
-def get_adapter(device_id: str) -> BleAdvAdapter:
+def get_adapter(device_id: int) -> BleAdvAdapter:
     """Get the Adapter corresponding to the device_id and the potential tunneling config."""
     return BluetoothHCIAdapter(device_id, create_async_socket())

@@ -382,11 +382,11 @@ class BleAdvCodec(ABC):
 
     def decode_adv(self, adv: BleAdvAdvertisement) -> tuple[BleAdvEncCmd | None, BleAdvConfig | None]:
         """Decode Adv into Encoder Attributes / Config."""
-        if not self.check_eq(self._ble_type, adv.ble_type, "BLE Type"):
-            return None, None
-        if not self.check_eq(self._len, len(adv.raw) - len(self._header), "Length"):
-            return None, None
-        if not self.check_eq_buf(self._header, adv.raw, "Header"):
+        if (
+            not self.is_eq(self._ble_type, adv.ble_type, "BLE Type")
+            or not self.is_eq(self._len, len(adv.raw) - len(self._header), "Length")
+            or not self.is_eq_buf(self._header, adv.raw, "Header")
+        ):
             return None, None
         return self.decode(adv.raw[len(self._header) :])
 
@@ -394,7 +394,7 @@ class BleAdvCodec(ABC):
         """Encode an Encoder Attributes with Config into an Adv."""
         return BleAdvAdvertisement(self._ble_type, self._header + self.encode(enc_cmd, conf), self._ad_flag)
 
-    def check_eq(self, ref: int, comp: int, msg: str) -> bool:
+    def is_eq(self, ref: int, comp: int, msg: str) -> bool:
         """Check equal and log if not."""
         if ref != comp:
             if self._debug_mode:
@@ -402,7 +402,7 @@ class BleAdvCodec(ABC):
             return False
         return True
 
-    def check_eq_buf(self, ref_buf: bytes, comp_buf: bytes, msg: str) -> bool:
+    def is_eq_buf(self, ref_buf: bytes, comp_buf: bytes, msg: str) -> bool:
         """Check buffer equal and log if not."""
         trunc_comp_buf = comp_buf[: len(ref_buf)]
         if trunc_comp_buf != ref_buf:
