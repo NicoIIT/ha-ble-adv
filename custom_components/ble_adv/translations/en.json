@@ -75,7 +75,8 @@
             "data": {
               "type": "Type",
               "direction": "Supports Direction",
-              "oscillating": "Supports Oscillation"
+              "oscillating": "Supports Oscillation",
+              "refresh_on_start": "Refresh On Start"
             }
           },
           "fan_1": {
@@ -83,7 +84,8 @@
             "data": {
               "type": "Type",
               "direction": "Supports Direction",
-              "oscillating": "Supports Oscillation"
+              "oscillating": "Supports Oscillation",
+              "refresh_on_start": "Refresh On Start"
             }
           },
           "fan_2": {
@@ -91,7 +93,8 @@
             "data": {
               "type": "Type",
               "direction": "Supports Direction",
-              "oscillating": "Supports Oscillation"
+              "oscillating": "Supports Oscillation",
+              "refresh_on_start": "Refresh On Start"
             }
           },
           "technical": {

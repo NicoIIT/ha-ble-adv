@@ -132,10 +132,16 @@ class BleAdvEntity(RestoreEntity):
         if ATTR_CMD in ent_attr.chg_attrs and ent_attr.attrs.get(ATTR_CMD) == ATTR_CMD_TOGGLE:
             self._attr_is_on = not self._attr_is_on
 
+    def forced_changed_attr_on_start(self) -> list[str]:
+        """List Forced changed attributes on start."""
+        return []
+
     async def async_after_change(self, before_attrs: dict[str, AttrType]) -> None:
         """Process to be done after change is detected on Entity."""
         attrs = self.get_attrs()
         changed_attrs = [x for x, y in attrs.items() if y != before_attrs.get(x)]
+        if ATTR_ON in changed_attrs and attrs[ATTR_ON]:
+            changed_attrs += self.forced_changed_attr_on_start()
         if changed_attrs:
             await self._device.apply_change(BleAdvEntAttr(changed_attrs, attrs, self._base_type, self._index))
 

@@ -30,6 +30,7 @@ from .const import (
     CONF_LIGHTS,
     CONF_MIN_BRIGHTNESS,
     CONF_PHONE_APP,
+    CONF_REFRESH_ON_START,
     CONF_REPEAT,
     CONF_TECHNICAL,
     CONF_TYPE_NONE,
@@ -336,6 +337,7 @@ class BleAdvConfigFlow(ConfigFlow, domain=DOMAIN):
                             vol.Required(CONF_TYPE, default=opts.get(CONF_TYPE, CONF_TYPE_NONE)): self._get_selector(FAN_TYPE, types),
                             vol.Required(CONF_USE_DIR, default=opts.get(CONF_USE_DIR, False)): bool,
                             vol.Required(CONF_USE_OSC, default=opts.get(CONF_USE_OSC, False)): bool,
+                            vol.Required(CONF_REFRESH_ON_START, default=opts.get(CONF_REFRESH_ON_START, False)): bool,
                         }
                     ),
                     {"collapsed": CONF_TYPE not in opts},
@@ -345,7 +347,7 @@ class BleAdvConfigFlow(ConfigFlow, domain=DOMAIN):
             vol.Required(CONF_TECHNICAL): section(
                 vol.Schema(
                     {
-                        vol.Optional(CONF_DURATION, default=data_tech.get(CONF_DURATION, 200)): selector.NumberSelector(
+                        vol.Optional(CONF_DURATION, default=data_tech.get(CONF_DURATION, 850)): selector.NumberSelector(
                             selector.NumberSelectorConfig(step=50, min=100, max=1000, mode=selector.NumberSelectorMode.SLIDER)
                         ),
                         vol.Optional(CONF_INTERVAL, default=data_tech.get(CONF_INTERVAL, 20)): selector.NumberSelector(
