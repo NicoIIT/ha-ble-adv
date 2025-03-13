@@ -64,8 +64,8 @@ Features such as Pair / Unpair / Timer are not handled by the standard HA Entiti
 
 ## FAQ
 
-# When I perform changes very fast on the light or fan, sometimes the command is not taken into account
+### When I perform changes very fast on the light or fan, sometimes the command is not taken into account
 Some devices are not available to receive commands while they are still processing one. You can increase the 'Minimum Duration' in between 2 commands in the 'Technical' part of the configuration to be sure we will wait this delay before sending new commands to the Device.
 
-# When I change the Oscillation or Direction of the Fan when it is OFF, nothing happens despite the change is taken into account in the UI
+### When I change the Oscillation or Direction of the Fan when it is OFF, nothing happens despite the change is taken into account in the UI
 Those settings cannot be changed while the Fan is OFF, and they are not changed on the HA Entity side. Still there is a UI bug: the change should be reverted by the UI immediately to reflect the effective state of the Entity (that has not changed) but it is not, feel free to open them an issue.

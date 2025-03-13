@@ -1,7 +1,8 @@
 {
     "name": "NicoIIT/ble_adv",
-    "image": "mcr.microsoft.com/devcontainers/python:3.13",
-    "postCreateCommand": "python3 -m pip install --requirement requirements.txt",
+    "build": {
+        "dockerfile": "Dockerfile"
+    },
     "forwardPorts": [
         8123
     ],
@@ -44,6 +45,7 @@
                 "[python]": {
                     "editor.defaultFormatter": "charliermarsh.ruff"
                 },
+                "explorer.excludeGitIgnore": true,
                 "tasks": {
                     "version": "2.0.0",
                     "tasks": [

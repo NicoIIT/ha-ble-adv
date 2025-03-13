@@ -29,7 +29,7 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install -r requirements.txt
+          pip install -r .devcontainer/requirements.txt
       - name: Test with pytest
         run: |
           export PYTHONPATH=:custom_components
