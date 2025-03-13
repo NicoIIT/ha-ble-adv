@@ -20,6 +20,7 @@ Should you want to propose changes please follow:
     * lint: check formatting
     * test: run python tests
     * run: starts an instance of Home Assistant with forwarded ports, available at `http://localhost:8123`
+    * clean: removes the Home Assistant instance
 4. Perform your changes, add relevant tests and documentation.
 5. Ensure `lint` and `test` tasks run OK, and that the integration is behaving OK in `run`.
 6. Commit your changes and push them to your `dev` branch.

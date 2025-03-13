@@ -18,7 +18,7 @@ from homeassistant.helpers import selector
 from . import get_coordinator
 from .codecs import PHONE_APPS
 from .codecs.const import ATTR_ON, FAN_TYPE, LIGHT_TYPE
-from .codecs.models import BleAdvConfig, BleAdvEntAttr
+from .codecs.models import BleAdvCodec, BleAdvConfig, BleAdvEntAttr
 from .const import (
     CONF_ADAPTER_ID,
     CONF_CODEC_ID,
@@ -259,52 +259,52 @@ class BleAdvConfigFlow(ConfigFlow, domain=DOMAIN):
         return await self._async_reconfigure(user_input)
 
     async def _async_finalize(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
-        acodec = self._coordinator.codecs[self.configs[self.selected_config].codec_id]
-        data_lights = self._get_default_data(acodec.get_features(LIGHT_TYPE), [])
-        data_fans = self._get_default_data(acodec.get_features(FAN_TYPE), [])
-
-        if user_input is None:
-            data_schema = vol.Schema({vol.Required(CONF_NAME): str})
-            data_schema = data_schema.extend(self._get_data_schema(data_lights, data_fans, {}))
-            return self.async_show_form(step_id="finalize", data_schema=data_schema, errors={})
-
-        config = self.configs[self.selected_config]
-
-        return self.async_create_entry(
-            title=user_input[CONF_NAME],
-            data={
-                CONF_DEVICE: {
-                    CONF_NAME: user_input[CONF_NAME],
+        errors = {}
+        if user_input is not None:
+            data = self._from_user_input(user_input)
+            conf_name = user_input[CONF_NAME]
+            if len(data[CONF_FANS]) > 0 or len(data[CONF_FANS]) > 0:
+                config = self.configs[self.selected_config]
+                data[CONF_DEVICE] = {
+                    CONF_NAME: conf_name,
                     CONF_CODEC_ID: config.codec_id,
                     CONF_ADAPTER_ID: config.adapter_id,
                     CONF_FORCED_ID: config.id,
                     CONF_INDEX: config.index,
-                },
-                CONF_LIGHTS: self._convert_to_list(LIGHT_TYPE, user_input),
-                CONF_FANS: self._convert_to_list(FAN_TYPE, user_input),
-                CONF_TECHNICAL: user_input[CONF_TECHNICAL],
-            },
-        )
+                }
+                return self.async_create_entry(title=conf_name, data=data)
+            errors["base"] = "missing_entity"
+        else:
+            data = {CONF_LIGHTS: [], CONF_FANS: [], CONF_TECHNICAL: {}}
+            conf_name = ""
+
+        codec_id = self.configs[self.selected_config].codec_id
+        data_schema = vol.Schema({vol.Required(CONF_NAME, default=conf_name): str})
+        data_schema = data_schema.extend(self._get_data_schema(codec_id, data))
+        return self.async_show_form(step_id="finalize", data_schema=data_schema, errors=errors)
 
     async def _async_reconfigure(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
+        errors = {}
         entry = self._get_reconfigure_entry()
-        acodec = self._coordinator.codecs[entry.data[CONF_DEVICE][CONF_CODEC_ID]]
-        data_lights = self._get_default_data(acodec.get_features(LIGHT_TYPE), entry.data[CONF_LIGHTS])
-        data_fans = self._get_default_data(acodec.get_features(FAN_TYPE), entry.data[CONF_FANS])
+        if user_input is not None:
+            data = self._from_user_input(user_input)
+            if len(data[CONF_FANS]) > 0 or len(data[CONF_FANS]) > 0:
+                return self.async_update_reload_and_abort(entry, data_updates=data)
+            errors["base"] = "missing_entity"
+        else:
+            data = {CONF_LIGHTS: entry.data[CONF_LIGHTS], CONF_FANS: entry.data[CONF_FANS], CONF_TECHNICAL: entry.data[CONF_TECHNICAL]}
 
-        if user_input is None:
-            data_schema = vol.Schema(self._get_data_schema(data_lights, data_fans, entry.data[CONF_TECHNICAL]))
-            # We voluntarilly call 'finalize' step to share configuration in translation files
-            return self.async_show_form(step_id="finalize", data_schema=data_schema, errors={})
+        codec_id = entry.data[CONF_DEVICE][CONF_CODEC_ID]
+        data_schema = vol.Schema(self._get_data_schema(codec_id, data))
+        # We voluntarilly call 'finalize' step to share configuration in translation files
+        return self.async_show_form(step_id="finalize", data_schema=data_schema, errors=errors)
 
-        return self.async_update_reload_and_abort(
-            entry,
-            data_updates={
-                CONF_LIGHTS: self._convert_to_list(LIGHT_TYPE, user_input),
-                CONF_FANS: self._convert_to_list(FAN_TYPE, user_input),
-                CONF_TECHNICAL: user_input[CONF_TECHNICAL],
-            },
-        )
+    def _from_user_input(self, user_input: dict[str, Any]) -> dict[str, Any]:
+        return {
+            CONF_LIGHTS: self._convert_to_list(LIGHT_TYPE, user_input),
+            CONF_FANS: self._convert_to_list(FAN_TYPE, user_input),
+            CONF_TECHNICAL: user_input[CONF_TECHNICAL],
+        }
 
     def _convert_to_list(self, ent_type: str, user_input: dict[str, Any]) -> list[Any]:
         """Convert from {'ligth_0':{opts0}, 'ligth_1':{opts1},, ...] to [{opts0}, {opts1}, ...]."""
@@ -314,7 +314,11 @@ class BleAdvConfigFlow(ConfigFlow, domain=DOMAIN):
         opts = options + [{}] * (len(types) - len(options))
         return [(opts[i], [*feature, CONF_TYPE_NONE]) for i, feature in enumerate(types) if feature is not None]
 
-    def _get_data_schema(self, data_lights: list[EntDefault], data_fans: list[EntDefault], data_tech: dict[str, Any]) -> dict:
+    def _get_data_schema(self, codec_id: str, prev: dict[str, Any]) -> dict:
+        codec: BleAdvCodec = self._coordinator.codecs[codec_id]
+        def_lights = self._get_default_data(codec.get_features(LIGHT_TYPE), prev.get(CONF_LIGHTS, []))
+        def_fans = self._get_default_data(codec.get_features(FAN_TYPE), prev.get(CONF_FANS, []))
+        def_tech = prev.get(CONF_TECHNICAL, [])
         return {
             **{
                 vol.Required(f"{LIGHT_TYPE}_{i}"): section(
@@ -326,9 +330,9 @@ class BleAdvConfigFlow(ConfigFlow, domain=DOMAIN):
                             ),
                         }
                     ),
-                    {"collapsed": CONF_TYPE not in opts},
+                    {"collapsed": (CONF_TYPE not in opts) and (i > 0)},
                 )
-                for i, (opts, types) in enumerate(data_lights)
+                for i, (opts, types) in enumerate(def_lights)
             },
             **{
                 vol.Required(f"{FAN_TYPE}_{i}"): section(
@@ -340,20 +344,20 @@ class BleAdvConfigFlow(ConfigFlow, domain=DOMAIN):
                             vol.Required(CONF_REFRESH_ON_START, default=opts.get(CONF_REFRESH_ON_START, False)): bool,
                         }
                     ),
-                    {"collapsed": CONF_TYPE not in opts},
+                    {"collapsed": (CONF_TYPE not in opts) and (i > 0)},
                 )
-                for i, (opts, types) in enumerate(data_fans)
+                for i, (opts, types) in enumerate(def_fans)
             },
             vol.Required(CONF_TECHNICAL): section(
                 vol.Schema(
                     {
-                        vol.Optional(CONF_DURATION, default=data_tech.get(CONF_DURATION, 850)): selector.NumberSelector(
+                        vol.Optional(CONF_DURATION, default=def_tech.get(CONF_DURATION, 850)): selector.NumberSelector(
                             selector.NumberSelectorConfig(step=50, min=100, max=1000, mode=selector.NumberSelectorMode.SLIDER)
                         ),
-                        vol.Optional(CONF_INTERVAL, default=data_tech.get(CONF_INTERVAL, 20)): selector.NumberSelector(
+                        vol.Optional(CONF_INTERVAL, default=def_tech.get(CONF_INTERVAL, 20)): selector.NumberSelector(
                             selector.NumberSelectorConfig(step=10, min=20, max=100, mode=selector.NumberSelectorMode.BOX)
                         ),
-                        vol.Optional(CONF_REPEAT, default=data_tech.get(CONF_REPEAT, 2)): selector.NumberSelector(
+                        vol.Optional(CONF_REPEAT, default=def_tech.get(CONF_REPEAT, 2)): selector.NumberSelector(
                             selector.NumberSelectorConfig(step=1, min=1, max=10, mode=selector.NumberSelectorMode.BOX)
                         ),
                     }

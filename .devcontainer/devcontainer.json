@@ -64,7 +64,13 @@
                         {
                             "label": "run",
                             "type": "shell",
-                            "command": "hass --config config --debug",
+                            "command": "hass --config config",
+                            "problemMatcher": []
+                        },
+                        {
+                            "label": "clean",
+                            "type": "shell",
+                            "command": "git clean -f -X config",
                             "problemMatcher": []
                         }
                     ]

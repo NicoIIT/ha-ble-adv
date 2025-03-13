@@ -36,7 +36,7 @@ The main steps of the configuration flow are the following:
   * **The expert way - Manual Input**: directly specifies the configuration parameters (codec / forced_id / index) if already known them from a previous install or ESPHome config
   * **Pairing**: the last chance if you do not have an already paired controlling device, the process will try to pair with your device
 * **Validation**: For each of the potential configurations discovered / entered, verify if the lamp is properly controlled by trying to make it blink
-* **Finalization**: Specify the **Entities** to be created (Main Light, Second Light, Fan, ...) and their characteristics (RGB / Cold White Warm / Binary / Fan Speed / Min Brightness...). This last step (and only this step) can be modified afterwards by reconfiguring the integration, similar to the "Modifying the integration" steps described [here](https://www.home-assistant.io/getting-started/integration/) but by selecting the "Reconfigure" instead of "Rename".
+* **Finalization**: Specify the name of the Device and the **Entities** to be created (Main Light, Second Light, Fan, ...) and their characteristics (RGB / Cold White Warm / Binary / Fan Speed / Min Brightness...). This last step (and only this step) can be modified afterwards by reconfiguring the integration, similar to the "Modifying the integration" steps described [here](https://www.home-assistant.io/getting-started/integration/) but by selecting the "Reconfigure" instead of "Rename".
 
 
 ## Future Developments

@@ -119,6 +119,9 @@
       "no_config": "No configuration has been found or tested successfully.",
       "reconfigure_successful": "Reconfigure successful!",
       "already_configured": "A device with the same (codec / id / index) is already configured."
+    },
+    "error": {
+      "missing_entity": "At least one Fan or Light must be configured."
     }
   },
   "selector": {
