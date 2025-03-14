@@ -14,6 +14,8 @@ type SocketRecvCallback = Callable[[bytes], Coroutine]
 type SocketCloseCallback = Callable[[], Coroutine]
 type SocketWaitRecvCallback = Callable[[], Awaitable[tuple[bytes | None, bool]]]
 
+TUNNEL_SOCKET_FILE_VAR = "TUNNEL_SOCKET_FILE"
+
 
 class AsyncSocketBase(ABC):
     """Base Async Socket."""
@@ -27,6 +29,7 @@ class AsyncSocketBase(ABC):
         self._cmd_event = asyncio.Event()
         self._cmd_exc: BaseException | None = None
         self._cmd_res: bytes | None = None
+        self._cmd_lock = asyncio.Lock()
 
     @abstractmethod
     async def _async_open_socket(self, name: str, *args) -> int:  # noqa: ANN002
@@ -49,6 +52,7 @@ class AsyncSocketBase(ABC):
 
     async def _setup_recv_loop(self, wait_recv_callback: SocketWaitRecvCallback) -> None:
         """Help function: starts a listening loop."""
+        self._ready_recv_event.clear()
         self._recv_task = asyncio.create_task(self._async_base_receive(wait_recv_callback))
         await asyncio.wait_for(self._ready_recv_event.wait(), 1)
 
@@ -61,7 +65,6 @@ class AsyncSocketBase(ABC):
                 await self._on_recv(data)
         if self._on_close and self._functional_recv_started:
             self._functional_recv_started = False
-            self._ready_recv_event.clear()
             self._on_close_task = asyncio.create_task(self._on_close())
 
     @abstractmethod
@@ -79,17 +82,23 @@ class AsyncSocketBase(ABC):
         self._cmd_event.set()
 
     async def _async_call_base(self, method: str, *args) -> Any:  # noqa: ANN002, ANN401
-        self._cmd_event.clear()
-        self._cmd_exc = None
-        self._cmd_res = None
-        await self._async_call(method, *args)
-        await asyncio.wait_for(self._cmd_event.wait(), 1)
-        if self._cmd_exc is not None:
-            raise self._cmd_exc
-        return self._cmd_res
+        async with self._cmd_lock:
+            self._cmd_event.clear()
+            self._cmd_exc = None
+            self._cmd_res = None
+            await self._async_call(method, *args)
+            await asyncio.wait_for(self._cmd_event.wait(), 1)
+            if self._cmd_exc is not None:
+                raise self._cmd_exc
+            return self._cmd_res
+
+    def close(self) -> None:
+        """Closure."""
+        self._functional_recv_started = False
+        self._close()
 
     @abstractmethod
-    def close(self) -> None:
+    def _close(self) -> None:
         """Closure."""
 
     async_bind = partialmethod(_async_call_base, "bind")
@@ -117,7 +126,7 @@ class AsyncSocket(AsyncSocketBase):
         if self._socket is None:
             return None, False
         data = await asyncio.get_event_loop().sock_recv(self._socket, 4096)
-        return data, data is not None
+        return data, len(data) > 0
 
     def _call_done(self, future: asyncio.Future) -> None:
         if (exc := future.exception()) is not None:
@@ -129,7 +138,7 @@ class AsyncSocket(AsyncSocketBase):
         future = asyncio.get_event_loop().run_in_executor(None, getattr(self._socket, method), *args)
         future.add_done_callback(self._call_done)
 
-    def close(self) -> None:
+    def _close(self) -> None:
         """Close."""
         if self._socket:
             self._socket.close()
@@ -181,7 +190,7 @@ class AsyncTunnelSocket(AsyncSocketBase):
         self._unix_writer.write(data)
         await self._unix_writer.drain()
 
-    def close(self) -> None:
+    def _close(self) -> None:
         """Closure."""
         if self._unix_writer:
             self._unix_writer.close()
@@ -190,4 +199,4 @@ class AsyncTunnelSocket(AsyncSocketBase):
 
 def create_async_socket() -> AsyncSocketBase:
     """Return the relevant async socket if the tunneling is properly configured."""
-    return AsyncTunnelSocket() if "TUNNEL_SOCKET_FILE" in os.environ else AsyncSocket()
+    return AsyncTunnelSocket() if TUNNEL_SOCKET_FILE_VAR in os.environ else AsyncSocket()

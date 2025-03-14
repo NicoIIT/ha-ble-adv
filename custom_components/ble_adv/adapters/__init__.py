@@ -49,6 +49,7 @@ class BleAdvAdapter(ABC):
         self._processing: bool = False
         self._dequeue_task: asyncio.Task | None = None
         self._opened = False
+        self._advertise_on_going = False
 
     def _log(self, message: str) -> None:
         _LOGGER.info("[%s] %s.", self.name, message)
@@ -67,6 +68,11 @@ class BleAdvAdapter(ABC):
         self._processing = True
         self._dequeue_task = asyncio.create_task(self._dequeue())
 
+    async def drain(self) -> None:
+        """Wait for all queued messages to be processed."""
+        while any(len(queue) > 0 for queue in self._queues) or self._advertise_on_going or any(task is not None for task in self._locked_tasks):
+            await asyncio.sleep(0.1)
+
     async def async_final(self) -> None:
         """Async Final: clean-up to be ready for another init."""
         async with self._lock:
@@ -77,6 +83,7 @@ class BleAdvAdapter(ABC):
             self._queues_index.clear()
             self._locked_tasks.clear()
             self._add_event.set()
+        self.close()
 
     @abstractmethod
     async def open(self) -> None:
@@ -130,8 +137,6 @@ class BleAdvAdapter(ABC):
     async def _lock_queue_for(self, qind: int, delay: int) -> None:
         if not delay:
             return
-        if self._locked_tasks[qind] is not None:
-            raise AdapterError("Not None lock task")
         self._locked_tasks[qind] = asyncio.create_task(self._unlock_queue(qind, delay))
 
     async def _dequeue(self) -> None:
@@ -139,6 +144,7 @@ class BleAdvAdapter(ABC):
             try:
                 item = None
                 lock_delay = 0
+                self._advertise_on_going = False
                 await self._add_event.wait()
                 async with self._lock:
                     for _ in range(self._qlen):
@@ -147,6 +153,7 @@ class BleAdvAdapter(ABC):
                             continue
                         tq = self._queues[self._cur_ind]
                         if len(tq) > 0:
+                            self._advertise_on_going = True
                             item = tq[0]
                             if item.repeat > 1:
                                 tq[0].repeat -= 1
@@ -158,10 +165,17 @@ class BleAdvAdapter(ABC):
                 if item is not None:
                     self._log_dbg(f"Advertising {hexlify(item.data, '.').upper()}")
                     await self._advertise(item.interval, item.data)
+                    self._log_dbg(f"End Advertising {hexlify(item.data, '.').upper()}")
                     await self._lock_queue_for(self._cur_ind, lock_delay)
                     self._add_event.set()
             except Exception as exc:
                 _LOGGER.warning(f"BleAdvAdapter - Exception in dequeue: {exc}")
+
+
+SOCK_AF_BLUETOOTH = socket.AF_BLUETOOTH if hasattr(socket, "AF_BLUETOOTH") else 31  # type: ignore[none]
+SOCK_BTPROTO_HCI = socket.BTPROTO_HCI if hasattr(socket, "BTPROTO_HCI") else 1  # type: ignore[none]
+SOCK_HCI_FILTER = socket.HCI_FILTER if hasattr(socket, "HCI_FILTER") else 2  # type: ignore[none]
+SOCK_SOL_HCI = socket.SOL_HCI if hasattr(socket, "SOL_HCI") else 0  # type: ignore[none]
 
 
 class BluetoothHCIAdapter(BleAdvAdapter):
@@ -208,6 +222,7 @@ class BluetoothHCIAdapter(BleAdvAdapter):
         self._cmd_event = asyncio.Event()
         self._on_going_cmd = None
         self._adv_lock = asyncio.Lock()
+        self._cmd_lock = asyncio.Lock()
 
     async def open(self) -> None:
         """Open the adapters. Can throw exception if invalid."""
@@ -217,12 +232,12 @@ class BluetoothHCIAdapter(BleAdvAdapter):
             self.name,
             self._recv,
             self._remote_close,
-            socket.AF_BLUETOOTH,  # type: ignore[none]
+            SOCK_AF_BLUETOOTH,
             socket.SOCK_RAW | socket.SOCK_NONBLOCK,
-            socket.BTPROTO_HCI,  # type: ignore[none]
+            SOCK_BTPROTO_HCI,
         )
         await self._async_socket.async_bind((self.device_id,))
-        await self._async_socket.async_setsockopt(socket.SOL_HCI, socket.HCI_FILTER, self.ADV_FILTER)  # type: ignore[none]
+        await self._async_socket.async_setsockopt(SOCK_SOL_HCI, SOCK_HCI_FILTER, self.ADV_FILTER)
         await self._async_socket.async_start_recv()
         self._opened = True
         ret_code, data = await self._send_hci_cmd(self.OCF_LE_READ_LOCAL_SUPPORTED_FEATURES)
@@ -269,13 +284,18 @@ class BluetoothHCIAdapter(BleAdvAdapter):
         data_len = len(cmd_data)
         op_code = cmd_type + (self.OGF_LE_CTL << 10)  # OCF on 10 bits, OGF on 6 bits
         cmd = struct.pack(f"<BHB{data_len}B", self.HCI_COMMAND_PKT, op_code, data_len, *cmd_data)
-        self._cmd_event.clear()
-        self._on_going_cmd = op_code
-        self._ret_code = 0
-        self._ret_data = None
-        await self._async_socket.async_sendall(cmd)
-        await asyncio.wait_for(self._cmd_event.wait(), 1)
-        return self._ret_code, self._ret_data
+        async with self._cmd_lock:
+            self._cmd_event.clear()
+            self._on_going_cmd = op_code
+            self._ret_code = 0
+            self._ret_data = None
+            await self._async_socket.async_sendall(cmd)
+            try:
+                await asyncio.wait_for(self._cmd_event.wait(), 1)
+            except TimeoutError as err:
+                ctx = f"Timeout sending command {op_code}"
+                raise AdapterError(ctx) from err
+            return self._ret_code, self._ret_data
 
     async def _set_scan_parameters(self, scan_type: int = 0x00, interval: int = 0x10, window: int = 0x10) -> None:
         cmd = bytearray([scan_type]) + interval.to_bytes(2, "little") + window.to_bytes(2, "little")

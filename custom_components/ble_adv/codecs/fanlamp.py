@@ -101,13 +101,14 @@ class FanLampEncoderV1(FanLampEncoder):
         enc_cmd = BleAdvEncCmd(decoded[0])
         group_index = int.from_bytes(decoded[1:3], "little")
         conf.index = (group_index & 0x0F00) >> 8
-        enc_cmd.arg0 = decoded[3]
-        enc_cmd.arg1 = decoded[4]
-        enc_cmd.arg2 = decoded[5]
+        if enc_cmd.cmd != 0x28:
+            enc_cmd.arg0 = decoded[3]
+            enc_cmd.arg1 = decoded[4]
+            enc_cmd.arg2 = decoded[5]
         conf.tx_count = decoded[6]
         enc_cmd.param = decoded[7]
         conf.seed = seed
-        conf.id = group_index + ((seed8 ^ decoded[8]) << 16)
+        conf.id = (group_index & 0xF0FF) | ((seed8 ^ decoded[8]) << 16)
         return enc_cmd, conf
 
     def encode(self, enc_cmd: BleAdvEncCmd, conf: BleAdvConfig) -> bytes:
@@ -115,7 +116,7 @@ class FanLampEncoderV1(FanLampEncoder):
         is_pair_cmd: bool = enc_cmd.cmd == 0x28
         obuf = bytearray()
         obuf.append(enc_cmd.cmd)
-        obuf += (conf.id & 0xF0FF + ((conf.index & 0x0F) << 8)).to_bytes(2, "little")
+        obuf += ((conf.id & 0xF0FF) | ((conf.index & 0x0F) << 8)).to_bytes(2, "little")
         obuf.append(conf.id & 0xFF if is_pair_cmd else enc_cmd.arg0)
         obuf.append((conf.id >> 8) & 0xF0 if is_pair_cmd else enc_cmd.arg1)
         obuf.append(self._pair_arg2 if (is_pair_cmd or not self._pair_arg_only_on_pair) else enc_cmd.arg2)

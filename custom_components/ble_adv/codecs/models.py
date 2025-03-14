@@ -3,6 +3,7 @@
 import logging
 from abc import ABC, abstractmethod
 from binascii import hexlify
+from dataclasses import dataclass
 from typing import Any, Self
 
 from .const import (
@@ -20,9 +21,9 @@ from .const import (
 _LOGGER = logging.getLogger(__name__)
 
 
-def as_hex(buffer: bytes) -> bytes:
+def as_hex(buffer: bytes) -> str:
     """Represent hex buffer as 00.01.02 format."""
-    return hexlify(buffer, ".").upper()
+    return str(hexlify(buffer, "."), "ascii").upper()
 
 
 class BleAdvAdvertisement:
@@ -62,15 +63,18 @@ class BleAdvAdvertisement:
         return full_raw if self.ad_flag == 0 else bytearray([0x02, 0x01, self.ad_flag]) + full_raw
 
 
+@dataclass
 class BleAdvEncCmd:
     """Ble ADV Encoder command."""
 
+    cmd: int = 0
+    param: int = 0
+    arg0: int = 0
+    arg1: int = 0
+    arg2: int = 0
+
     def __init__(self, cmd: int) -> None:
         self.cmd = cmd
-        self.param = 0
-        self.arg0 = 0
-        self.arg1 = 0
-        self.arg2 = 0
 
     def __repr__(self) -> str:
         return f"cmd: 0x{self.cmd:02X}, param: 0x{self.param:02X}, args: [{self.arg0},{self.arg1},{self.arg2}]"
@@ -79,6 +83,7 @@ class BleAdvEncCmd:
 type AttrType = str | bool | int | float
 
 
+@dataclass
 class BleAdvEntAttr:
     """Ble Adv Entity Attributes."""
 
@@ -101,14 +106,18 @@ class BleAdvEntAttr:
         return float(self.attrs[attr])
 
 
+@dataclass
 class BleAdvConfig:
     """Ble Adv Encoder Config."""
+
+    id: int = 0
+    index: int = 0
+    tx_count: int = 0
+    seed: int = 0
 
     def __init__(self, config_id: int = 0, index: int = 0) -> None:
         self.id: int = config_id
         self.index: int = index
-        self.tx_count: int = 0
-        self.seed: int = 0
 
     def __repr__(self) -> str:
         return f"id: 0x{self.id:08X}, index: {self.index}, tx: {self.tx_count}, seed: 0x{self.seed:04X}"
@@ -234,6 +243,9 @@ class EncoderMatcher(CommonMatcher):
     def __init__(self, cmd: int) -> None:
         super().__init__()
         self._cmd: int = cmd
+
+    def __repr__(self) -> str:
+        return f"cmd: 0x{self._cmd:02X}"
 
     def matches(self, enc_cmd: BleAdvEncCmd) -> bool:
         """Match with Encoder Attributes."""
