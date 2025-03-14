@@ -77,6 +77,7 @@ class BleAdvAdapter(ABC):
             self._queues_index.clear()
             self._locked_tasks.clear()
             self._add_event.set()
+        self.close()
 
     @abstractmethod
     async def open(self) -> None:
@@ -130,8 +131,6 @@ class BleAdvAdapter(ABC):
     async def _lock_queue_for(self, qind: int, delay: int) -> None:
         if not delay:
             return
-        if self._locked_tasks[qind] is not None:
-            raise AdapterError("Not None lock task")
         self._locked_tasks[qind] = asyncio.create_task(self._unlock_queue(qind, delay))
 
     async def _dequeue(self) -> None:
@@ -162,6 +161,12 @@ class BleAdvAdapter(ABC):
                     self._add_event.set()
             except Exception as exc:
                 _LOGGER.warning(f"BleAdvAdapter - Exception in dequeue: {exc}")
+
+
+SOCK_AF_BLUETOOTH = socket.AF_BLUETOOTH if hasattr(socket, "AF_BLUETOOTH") else 0  # type: ignore[none]
+SOCK_BTPROTO_HCI = socket.BTPROTO_HCI if hasattr(socket, "BTPROTO_HCI") else 0  # type: ignore[none]
+SOCK_HCI_FILTER = socket.HCI_FILTER if hasattr(socket, "HCI_FILTER") else 0  # type: ignore[none]
+SOCK_SOL_HCI = socket.SOL_HCI if hasattr(socket, "SOL_HCI") else 0  # type: ignore[none]
 
 
 class BluetoothHCIAdapter(BleAdvAdapter):
@@ -217,12 +222,12 @@ class BluetoothHCIAdapter(BleAdvAdapter):
             self.name,
             self._recv,
             self._remote_close,
-            socket.AF_BLUETOOTH,  # type: ignore[none]
+            SOCK_AF_BLUETOOTH,
             socket.SOCK_RAW | socket.SOCK_NONBLOCK,
-            socket.BTPROTO_HCI,  # type: ignore[none]
+            SOCK_BTPROTO_HCI,
         )
         await self._async_socket.async_bind((self.device_id,))
-        await self._async_socket.async_setsockopt(socket.SOL_HCI, socket.HCI_FILTER, self.ADV_FILTER)  # type: ignore[none]
+        await self._async_socket.async_setsockopt(SOCK_SOL_HCI, SOCK_HCI_FILTER, self.ADV_FILTER)
         await self._async_socket.async_start_recv()
         self._opened = True
         ret_code, data = await self._send_hci_cmd(self.OCF_LE_READ_LOCAL_SUPPORTED_FEATURES)
@@ -274,7 +279,11 @@ class BluetoothHCIAdapter(BleAdvAdapter):
         self._ret_code = 0
         self._ret_data = None
         await self._async_socket.async_sendall(cmd)
-        await asyncio.wait_for(self._cmd_event.wait(), 1)
+        try:
+            await asyncio.wait_for(self._cmd_event.wait(), 1)
+        except TimeoutError as err:
+            ctx = f"Timeout sending command {op_code}"
+            raise AdapterError(ctx) from err
         return self._ret_code, self._ret_data
 
     async def _set_scan_parameters(self, scan_type: int = 0x00, interval: int = 0x10, window: int = 0x10) -> None:
