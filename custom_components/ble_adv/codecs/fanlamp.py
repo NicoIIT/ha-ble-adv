@@ -48,11 +48,6 @@ from .utils import reverse_all, whiten
 class FanLampEncoder(BleAdvCodec):
     """Base Fanlamp encoder."""
 
-    def __init__(self, prefix: bytearray) -> None:
-        """Init with prefix."""
-        self._prefix = prefix
-        super().__init__()
-
     def _crc16(self, buffer: bytes, seed: int) -> int:
         """CRC16 CCITT computing."""
         return crc_hqx(buffer, seed)
@@ -63,7 +58,8 @@ class FanLampEncoderV1(FanLampEncoder):
 
     def __init__(self, pair_arg2: int, pair_arg_only_on_pair: bool = True, xor1: bool = False, supp_prefix: int = 0, forced_crc2: int = 0) -> None:
         """Init with args."""
-        super().__init__(bytearray([0xAA, 0x98, 0x43, 0xAF, 0x0B, 0x46, 0x46, 0x46]))
+        super().__init__()
+        self._prefix = bytearray([0xAA, 0x98, 0x43, 0xAF, 0x0B, 0x46, 0x46, 0x46])
         self._len = 24
         if supp_prefix != 0:
             self._prefix.insert(0, supp_prefix)
@@ -78,18 +74,22 @@ class FanLampEncoderV1(FanLampEncoder):
         """Compute CRC 2 as ccitt crc16."""
         return self._forced_crc2 if self._forced_crc2 != 0 else self._crc16(buffer, self._crc2_seed)
 
-    def decode(self, buffer: bytes) -> tuple[BleAdvEncCmd | None, BleAdvConfig | None]:
-        """Decode an incoming buffer into an encoder command and a config."""
-        decoded_base = reverse_all(whiten(buffer, 0x6F))
-        self.log_buffer(decoded_base, "Decoded")
-        decoded = decoded_base[len(self._prefix) :]
+    def decrypt(self, buffer: bytes) -> bytes | None:
+        """Decrypt / unwhiten an incoming raw buffer into a readable buffer."""
+        return reverse_all(whiten(buffer, 0x6F))
+
+    def encrypt(self, buffer: bytes) -> bytes:
+        """Encrypt / whiten a readable buffer."""
+        return whiten(reverse_all(buffer), 0x6F)
+
+    def convert_to_enc(self, decoded: bytes) -> tuple[BleAdvEncCmd | None, BleAdvConfig | None]:
+        """Convert a readable buffer into an encoder command and a config."""
         seed = int.from_bytes(decoded[10:12])
         seed8 = seed & 0xFF
         is_pair_cmd: bool = decoded[0] == 0x28
 
         if (
-            not self.is_eq_buf(self._prefix, decoded_base, "Prefix")
-            or not self.is_eq(self._crc16(decoded[:12], seed ^ 0xFFFF), int.from_bytes(decoded[12:14]), "CRC")
+            not self.is_eq(self._crc16(decoded[:12], seed ^ 0xFFFF), int.from_bytes(decoded[12:14]), "CRC")
             or ((is_pair_cmd or not self._pair_arg_only_on_pair) and not self.is_eq(self._pair_arg2, decoded[5], "Arg2"))
             or (not is_pair_cmd and self._pair_arg_only_on_pair and not self.is_eq(0, decoded[5], "Arg2 only on Pair"))
             or not self.is_eq(seed8 ^ 1 if self._xor1 else seed8, decoded[9], "r2")
@@ -104,15 +104,16 @@ class FanLampEncoderV1(FanLampEncoder):
         if enc_cmd.cmd != 0x28:
             enc_cmd.arg0 = decoded[3]
             enc_cmd.arg1 = decoded[4]
-            enc_cmd.arg2 = decoded[5]
+            if self._pair_arg_only_on_pair:
+                enc_cmd.arg2 = decoded[5]
         conf.tx_count = decoded[6]
         enc_cmd.param = decoded[7]
         conf.seed = seed
         conf.id = (group_index & 0xF0FF) | ((seed8 ^ decoded[8]) << 16)
         return enc_cmd, conf
 
-    def encode(self, enc_cmd: BleAdvEncCmd, conf: BleAdvConfig) -> bytes:
-        """Encode an encoder command and a config into a buffer."""
+    def convert_from_enc(self, enc_cmd: BleAdvEncCmd, conf: BleAdvConfig) -> bytes:
+        """Convert an encoder command and a config into a readable buffer."""
         is_pair_cmd: bool = enc_cmd.cmd == 0x28
         obuf = bytearray()
         obuf.append(enc_cmd.cmd)
@@ -132,9 +133,7 @@ class FanLampEncoderV1(FanLampEncoder):
             obuf += self._crc2(obuf).to_bytes(2)
         else:
             obuf.append(0xAA)
-        obuf = bytearray(self._prefix) + obuf
-        self.log_buffer(obuf, "before encoding")
-        return whiten(reverse_all(obuf), 0x6F)
+        return obuf
 
 
 class FanLampEncoderV2(FanLampEncoder):
@@ -151,9 +150,9 @@ class FanLampEncoderV2(FanLampEncoder):
         0x8C, 0xA1, 0x89, 0x0D, 0xBF, 0xE6, 0x42, 0x68, 0x41, 0x99, 0x2D, 0x0F, 0xB0, 0x54, 0xBB, 0x16,
     ]  # fmt: skip
 
-    def __init__(self, prefix: list[int], device_type: int, with_sign: bool) -> None:
+    def __init__(self, device_type: int, with_sign: bool) -> None:
         """Init with args."""
-        super().__init__(bytearray(prefix))
+        super().__init__()
         self._len = 24
         self._device_type = device_type
         self._with_sign = with_sign
@@ -173,28 +172,39 @@ class FanLampEncoderV2(FanLampEncoder):
         sign = int.from_bytes(ciphertext[0:2], "little")
         return sign if sign != 0 else 0xFFFF
 
-    def decode(self, buffer: bytes) -> tuple[BleAdvEncCmd | None, BleAdvConfig | None]:
-        """Decode an incoming buffer into an encoder command and a config."""
+    def decrypt(self, buffer: bytes) -> bytes | None:
+        """Decrypt / unwhiten an incoming raw buffer into a readable buffer."""
         seed = int.from_bytes(buffer[-4:-2], "little")
         crc_msg = int.from_bytes(buffer[-2:], "little")
         crc_computed = self._crc16(buffer[:-2], seed ^ 0xFFFF)
-        decoded_base = buffer[0:2] + self._whiten(buffer[2:-4], seed & 0xFF)
-        self.log_buffer(decoded_base, "Decoded Base")
-        sign = int.from_bytes(decoded_base[17:19], "little")
-        decoded = decoded_base[len(self._prefix) :]
-        self.log_buffer(decoded, "Decoded No Prefix")
-
+        decoded_base = buffer[0:2] + self._whiten(buffer[2:-5], seed & 0xFF)
+        sign = int.from_bytes(decoded_base[-2:], "little")
         if (
             not self.is_eq(crc_computed, crc_msg, "CRC")
-            or not self.is_eq_buf(self._prefix, decoded_base, "Prefix")
             or (self._with_sign and not self.is_eq(self._sign(decoded_base[1:17], decoded_base[3], seed), sign, "Sign"))
             or (not self._with_sign and not self.is_eq(0, sign, "NO Sign"))
-            or not self.is_eq(self._device_type, int.from_bytes(decoded[1:3], "little"), "Device Type")
         ):
+            return None
+        return decoded_base[:-2] + buffer[-4:-2]  # seed artificially pushed at the end of decoded buffer
+
+    def encrypt(self, decoded: bytes) -> bytes:
+        """Encrypt / whiten a readable buffer."""
+        seed = int.from_bytes(decoded[-2:], "little")  # seed artificially pushed at the end of decoded buffer
+        obuf = bytearray(decoded[:-2])
+        obuf += (self._sign(bytes(obuf[1:17]), obuf[3], seed) if self._with_sign else 0).to_bytes(2, "little")
+        obuf.append(0)
+        obuf = bytearray(obuf[0:2]) + self._whiten(obuf[2:], seed & 0xFF)
+        obuf += seed.to_bytes(2, "little")
+        obuf += self._crc16(obuf, seed ^ 0xFFFF).to_bytes(2, "little")
+        return obuf
+
+    def convert_to_enc(self, decoded: bytes) -> tuple[BleAdvEncCmd | None, BleAdvConfig | None]:
+        """Convert a readable buffer into an encoder command and a config."""
+        if not self.is_eq(self._device_type, int.from_bytes(decoded[1:3], "little"), "Device Type"):
             return None, None
 
         conf = BleAdvConfig()
-        conf.seed = seed
+        conf.seed = int.from_bytes(decoded[-2:], "little")  # seed artificially pushed at the end of decoded buffer
         conf.tx_count = decoded[0]
         conf.id = int.from_bytes(decoded[3:7], "little")
         conf.index = decoded[7]
@@ -205,10 +215,9 @@ class FanLampEncoderV2(FanLampEncoder):
         enc_cmd.arg2 = decoded[13]
         return enc_cmd, conf
 
-    def encode(self, enc_cmd: BleAdvEncCmd, conf: BleAdvConfig) -> bytes:
-        """Encode an encoder command and a config into a buffer."""
-        seed = conf.seed if conf.seed != 0 else randint(1, 0xFFF5)
-        obuf = bytearray(self._prefix)
+    def convert_from_enc(self, enc_cmd: BleAdvEncCmd, conf: BleAdvConfig) -> bytes:
+        """Convert an encoder command and a config into a readable buffer."""
+        obuf = bytearray()
         obuf.append(conf.tx_count)
         obuf += self._device_type.to_bytes(2, "little")
         obuf += conf.id.to_bytes(4, "little")
@@ -219,12 +228,7 @@ class FanLampEncoderV2(FanLampEncoder):
         obuf.append(enc_cmd.arg0)
         obuf.append(enc_cmd.arg1)
         obuf.append(enc_cmd.arg2)
-        obuf += (self._sign(bytes(obuf[1:17]), conf.tx_count, seed) if self._with_sign else 0).to_bytes(2, "little")
-        obuf.append(0)
-        self.log_buffer(obuf, "before encoding")
-        obuf = obuf[0:2] + self._whiten(obuf[2:], seed & 0xFF)
-        obuf += seed.to_bytes(2, "little")
-        obuf += self._crc16(obuf, seed ^ 0xFFFF).to_bytes(2, "little")
+        obuf += (conf.seed if conf.seed != 0 else randint(1, 0xFFF5)).to_bytes(2, "little")  # seed artificially pushed at the end of decoded buffer
         return obuf
 
 
@@ -274,7 +278,7 @@ TRANS_FANLAMP_V1 = [
     Trans(Fan6SpeedCmd().act(ATTR_ON, True).act(ATTR_SPEED), EncCmd(0x32).eq("arg1", 6).min("arg0", 1)).copy(ATTR_SPEED, "arg0"),
     *_get_fan_translators("arg0", "arg1"),
     *_get_device_translators(),
-    Trans(DeviceCmd().act(ATTR_CMD, ATTR_CMD_TIMER), EncCmd(0x51)).copy(ATTR_TIME, "arg0", 1.0 / 60.0).split_value("arg0", ["arg0"], 256),
+    Trans(DeviceCmd().act(ATTR_CMD, ATTR_CMD_TIMER), EncCmd(0x51)).split_copy(ATTR_TIME, ["arg0"], 1.0 / 60.0, 256),
 ]
 
 TRANS_FANLAMP_V2 = [
@@ -289,5 +293,25 @@ TRANS_FANLAMP_V2 = [
     Trans(Fan6SpeedCmd().act(ATTR_ON, True).act(ATTR_SPEED), EncCmd(0x31).eq("arg0", 0x20).min("arg1", 1)).copy(ATTR_SPEED, "arg1"),
     *_get_fan_translators("arg1", "arg0"),
     *_get_device_translators(),
-    Trans(DeviceCmd().act(ATTR_CMD, ATTR_CMD_TIMER), EncCmd(0x41)).copy(ATTR_TIME, "arg0", 1.0 / 60.0).split_value("arg0", ["arg0", "arg1"], 256),
+    Trans(DeviceCmd().act(ATTR_CMD, ATTR_CMD_TIMER), EncCmd(0x41)).split_copy(ATTR_TIME, ["arg0", "arg1"], 1.0 / 60.0, 256),
 ]
+
+CODECS = [
+    # FanLamp Pro android App
+    FanLampEncoderV1(0x83, False).id("fanlamp_pro_v1").header([0x77, 0xF8]).ble(0x19, 0x03).add_translators(TRANS_FANLAMP_V1),
+    FanLampEncoderV2(0x0400, False).id("fanlamp_pro_v2").header([0xF0, 0x08]).prefix([0x10, 0x80, 0x00]).ble(0x19, 0x03).add_translators(TRANS_FANLAMP_V2),
+    FanLampEncoderV2(0x0400, True).id("fanlamp_pro_v3").header([0xF0, 0x08]).prefix([0x20, 0x80, 0x00]).ble(0x19, 0x03).add_translators(TRANS_FANLAMP_V2),
+    # LampSmart Pro android App
+    FanLampEncoderV1(0x81, True).id("lampsmart_pro_v1").header([0x77, 0xF8]).ble(0x19, 0x03).add_translators(TRANS_FANLAMP_V1),
+    FanLampEncoderV2(0x0100, False).id("lampsmart_pro_v2").header([0xF0, 0x08]).prefix([0x10, 0x80, 0x00]).ble(0x19, 0x03).add_translators(TRANS_FANLAMP_V2),
+    FanLampEncoderV2(0x0100, True).id("lampsmart_pro_v3").header([0xF0, 0x08]).prefix([0x30, 0x80, 0x00]).ble(0x19, 0x03).add_translators(TRANS_FANLAMP_V2),
+    # FanLamp remotes
+    FanLampEncoderV1(0x83, False, True, 0x00, 0x9372).id("remote_v1").header([0x56, 0x55, 0x18, 0x87, 0x52]).ble(0x00, 0xFF).add_translators(TRANS_FANLAMP_V1),
+    FanLampEncoderV2(0x0400, True).id("remote_v3").header([0xF0, 0x08]).prefix([0x10, 0x00, 0x56]).ble(0x02, 0x16).add_translators(TRANS_FANLAMP_V2),
+    FanLampEncoderV2(0x0100, True).id("remote_v31").header([0xF0, 0x08]).prefix([0x10, 0x00, 0x56]).ble(0x02, 0x16).add_translators(TRANS_FANLAMP_V2),
+    # Legacy variants from no known apps, initially present in ESPHome component. Still used by some remotes
+    FanLampEncoderV1(0x81, True, True, 0x55).id("other_v1b").header([0xF9, 0x08]).ble(0x02, 0x16).add_translators(TRANS_FANLAMP_V1),
+    FanLampEncoderV1(0x81, True, True).id("other_v1a").header([0x77, 0xF8]).ble(0x02, 0x03).add_translators(TRANS_FANLAMP_V1),
+    FanLampEncoderV2(0x0100, False).id("other_v2").header([0xF0, 0x08]).prefix([0x10, 0x80, 0x00]).ble(0x19, 0x16).add_translators(TRANS_FANLAMP_V2),
+    FanLampEncoderV2(0x0100, True).id("other_v3").header([0xF0, 0x08]).prefix([0x10, 0x80, 0x00]).ble(0x19, 0x16).add_translators(TRANS_FANLAMP_V2),
+]  # fmt: skip

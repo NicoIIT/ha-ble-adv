@@ -207,15 +207,15 @@ def test_trans_sv() -> None:
     def ent_attr(time: int) -> BleAdvEntAttr:
         return BleAdvEntAttr([ATTR_CMD], {ATTR_CMD: ATTR_CMD_TIMER, ATTR_TIME: time}, DEVICE_TYPE, 0)
 
-    tr = Trans(DeviceCmd().act(ATTR_CMD, ATTR_CMD_TIMER), EncCmd(0x51)).copy(ATTR_TIME, "arg0").split_value("arg0", ["arg0"], 256)
-    tr_all = Trans(DeviceCmd().act(ATTR_CMD, ATTR_CMD_TIMER), EncCmd(0x51)).copy(ATTR_TIME, "arg0").split_value("arg0", ["arg0", "arg1", "arg2"], 256)
+    tr = Trans(DeviceCmd().act(ATTR_CMD, ATTR_CMD_TIMER), EncCmd(0x51)).split_copy(ATTR_TIME, ["arg0"], 1.0, 256)
+    tr_all = Trans(DeviceCmd().act(ATTR_CMD, ATTR_CMD_TIMER), EncCmd(0x51)).split_copy(ATTR_TIME, ["arg0", "arg1", "arg2"], 2, 256)
     assert tr.ent_to_enc(ent_attr(50)) == enc_cmd(50, 0, 0)
     assert tr.enc_to_ent(enc_cmd(50, 0, 0)) == ent_attr(50)
     assert tr.ent_to_enc(ent_attr(500)) == enc_cmd(244, 0, 0)  ### Hum... may need to be changed...
-    assert tr_all.ent_to_enc(ent_attr(50)) == enc_cmd(50, 0, 0)
-    assert tr_all.enc_to_ent(enc_cmd(50, 0, 0)) == ent_attr(50)
-    assert tr_all.ent_to_enc(ent_attr(72 + 256 * (12 + 256 * 52))) == enc_cmd(72, 12, 52)
-    assert tr_all.enc_to_ent(enc_cmd(72, 12, 52)) == ent_attr(72 + 256 * (12 + 256 * 52))
+    assert tr_all.ent_to_enc(ent_attr(50)) == enc_cmd(100, 0, 0)
+    assert tr_all.enc_to_ent(enc_cmd(100, 0, 0)) == ent_attr(50)
+    assert tr_all.ent_to_enc(ent_attr(72 + 256 * (12 + 256 * 52))) == enc_cmd(2 * 72, 2 * 12, 2 * 52)
+    assert tr_all.enc_to_ent(enc_cmd(2 * 72, 2 * 12, 2 * 52)) == ent_attr(72 + 256 * (12 + 256 * 52))
 
 
 class _TestCodec(BleAdvCodec):
@@ -224,13 +224,17 @@ class _TestCodec(BleAdvCodec):
         self._debug_mode = True
         self._len = 4
 
-    def decode(self, buffer: bytes) -> tuple[BleAdvEncCmd, BleAdvConfig]:  # noqa: ARG002
+    def decrypt(self, buffer: bytes) -> bytes | None:
+        return buffer
+
+    def encrypt(self, decoded: bytes) -> bytes:
+        return decoded
+
+    def convert_to_enc(self, decoded: bytes) -> tuple[BleAdvEncCmd | None, BleAdvConfig | None]:  # noqa: ARG002
         return BleAdvEncCmd(0x10), BleAdvConfig()
 
-    def encode(self, enc_cmd: BleAdvEncCmd, conf: BleAdvConfig) -> bytes:  # noqa: ARG002
-        buf = b"test"
-        self.log_buffer(buf, "buf")
-        return buf
+    def convert_from_enc(self, enc_cmd: BleAdvEncCmd, conf: BleAdvConfig) -> bytes:  # noqa: ARG002
+        return b"test"
 
 
 def test_codec() -> None:

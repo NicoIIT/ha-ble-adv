@@ -27,3 +27,16 @@ def reverse_byte(x: int) -> int:
 def reverse_all(buffer: bytes) -> bytes:
     """Reverse All bytes in buffer."""
     return bytes([reverse_byte(x) for x in buffer])
+
+
+def crc16_le(buffer: bytes, seed: int, poly: int = 0x8408, ref_in: bool = True, ref_out: bool = True) -> int:
+    """CRC16 ISO14443AB computing."""
+    crc = seed if not ref_in else seed ^ 0xFFFF
+    for byte in buffer:
+        crc = crc ^ byte
+        for _ in range(8):
+            if crc & 0x0001:
+                crc = (crc >> 1) ^ poly
+            else:
+                crc = crc >> 1
+    return crc if not ref_out else crc ^ 0xFFFF

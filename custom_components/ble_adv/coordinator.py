@@ -118,8 +118,23 @@ class BleAdvCoordinator:
             for codec_id, acodec in self.codecs.items():
                 enc_cmd, conf = acodec.decode_adv(adv)
                 if conf is not None and enc_cmd is not None:
-                    _LOGGER.info(f"[{codec_id}] enc: {enc_cmd} / config: {conf}")
                     ent_attrs = acodec.enc_to_ent(enc_cmd)
+                    if False:
+                        # DEBUG MODE: Log and Test re encoding
+                        _LOGGER.info(f"[{codec_id}] enc: {enc_cmd} / config: {conf}")
+                        enc_cmds = []
+                        for ent_attr in ent_attrs:
+                            _LOGGER.debug(f"[{codec_id} COMP] ent: {ent_attr}")
+                            enc_cmds += acodec.ent_to_enc(ent_attr)
+                        if len(enc_cmds) > 1:
+                            _LOGGER.error(f"[{codec_id} COMP] more than one enc_cmd generated at re-encode")
+                        elif len(enc_cmds) == 0:
+                            _LOGGER.error(f"[{codec_id} COMP] no enc_cmd generated at re-encode")
+                        elif enc_cmds[0] != enc_cmd:
+                            _LOGGER.error(f"[{codec_id} COMP] diff - recv: {enc_cmd} / reenc - {enc_cmds[0]}")
+                        else:
+                            _LOGGER.info("[{codec_id} COMP] OK")
+
                     for device_callback in self._callbacks.values():
                         await device_callback.handle(codec_id, adapter_id, conf, ent_attrs)
 

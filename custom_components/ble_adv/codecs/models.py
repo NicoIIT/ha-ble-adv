@@ -273,7 +273,7 @@ class Trans:
         self._copies = []
         self._direct = True
         self._reverse = True
-        self._sv = None
+        self._scopy = None
 
     def __repr__(self) -> str:
         return f"{self.ent} / {self.enc} / {self._copies}"
@@ -283,9 +283,9 @@ class Trans:
         self._copies.append((attr_ent, attr_enc, factor))
         return self
 
-    def split_value(self, src: str, dests: list[str], modulo: int = 256) -> Self:
+    def split_copy(self, attr_ent: str, dests: list[str], factor: float = 1.0, modulo: int = 256) -> Self:
         """Split the value in src iteratively to dests with each time applying a modulo."""
-        self._sv = (src, dests, modulo)
+        self._scopy = (attr_ent, dests, factor, modulo)
         return self
 
     def no_direct(self) -> Self:
@@ -311,21 +311,23 @@ class Trans:
         enc_cmd = self.enc.create()
         for attr_ent, attr_enc, factor in self._copies:
             setattr(enc_cmd, attr_enc, int(factor * ent_attr.attrs.get(attr_ent)))
-        if self._sv:
-            val = getattr(enc_cmd, self._sv[0])
-            for dest in self._sv[1]:
-                setattr(enc_cmd, dest, val % self._sv[2])
-                val = int(val / self._sv[2])
+        if self._scopy is not None:
+            attr_ent, dests, factor, modulo = self._scopy
+            val = int(factor * ent_attr.attrs[attr_ent])
+            for dest in dests:
+                setattr(enc_cmd, dest, val % modulo)
+                val = int(val / modulo)
         return enc_cmd
 
     def enc_to_ent(self, enc_cmd: BleAdvEncCmd) -> BleAdvEntAttr:
         """Apply transformations to Entity Attributes: reverse."""
         ent_attr = self.ent.create()
-        if self._sv:
+        if self._scopy is not None:
+            attr_ent, dests, factor, modulo = self._scopy
             val = 0
-            for dest in reversed(self._sv[1]):
-                val = self._sv[2] * val + getattr(enc_cmd, dest)
-            setattr(enc_cmd, self._sv[0], val)
+            for dest in reversed(dests):
+                val = modulo * val + getattr(enc_cmd, dest)
+            ent_attr.attrs[attr_ent] = (1.0 / factor) * val
         for attr_ent, attr_enc, factor in self._copies:
             ent_attr.attrs[attr_ent] = (1.0 / factor) * getattr(enc_cmd, attr_enc)
         return ent_attr
@@ -334,22 +336,32 @@ class Trans:
 class BleAdvCodec(ABC):
     """Class representing a base encoder / decoder."""
 
+    _len: int = 0
+
     def __init__(self) -> None:
         self.codec_id: str | None = None
-        self._header: bytearray = bytearray()
+        self.debug_mode: bool = False
+        self._header: bytearray = bytearray()  # header is excluded from the data sent to the child encoder
+        self._prefix: bytearray = bytearray()  # prefix is included in the data sent to the child encoder
         self._ble_type: int = 0
         self._ad_flag: int = 0
-        self._debug_mode: bool = False
-        self._len: int = 0
         self._translators: list[Trans] = []
 
     @abstractmethod
-    def decode(self, buffer: bytes) -> tuple[BleAdvEncCmd, BleAdvConfig]:
-        """Decode an incoming raw buffer into an encoder command and a config."""
+    def decrypt(self, buffer: bytes) -> bytes | None:
+        """Decrypt / unwhiten an incoming raw buffer into a readable buffer."""
 
     @abstractmethod
-    def encode(self, enc_cmd: BleAdvEncCmd, conf: BleAdvConfig) -> bytes:
-        """Encode an encoder command and a config into an Advertisement."""
+    def encrypt(self, decoded: bytes) -> bytes:
+        """Encrypt / whiten a readable buffer."""
+
+    @abstractmethod
+    def convert_to_enc(self, decoded: bytes) -> tuple[BleAdvEncCmd | None, BleAdvConfig | None]:
+        """Convert a readable buffer into an encoder command and a config."""
+
+    @abstractmethod
+    def convert_from_enc(self, enc_cmd: BleAdvEncCmd, conf: BleAdvConfig) -> bytes:
+        """Convert an encoder command and a config into a readable buffer."""
 
     def id(self, codec_id: str) -> Self:
         """Set id."""
@@ -359,6 +371,11 @@ class BleAdvCodec(ABC):
     def header(self, header: list[int]) -> Self:
         """Set header."""
         self._header = bytearray(header)
+        return self
+
+    def prefix(self, prefix: list[int]) -> Self:
+        """Set prefix."""
+        self._prefix = bytearray(prefix)
         return self
 
     def ble(self, ad_flag: int, ble_type: int) -> Self:
@@ -400,16 +417,26 @@ class BleAdvCodec(ABC):
             or not self.is_eq_buf(self._header, adv.raw, "Header")
         ):
             return None, None
-        return self.decode(adv.raw[len(self._header) :])
+        self.log_buffer(adv.raw, "Decode/Full")
+        read_buffer = self.decrypt(adv.raw[len(self._header) :])
+        if read_buffer is None or not self.is_eq_buf(self._prefix, read_buffer, "Prefix"):
+            return None, None
+        read_buffer = read_buffer[len(self._prefix) :]
+        self.log_buffer(read_buffer, "Decode/Decrypted")
+        return self.convert_to_enc(read_buffer)
 
     def encode_adv(self, enc_cmd: BleAdvEncCmd, conf: BleAdvConfig) -> BleAdvAdvertisement:
-        """Encode an Encoder Attributes with Config into an Adv."""
-        return BleAdvAdvertisement(self._ble_type, self._header + self.encode(enc_cmd, conf), self._ad_flag)
+        """Encode an Encoder Command with Config into an Adv."""
+        read_buffer = self.convert_from_enc(enc_cmd, conf)
+        self.log_buffer(read_buffer, "Encode/Decrypted")
+        encrypted = self._header + self.encrypt(self._prefix + read_buffer)
+        self.log_buffer(encrypted, "Encode/Full")
+        return BleAdvAdvertisement(self._ble_type, encrypted, self._ad_flag)
 
     def is_eq(self, ref: int, comp: int, msg: str) -> bool:
         """Check equal and log if not."""
         if ref != comp:
-            if self._debug_mode:
+            if self.debug_mode:
                 _LOGGER.debug(f"[{self.codec_id}] '{msg}' differs - expected: '0x{ref:X}', received: '0x{comp:X}'")
             return False
         return True
@@ -418,12 +445,12 @@ class BleAdvCodec(ABC):
         """Check buffer equal and log if not."""
         trunc_comp_buf = comp_buf[: len(ref_buf)]
         if trunc_comp_buf != ref_buf:
-            if self._debug_mode:
+            if self.debug_mode:
                 _LOGGER.debug(f"[{self.codec_id}] '{msg}' differs - expected: {as_hex(ref_buf)}, received: {as_hex(trunc_comp_buf)}")
             return False
         return True
 
     def log_buffer(self, buf: bytes, msg: str) -> None:
         """Log buffer."""
-        if self._debug_mode:
+        if self.debug_mode:
             _LOGGER.debug(f"[{self.codec_id}] {msg} - {as_hex(buf)}")

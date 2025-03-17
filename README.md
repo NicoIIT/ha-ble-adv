@@ -16,6 +16,8 @@ This integration does not support any specific device brand, but protocols used 
 * LampSmart Pro
 * Lamp Smart Pro - Soft Lighting / Smart Lighting
 * FanLamp Pro
+* Zhi Jia
+* Zhi Guang
 * ApplianceSmart
 * Vmax smart
 * Other (Legacy), removed app from play store: 'FanLamp', 'ControlSwitch'
@@ -43,8 +45,6 @@ The main steps of the configuration flow are the following:
 Those changes are on going, no need to open a feature request for that.
 
 ### Supplementary apps to be supported
-* Zhi Jia
-* Zhi Guang
 * ZhiMeiDengKong
 * Smart Light (Only the control by device, not the Master Control)
 

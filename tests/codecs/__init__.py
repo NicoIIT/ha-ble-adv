@@ -17,6 +17,7 @@ class _TestEncoderBase:
     def test_encoding(self, enc_name: str, ble_type: int, data: str) -> None:
         adv = BleAdvAdvertisement(ble_type, _from_dotted(data))
         codec = CODECS[enc_name]
+        codec.debug_mode = True
         enc_cmd, conf = codec.decode_adv(adv)
         assert conf is not None
         assert enc_cmd is not None
@@ -24,7 +25,7 @@ class _TestEncoderBase:
         assert reenc == adv
         conf.seed = 0
         conf.id += 0x01
-        conf.index += 1
+        conf.index = (conf.index + 1) % 256
         conf.tx_count = (conf.tx_count + 10) % 125
         reenc2 = codec.encode_adv(enc_cmd, conf)
         enc_cmd2, conf2 = codec.decode_adv(reenc2)
