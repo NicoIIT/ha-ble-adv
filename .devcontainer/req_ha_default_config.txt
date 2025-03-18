@@ -22,6 +22,6 @@ gTTS==2.5.3
 PyNaCl==1.5.0
 bleak-retry-connector==3.8.1
 bluetooth-auto-recovery==1.4.2
-bluetooth-data-tools==1.23.4
+bluetooth-data-tools==1.26.1
 dbus-fast==2.33.0
 habluetooth==3.21.1
