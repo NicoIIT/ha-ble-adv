@@ -1,5 +1,5 @@
 # side dependencies needed by home assistant default config to avoid downloading at startup
-home-assistant-frontend==20250214.0
+home-assistant-frontend==20250312.0
 async-upnp-client==0.43.0
 pymicro-vad==1.0.1
 pyspeex-noise==1.0.2
