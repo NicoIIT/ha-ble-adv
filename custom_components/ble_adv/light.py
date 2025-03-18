@@ -161,24 +161,39 @@ class BleAdvLightRGB(BleAdvLightWithBrightness):
 class BleAdvLightCWW(BleAdvLightWithBrightness):
     """CWW Light."""
 
-    _attr_min_color_temp_kelvin = DEFAULT_MIN_KELVIN
-    _attr_max_color_temp_kelvin = DEFAULT_MAX_KELVIN
+    _attr_min_color_temp_kelvin = DEFAULT_MIN_KELVIN  # 2000K => Full WARM
+    _attr_max_color_temp_kelvin = DEFAULT_MAX_KELVIN  # 6535K => Full COLD
     _attr_supported_color_modes = {ColorMode.COLOR_TEMP}
     _attr_color_mode = ColorMode.COLOR_TEMP
     _state_attributes = frozenset([(ATTR_BRIGHTNESS, 255), (ATTR_COLOR_TEMP_KELVIN, DEFAULT_MAX_KELVIN)])
 
     def _set_ct(self, ct_percent: float) -> None:
-        self._attr_color_temp_kelvin = int(DEFAULT_MIN_KELVIN + (DEFAULT_MAX_KELVIN - DEFAULT_MIN_KELVIN) * self._pct(ct_percent))
+        """Set Color Temperature from float [0.0 -> 1.0].
+
+        Input 0.0 for COLD / DEFAULT_MAX_KELVIN
+        Input 1.0 for WARM / DEFAULT_MIN_KELVIN
+        """
+        self._attr_color_temp_kelvin = int(DEFAULT_MIN_KELVIN + (DEFAULT_MAX_KELVIN - DEFAULT_MIN_KELVIN) * self._pct(1.0 - ct_percent))
 
     def _get_ct(self) -> float:
+        """Get Color Temperature as float [0.0 -> 1.0].
+
+        returns 0.0 for COLD / DEFAULT_MAX_KELVIN
+        returns 1.0 for WARM / DEFAULT_MIN_KELVIN
+        """
         kelvin = self._attr_color_temp_kelvin if self._attr_color_temp_kelvin is not None else DEFAULT_MIN_KELVIN
-        return (kelvin - DEFAULT_MIN_KELVIN) / float(DEFAULT_MAX_KELVIN - DEFAULT_MIN_KELVIN)
+        return 1.0 - (kelvin - DEFAULT_MIN_KELVIN) / float(DEFAULT_MAX_KELVIN - DEFAULT_MIN_KELVIN)
 
     def get_attrs(self) -> dict[str, Any]:
         """Get the attrs."""
         br = self._get_br()
         ct = self._get_ct()
-        return {**super().get_attrs(), ATTR_CT: ct, ATTR_WARM: br * (1.0 - ct), ATTR_COLD: br * ct}
+        # //  For constant_brightness
+        # //  cold = (1.0 - ct)
+        # //  warm = ct
+        cold = min(1.0, (1.0 - ct) * 2.0)
+        warm = min(1.0, ct * 2.0)
+        return {**super().get_attrs(), ATTR_CT: ct, ATTR_WARM: br * warm, ATTR_COLD: br * cold}
 
     def apply_attrs(self, ent_attr: BleAdvEntAttr) -> None:
         """Apply attributes to entity."""
@@ -187,7 +202,9 @@ class BleAdvLightCWW(BleAdvLightWithBrightness):
             cold = ent_attr.get_attr_as_float(ATTR_COLD)
             warm = ent_attr.get_attr_as_float(ATTR_WARM)
             self._set_br(max(cold, warm))
-            self._set_ct(cold / (cold + warm))
+            self._set_ct(1.0 - ((cold / warm) / 2.0) if (cold < warm) else ((warm / cold) / 2.0))
+            # // For constant brightness:
+            # // self._set_ct(warm / (cold + warm))
         elif ATTR_COLD in ent_attr.chg_attrs:
             self._set_ct(ent_attr.get_attr_as_float(ATTR_COLD))
         elif ATTR_WARM in ent_attr.chg_attrs:

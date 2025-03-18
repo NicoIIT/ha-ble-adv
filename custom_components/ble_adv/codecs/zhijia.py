@@ -320,7 +320,7 @@ TRANS_V0 = [
 TRANS_COMMON_V1_V2 = [
     Trans(DeviceCmd().act(ATTR_CMD, ATTR_CMD_PAIR), EncCmd(0xA2)),
     Trans(DeviceCmd().act(ATTR_CMD, ATTR_CMD_UNPAIR), EncCmd(0xA3)),
-    Trans(DeviceCmd().act(ATTR_CMD, ATTR_CMD_TIMER).eq(ATTR_TIME, 60), EncCmd(0xD4)).copy(ATTR_TIME, "arg0", 1.0 / 60.0),
+    Trans(DeviceCmd().act(ATTR_CMD, ATTR_CMD_TIMER), EncCmd(0xD9)).copy(ATTR_TIME, "arg0", 1.0 / 60.0),
     Trans(LightCmd().act(ATTR_ON, True), EncCmd(0xA5)),
     Trans(LightCmd().act(ATTR_ON, False), EncCmd(0xA6)),
     Trans(LightCmd(1).act(ATTR_ON, True), EncCmd(0xAF)),
@@ -336,6 +336,11 @@ TRANS_COMMON_V1_V2 = [
     Trans(Fan6SpeedCmd().act(ATTR_ON, True).act(ATTR_SPEED).min(ATTR_SPEED, 1).max(ATTR_SPEED, 2), EncCmd(0xD6)).no_reverse(),
     Trans(Fan6SpeedCmd().act(ATTR_ON, True).act(ATTR_SPEED).min(ATTR_SPEED, 3).max(ATTR_SPEED, 4), EncCmd(0xD5)).no_reverse(),
     Trans(Fan6SpeedCmd().act(ATTR_ON, True).act(ATTR_SPEED).min(ATTR_SPEED, 5).max(ATTR_SPEED, 6), EncCmd(0xD4)).no_reverse(),
+    # Physical remote and phone app shortcut buttons, reverse only
+    Trans(CTLightCmd().eq(ATTR_COLD, 0.1).eq(ATTR_WARM, 0.1), EncCmd(0xA7).eq("arg0", 25).eq("arg1", 25)).no_direct(),  # night mode
+    Trans(CTLightCmd().eq(ATTR_COLD, 1).eq(ATTR_WARM, 0), EncCmd(0xA8).eq("arg0", 250).eq("arg1", 0)).no_direct(),
+    Trans(CTLightCmd().eq(ATTR_COLD, 0).eq(ATTR_WARM, 1), EncCmd(0xA8).eq("arg0", 0).eq("arg1", 250)).no_direct(),
+    Trans(CTLightCmd().eq(ATTR_COLD, 1).eq(ATTR_WARM, 1), EncCmd(0xA8).eq("arg0", 250).eq("arg1", 250)).no_direct(),
 ]
 
 TRANS_V1 = [
@@ -350,9 +355,9 @@ TRANS_V2 = [
     Trans(CTLightCmd().act(ATTR_CT), EncCmd(0xAE)).copy(ATTR_CT, "arg0", 250),
     Trans(RGBLightCmd().act(ATTR_BR), EncCmd(0xC8)).copy(ATTR_BR, "arg0", 250),
     Trans(RGBLightCmd().act(ATTR_RED).act(ATTR_GREEN).act(ATTR_BLUE), EncCmd(0xCA))
-    .copy(ATTR_RED, "arg0", 255)
-    .copy(ATTR_GREEN, "arg1", 255)
-    .copy(ATTR_BLUE, "arg2", 255),
+    .copy(ATTR_RED, "arg0", 250)
+    .copy(ATTR_GREEN, "arg1", 250)
+    .copy(ATTR_BLUE, "arg2", 250),
 ]
 
 

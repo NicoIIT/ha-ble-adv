@@ -56,7 +56,7 @@ class FanLampEncoder(BleAdvCodec):
 class FanLampEncoderV1(FanLampEncoder):
     """FanLamp V1 encoder."""
 
-    def __init__(self, pair_arg2: int, pair_arg_only_on_pair: bool = True, xor1: bool = False, supp_prefix: int = 0, forced_crc2: int = 0) -> None:
+    def __init__(self, arg2: int, arg2_only_on_pair: bool = True, xor1: bool = False, supp_prefix: int = 0, forced_crc2: int = 0) -> None:
         """Init with args."""
         super().__init__()
         self._prefix = bytearray([0xAA, 0x98, 0x43, 0xAF, 0x0B, 0x46, 0x46, 0x46])
@@ -64,8 +64,8 @@ class FanLampEncoderV1(FanLampEncoder):
         if supp_prefix != 0:
             self._prefix.insert(0, supp_prefix)
         self._crc2_seed = self._crc16(self._prefix[1:6], 0xFFFF)
-        self._pair_arg2 = pair_arg2
-        self._pair_arg_only_on_pair = pair_arg_only_on_pair
+        self._arg2 = arg2
+        self._arg2_only_on_pair = arg2_only_on_pair
         self._xor1 = xor1
         self._forced_crc2 = forced_crc2
         self._with_crc2 = (self._forced_crc2 != 0) or (supp_prefix == 0)
@@ -73,6 +73,9 @@ class FanLampEncoderV1(FanLampEncoder):
     def _crc2(self, buffer: bytes) -> int:
         """Compute CRC 2 as ccitt crc16."""
         return self._forced_crc2 if self._forced_crc2 != 0 else self._crc16(buffer, self._crc2_seed)
+
+    def _get_arg2(self, cmd: int) -> int:
+        return self._arg2 if (cmd == 0x28 or (not self._arg2_only_on_pair and cmd not in [0x12, 0x13])) else 0
 
     def decrypt(self, buffer: bytes) -> bytes | None:
         """Decrypt / unwhiten an incoming raw buffer into a readable buffer."""
@@ -86,30 +89,29 @@ class FanLampEncoderV1(FanLampEncoder):
         """Convert a readable buffer into an encoder command and a config."""
         seed = int.from_bytes(decoded[10:12])
         seed8 = seed & 0xFF
-        is_pair_cmd: bool = decoded[0] == 0x28
-
         if (
             not self.is_eq(self._crc16(decoded[:12], seed ^ 0xFFFF), int.from_bytes(decoded[12:14]), "CRC")
-            or ((is_pair_cmd or not self._pair_arg_only_on_pair) and not self.is_eq(self._pair_arg2, decoded[5], "Arg2"))
-            or (not is_pair_cmd and self._pair_arg_only_on_pair and not self.is_eq(0, decoded[5], "Arg2 only on Pair"))
+            or not self.is_eq(self._get_arg2(decoded[0]), decoded[5], "Arg2")
             or not self.is_eq(seed8 ^ 1 if self._xor1 else seed8, decoded[9], "r2")
             or (self._with_crc2 and not self.is_eq(self._crc2(decoded[:-2]), int.from_bytes(decoded[14:16]), "CRC2"))
         ):
             return None, None
 
         conf = BleAdvConfig()
-        enc_cmd = BleAdvEncCmd(decoded[0])
         group_index = int.from_bytes(decoded[1:3], "little")
         conf.index = (group_index & 0x0F00) >> 8
+        conf.id = (group_index & 0xF0FF) | ((seed8 ^ decoded[8]) << 16)
+        conf.tx_count = decoded[6]
+        conf.seed = seed
+
+        enc_cmd = BleAdvEncCmd(decoded[0])
+        enc_cmd.param = decoded[7]
         if enc_cmd.cmd != 0x28:
             enc_cmd.arg0 = decoded[3]
             enc_cmd.arg1 = decoded[4]
-            if self._pair_arg_only_on_pair:
-                enc_cmd.arg2 = decoded[5]
-        conf.tx_count = decoded[6]
-        enc_cmd.param = decoded[7]
-        conf.seed = seed
-        conf.id = (group_index & 0xF0FF) | ((seed8 ^ decoded[8]) << 16)
+        elif not self.is_eq(conf.id & 0xFF, decoded[3], "Pair Arg0") or not self.is_eq((conf.id >> 8) & 0xF0, decoded[4], "Pair Arg1"):
+            return None, None
+
         return enc_cmd, conf
 
     def convert_from_enc(self, enc_cmd: BleAdvEncCmd, conf: BleAdvConfig) -> bytes:
@@ -120,7 +122,7 @@ class FanLampEncoderV1(FanLampEncoder):
         obuf += ((conf.id & 0xF0FF) | ((conf.index & 0x0F) << 8)).to_bytes(2, "little")
         obuf.append(conf.id & 0xFF if is_pair_cmd else enc_cmd.arg0)
         obuf.append((conf.id >> 8) & 0xF0 if is_pair_cmd else enc_cmd.arg1)
-        obuf.append(self._pair_arg2 if (is_pair_cmd or not self._pair_arg_only_on_pair) else enc_cmd.arg2)
+        obuf.append(self._get_arg2(enc_cmd.cmd))
         obuf.append(conf.tx_count)
         obuf.append(enc_cmd.param)
         seed = conf.seed if conf.seed != 0 else randint(0, 0xFFF5)
