@@ -1,4 +1,4 @@
-"""Codecs Package."""  # noqa: A005
+"""Codecs Package."""
 
 from .fanlamp import CODECS as FANLAMP_CODECS
 from .models import BleAdvCodec
