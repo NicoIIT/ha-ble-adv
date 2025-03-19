@@ -32,6 +32,7 @@ from .codecs.const import (
     ATTR_CMD_CT_UP,
     ATTR_COLD,
     ATTR_CT,
+    ATTR_CT_REV,
     ATTR_GREEN,
     ATTR_GREEN_F,
     ATTR_RED,
@@ -193,7 +194,7 @@ class BleAdvLightCWW(BleAdvLightWithBrightness):
         # //  warm = ct
         cold = min(1.0, (1.0 - ct) * 2.0)
         warm = min(1.0, ct * 2.0)
-        return {**super().get_attrs(), ATTR_CT: ct, ATTR_WARM: br * warm, ATTR_COLD: br * cold}
+        return {**super().get_attrs(), ATTR_CT: ct, ATTR_CT_REV: 1.0 - ct, ATTR_WARM: br * warm, ATTR_COLD: br * cold}
 
     def apply_attrs(self, ent_attr: BleAdvEntAttr) -> None:
         """Apply attributes to entity."""
@@ -211,6 +212,8 @@ class BleAdvLightCWW(BleAdvLightWithBrightness):
             self._set_ct(1.0 - ent_attr.get_attr_as_float(ATTR_WARM))
         elif ATTR_CT in ent_attr.chg_attrs:
             self._set_ct(ent_attr.get_attr_as_float(ATTR_CT))
+        elif ATTR_CT_REV in ent_attr.chg_attrs:
+            self._set_ct(1.0 - ent_attr.get_attr_as_float(ATTR_CT_REV))
         elif ATTR_CMD in ent_attr.chg_attrs:
             if ent_attr.attrs.get(ATTR_CMD) == ATTR_CMD_CT_UP:
                 self._set_ct(self._get_ct() + ent_attr.get_attr_as_float(ATTR_STEP))

@@ -17,8 +17,8 @@ from . import _TestEncoderBase, _TestEncoderFull
         ("zhiguang_v2", 0xFF, "22.9D.8D.36.4B.E9.0F.DA.D5.40.79.CA.69.A3.BF.5B.95.D5.D4.4A.5F.85.F6.9C.A9.19"),
     ],
 )
-class TestEncoderFanlamp(_TestEncoderBase):
-    """Fanlamp Encoder tests."""
+class TestEncoderZhijia(_TestEncoderBase):
+    """Zhi Jia Encoder tests."""
 
 
 @pytest.mark.parametrize(
@@ -31,7 +31,6 @@ class TestEncoderFanlamp(_TestEncoderBase):
             "cmd: 0xA2, param: 0x00, args: [0,0,0]",
             "id: 0x00E15324, index: 1, tx: 48, seed: 0x0000",
             "device_0: ['cmd'] / {'cmd': 'pair'}",
-            True,
         ),
         (
             "zhijia_v0",
@@ -39,7 +38,6 @@ class TestEncoderFanlamp(_TestEncoderBase):
             "cmd: 0xB4, param: 0x00, args: [0,0,0]",
             "id: 0x00005324, index: 1, tx: 24, seed: 0x0000",
             "device_0: ['cmd'] / {'cmd': 'pair'}",
-            True,
         ),
         (
             "zhijia_v2",
@@ -47,7 +45,6 @@ class TestEncoderFanlamp(_TestEncoderBase):
             "cmd: 0xA2, param: 0x00, args: [0,0,0]",
             "id: 0x00E15324, index: 1, tx: 49, seed: 0x0000",
             "device_0: ['cmd'] / {'cmd': 'pair'}",
-            True,
         ),
         # TIMER 2H (120min / 7200s)
         (
@@ -56,7 +53,6 @@ class TestEncoderFanlamp(_TestEncoderBase):
             "cmd: 0xD9, param: 0x00, args: [2,0,0]",
             "id: 0x00E15324, index: 1, tx: 99, seed: 0x0000",
             "device_0: ['cmd'] / {'cmd': 'timer', 's': 120.0}",
-            True,
         ),
         (
             "zhijia_v0",
@@ -64,7 +60,6 @@ class TestEncoderFanlamp(_TestEncoderBase):
             "cmd: 0xD5, param: 0x00, args: [0,0,0]",
             "id: 0x00005324, index: 1, tx: 49, seed: 0x0000",
             "device_0: ['cmd'] / {'cmd': 'timer', 's': 120}",
-            True,
         ),
         (
             "zhijia_v1",
@@ -72,7 +67,6 @@ class TestEncoderFanlamp(_TestEncoderBase):
             "cmd: 0xD9, param: 0x00, args: [2,0,0]",
             "id: 0x00E15324, index: 1, tx: 98, seed: 0x0000",
             "device_0: ['cmd'] / {'cmd': 'timer', 's': 120.0}",
-            True,
         ),
         # MAIN LIGHT OFF
         (
@@ -81,7 +75,6 @@ class TestEncoderFanlamp(_TestEncoderBase):
             "cmd: 0xB2, param: 0x00, args: [0,0,0]",
             "id: 0x00005324, index: 1, tx: 66, seed: 0x0000",
             "light_0: ['on'] / {'on': False}",
-            True,
         ),
         (
             "zhijia_v1",
@@ -89,7 +82,6 @@ class TestEncoderFanlamp(_TestEncoderBase):
             "cmd: 0xA6, param: 0x00, args: [0,0,0]",
             "id: 0x00E15324, index: 1, tx: 51, seed: 0x0000",
             "light_0: ['on'] / {'on': False}",
-            True,
         ),
         (
             "zhijia_v2",
@@ -97,7 +89,6 @@ class TestEncoderFanlamp(_TestEncoderBase):
             "cmd: 0xA6, param: 0x00, args: [0,0,0]",
             "id: 0x00E15324, index: 1, tx: 52, seed: 0x0000",
             "light_0: ['on'] / {'on': False}",
-            True,
         ),
         # MAIN LIGHT ON
         (
@@ -106,7 +97,6 @@ class TestEncoderFanlamp(_TestEncoderBase):
             "cmd: 0xA5, param: 0x00, args: [0,0,0]",
             "id: 0x00E15324, index: 3, tx: 90, seed: 0x0000",
             "light_0: ['on'] / {'on': True}",
-            True,
         ),
         (
             "zhijia_v0",
@@ -114,7 +104,6 @@ class TestEncoderFanlamp(_TestEncoderBase):
             "cmd: 0xB3, param: 0x00, args: [0,0,0]",
             "id: 0x00005324, index: 3, tx: 85, seed: 0x0000",
             "light_0: ['on'] / {'on': True}",
-            True,
         ),
         (
             "zhijia_v1",
@@ -122,7 +111,6 @@ class TestEncoderFanlamp(_TestEncoderBase):
             "cmd: 0xA5, param: 0x00, args: [0,0,0]",
             "id: 0x00E15324, index: 3, tx: 89, seed: 0x0000",
             "light_0: ['on'] / {'on': True}",
-            True,
         ),
         # BR 0 %
         (
@@ -131,7 +119,6 @@ class TestEncoderFanlamp(_TestEncoderBase):
             "cmd: 0xB5, param: 0x00, args: [0,0,0]",
             "id: 0x00005324, index: 1, tx: 31, seed: 0x0000",
             "light_0: ['br'] / {'sub_type': 'cww', 'br': 0.0}",
-            True,
         ),
         (
             "zhijia_v1",
@@ -139,7 +126,6 @@ class TestEncoderFanlamp(_TestEncoderBase):
             "cmd: 0xAD, param: 0x00, args: [0,0,0]",
             "id: 0x00E15324, index: 1, tx: 62, seed: 0x0000",
             "light_0: ['br'] / {'sub_type': 'cww', 'br': 0.0}",
-            True,
         ),
         (
             "zhijia_v2",
@@ -147,7 +133,6 @@ class TestEncoderFanlamp(_TestEncoderBase):
             "cmd: 0xAD, param: 0x00, args: [0,0,0]",
             "id: 0x00E15324, index: 1, tx: 63, seed: 0x0000",
             "light_0: ['br'] / {'sub_type': 'cww', 'br': 0.0}",
-            True,
         ),
         # BR 100%
         (
@@ -156,7 +141,6 @@ class TestEncoderFanlamp(_TestEncoderBase):
             "cmd: 0xAD, param: 0x00, args: [250,0,0]",
             "id: 0x00E15324, index: 1, tx: 68, seed: 0x0000",
             "light_0: ['br'] / {'sub_type': 'cww', 'br': 1.0}",
-            True,
         ),
         (
             "zhijia_v0",
@@ -164,7 +148,6 @@ class TestEncoderFanlamp(_TestEncoderBase):
             "cmd: 0xB5, param: 0x00, args: [0,3,232]",
             "id: 0x00005324, index: 1, tx: 34, seed: 0x0000",
             "light_0: ['br'] / {'sub_type': 'cww', 'br': 1.0}",
-            True,
         ),
         (
             "zhijia_v2",
@@ -172,7 +155,6 @@ class TestEncoderFanlamp(_TestEncoderBase):
             "cmd: 0xAD, param: 0x00, args: [250,0,0]",
             "id: 0x00E15324, index: 1, tx: 69, seed: 0x0000",
             "light_0: ['br'] / {'sub_type': 'cww', 'br': 1.0}",
-            True,
         ),
         # COLD
         (
@@ -181,7 +163,6 @@ class TestEncoderFanlamp(_TestEncoderBase):
             "cmd: 0xAE, param: 0x00, args: [0,0,0]",
             "id: 0x00E15324, index: 1, tx: 79, seed: 0x0000",
             "light_0: ['ct'] / {'sub_type': 'cww', 'ct': 0.0}",
-            True,
         ),
         (
             "zhijia_v0",
@@ -189,7 +170,6 @@ class TestEncoderFanlamp(_TestEncoderBase):
             "cmd: 0xB7, param: 0x00, args: [0,0,0]",
             "id: 0x00005324, index: 1, tx: 39, seed: 0x0000",
             "light_0: ['ct'] / {'sub_type': 'cww', 'ct': 0.0}",
-            True,
         ),
         (
             "zhijia_v1",
@@ -197,7 +177,6 @@ class TestEncoderFanlamp(_TestEncoderBase):
             "cmd: 0xAE, param: 0x00, args: [0,0,0]",
             "id: 0x00E15324, index: 1, tx: 78, seed: 0x0000",
             "light_0: ['ct'] / {'sub_type': 'cww', 'ct': 0.0}",
-            True,
         ),
         # WARM
         (
@@ -206,7 +185,6 @@ class TestEncoderFanlamp(_TestEncoderBase):
             "cmd: 0xAE, param: 0x00, args: [250,0,0]",
             "id: 0x00E15324, index: 1, tx: 87, seed: 0x0000",
             "light_0: ['ct'] / {'sub_type': 'cww', 'ct': 1.0}",
-            True,
         ),
         (
             "zhijia_v0",
@@ -214,7 +192,6 @@ class TestEncoderFanlamp(_TestEncoderBase):
             "cmd: 0xB7, param: 0x00, args: [0,3,232]",
             "id: 0x00005324, index: 1, tx: 43, seed: 0x0000",
             "light_0: ['ct'] / {'sub_type': 'cww', 'ct': 1.0}",
-            True,
         ),
         (
             "zhijia_v1",
@@ -222,7 +199,6 @@ class TestEncoderFanlamp(_TestEncoderBase):
             "cmd: 0xAE, param: 0x00, args: [250,0,0]",
             "id: 0x00E15324, index: 1, tx: 86, seed: 0x0000",
             "light_0: ['ct'] / {'sub_type': 'cww', 'ct': 1.0}",
-            True,
         ),
         # RGB BR 0%
         (
@@ -231,7 +207,6 @@ class TestEncoderFanlamp(_TestEncoderBase):
             "cmd: 0xC8, param: 0x00, args: [0,0,0]",
             "id: 0x00E15324, index: 4, tx: 47, seed: 0x0000",
             "light_0: ['br'] / {'sub_type': 'rgb', 'br': 0.0}",
-            True,
         ),
         # RGB BR 100%
         (
@@ -240,7 +215,6 @@ class TestEncoderFanlamp(_TestEncoderBase):
             "cmd: 0xC8, param: 0x00, args: [250,0,0]",
             "id: 0x00E15324, index: 4, tx: 50, seed: 0x0000",
             "light_0: ['br'] / {'sub_type': 'rgb', 'br': 1.0}",
-            True,
         ),
         # RGB RED (mainly)
         (
@@ -249,7 +223,6 @@ class TestEncoderFanlamp(_TestEncoderBase):
             "cmd: 0xCA, param: 0x00, args: [250,66,79]",
             "id: 0x00E15324, index: 4, tx: 34, seed: 0x0000",
             "light_0: ['r', 'g', 'b'] / {'sub_type': 'rgb', 'r': 1.0, 'g': 0.264, 'b': 0.316}",
-            True,
         ),
         # FAN Speed 2/3
         (
@@ -258,7 +231,6 @@ class TestEncoderFanlamp(_TestEncoderBase):
             "cmd: 0xD5, param: 0x00, args: [0,0,0]",
             "id: 0x00E15324, index: 1, tx: 38, seed: 0x0000",
             "fan_0: ['on'] / {'sub_type': '3speed', 'on': True, 'speed': 2}",
-            True,
         ),
         (
             "zhijia_v0",
@@ -266,7 +238,6 @@ class TestEncoderFanlamp(_TestEncoderBase):
             "cmd: 0xD1, param: 0x00, args: [0,0,0]",
             "id: 0x00005324, index: 1, tx: 59, seed: 0x0000",
             "fan_0: ['on'] / {'sub_type': '3speed', 'on': True, 'speed': 2}",
-            True,
         ),
         (
             "zhijia_v1",
@@ -274,7 +245,6 @@ class TestEncoderFanlamp(_TestEncoderBase):
             "cmd: 0xD5, param: 0x00, args: [0,0,0]",
             "id: 0x00E15324, index: 1, tx: 37, seed: 0x0000",
             "fan_0: ['on'] / {'sub_type': '3speed', 'on': True, 'speed': 2}",
-            True,
         ),
         # FAN OFF
         (
@@ -283,7 +253,6 @@ class TestEncoderFanlamp(_TestEncoderBase):
             "cmd: 0xD7, param: 0x00, args: [0,0,0]",
             "id: 0x00E15324, index: 1, tx: 40, seed: 0x0000",
             "fan_0: ['on'] / {'on': False}",
-            True,
         ),
         (
             "zhijia_v0",
@@ -291,7 +260,6 @@ class TestEncoderFanlamp(_TestEncoderBase):
             "cmd: 0xD8, param: 0x00, args: [0,0,0]",
             "id: 0x00005324, index: 1, tx: 60, seed: 0x0000",
             "fan_0: ['on'] / {'on': False}",
-            True,
         ),
         (
             "zhijia_v1",
@@ -299,7 +267,6 @@ class TestEncoderFanlamp(_TestEncoderBase):
             "cmd: 0xD7, param: 0x00, args: [0,0,0]",
             "id: 0x00E15324, index: 1, tx: 39, seed: 0x0000",
             "fan_0: ['on'] / {'on': False}",
-            True,
         ),
         # FAN Direction Reverse
         (
@@ -308,7 +275,6 @@ class TestEncoderFanlamp(_TestEncoderBase):
             "cmd: 0xDA, param: 0x00, args: [0,0,0]",
             "id: 0x00005324, index: 1, tx: 62, seed: 0x0000",
             "fan_0: ['dir'] / {'dir': False}",
-            True,
         ),
         (
             "zhijia_v1",
@@ -316,7 +282,6 @@ class TestEncoderFanlamp(_TestEncoderBase):
             "cmd: 0xDA, param: 0x00, args: [0,0,0]",
             "id: 0x00E15324, index: 1, tx: 43, seed: 0x0000",
             "fan_0: ['dir'] / {'dir': False}",
-            True,
         ),
         (
             "zhijia_v2",
@@ -324,7 +289,6 @@ class TestEncoderFanlamp(_TestEncoderBase):
             "cmd: 0xDA, param: 0x00, args: [0,0,0]",
             "id: 0x00E15324, index: 1, tx: 44, seed: 0x0000",
             "fan_0: ['dir'] / {'dir': False}",
-            True,
         ),
         # FAN Direction Forward
         (
@@ -333,7 +297,6 @@ class TestEncoderFanlamp(_TestEncoderBase):
             "cmd: 0xD9, param: 0x00, args: [0,0,0]",
             "id: 0x00005324, index: 1, tx: 63, seed: 0x0000",
             "fan_0: ['dir'] / {'dir': True}",
-            True,
         ),
         (
             "zhijia_v2",
@@ -341,7 +304,6 @@ class TestEncoderFanlamp(_TestEncoderBase):
             "cmd: 0xDB, param: 0x00, args: [0,0,0]",
             "id: 0x00E15324, index: 1, tx: 46, seed: 0x0000",
             "fan_0: ['dir'] / {'dir': True}",
-            True,
         ),
         (
             "zhijia_v1",
@@ -349,7 +311,6 @@ class TestEncoderFanlamp(_TestEncoderBase):
             "cmd: 0xDB, param: 0x00, args: [0,0,0]",
             "id: 0x00E15324, index: 1, tx: 45, seed: 0x0000",
             "fan_0: ['dir'] / {'dir': True}",
-            True,
         ),
         # Second Light OFF
         (
@@ -358,7 +319,6 @@ class TestEncoderFanlamp(_TestEncoderBase):
             "cmd: 0xB0, param: 0x00, args: [0,0,0]",
             "id: 0x00E15324, index: 1, tx: 48, seed: 0x0000",
             "light_1: ['on'] / {'on': False}",
-            True,
         ),
         (
             "zhijia_v0",
@@ -366,7 +326,6 @@ class TestEncoderFanlamp(_TestEncoderBase):
             "cmd: 0xA6, param: 0x00, args: [2,0,0]",
             "id: 0x00005324, index: 1, tx: 64, seed: 0x0000",
             "light_1: ['on'] / {'on': False}",
-            True,
         ),
         (
             "zhijia_v1",
@@ -374,7 +333,6 @@ class TestEncoderFanlamp(_TestEncoderBase):
             "cmd: 0xB0, param: 0x00, args: [0,0,0]",
             "id: 0x00E15324, index: 1, tx: 47, seed: 0x0000",
             "light_1: ['on'] / {'on': False}",
-            True,
         ),
         # Second Light ON
         (
@@ -383,7 +341,6 @@ class TestEncoderFanlamp(_TestEncoderBase):
             "cmd: 0xAF, param: 0x00, args: [0,0,0]",
             "id: 0x00E15324, index: 1, tx: 50, seed: 0x0000",
             "light_1: ['on'] / {'on': True}",
-            True,
         ),
         (
             "zhijia_v0",
@@ -391,7 +348,6 @@ class TestEncoderFanlamp(_TestEncoderBase):
             "cmd: 0xA6, param: 0x00, args: [1,0,0]",
             "id: 0x00005324, index: 1, tx: 65, seed: 0x0000",
             "light_1: ['on'] / {'on': True}",
-            True,
         ),
         (
             "zhijia_v1",
@@ -399,8 +355,16 @@ class TestEncoderFanlamp(_TestEncoderBase):
             "cmd: 0xAF, param: 0x00, args: [0,0,0]",
             "id: 0x00E15324, index: 1, tx: 49, seed: 0x0000",
             "light_1: ['on'] / {'on': True}",
-            True,
         ),
+    ],
+)
+class TestEncoderZhijiaFull(_TestEncoderFull):
+    """Zhi Jia Encoder / Decoder Full tests."""
+
+
+@pytest.mark.parametrize(
+    _TestEncoderFull.PARAM_NAMES,
+    [
         # Night Mode (No Direct)
         (
             "zhijia_v0",
@@ -408,7 +372,6 @@ class TestEncoderFanlamp(_TestEncoderBase):
             "cmd: 0xA1, param: 0x00, args: [25,25,0]",
             "id: 0x00005324, index: 3, tx: 88, seed: 0x0000",
             "light_0: [] / {'sub_type': 'cww', 'cold': 0.1, 'warm': 0.1}",
-            False,
         ),
         (
             "zhijia_v1",
@@ -416,7 +379,6 @@ class TestEncoderFanlamp(_TestEncoderBase):
             "cmd: 0xA7, param: 0x00, args: [25,25,0]",
             "id: 0x00E15324, index: 3, tx: 95, seed: 0x0000",
             "light_0: [] / {'sub_type': 'cww', 'cold': 0.1, 'warm': 0.1}",
-            False,
         ),
         (
             "zhijia_v2",
@@ -424,7 +386,6 @@ class TestEncoderFanlamp(_TestEncoderBase):
             "cmd: 0xA7, param: 0x00, args: [25,25,0]",
             "id: 0x00E15324, index: 3, tx: 96, seed: 0x0000",
             "light_0: [] / {'sub_type': 'cww', 'cold': 0.1, 'warm': 0.1}",
-            False,
         ),
         # Button Natural Light (No Direct)
         (
@@ -433,7 +394,6 @@ class TestEncoderFanlamp(_TestEncoderBase):
             "cmd: 0xA4, param: 0x00, args: [255,255,0]",
             "id: 0x00005324, index: 3, tx: 99, seed: 0x0000",
             "light_0: [] / {'sub_type': 'cww', 'cold': 1, 'warm': 1}",
-            False,
         ),
         (
             "zhijia_v2",
@@ -441,7 +401,6 @@ class TestEncoderFanlamp(_TestEncoderBase):
             "cmd: 0xA8, param: 0x00, args: [250,250,0]",
             "id: 0x00E15324, index: 3, tx: 118, seed: 0x0000",
             "light_0: [] / {'sub_type': 'cww', 'cold': 1, 'warm': 1}",
-            False,
         ),
         (
             "zhijia_v1",
@@ -449,7 +408,6 @@ class TestEncoderFanlamp(_TestEncoderBase):
             "cmd: 0xA8, param: 0x00, args: [250,250,0]",
             "id: 0x00E15324, index: 3, tx: 117, seed: 0x0000",
             "light_0: [] / {'sub_type': 'cww', 'cold': 1, 'warm': 1}",
-            False,
         ),
         # Button WARM (No Direct)
         (
@@ -458,7 +416,6 @@ class TestEncoderFanlamp(_TestEncoderBase):
             "cmd: 0xA8, param: 0x00, args: [0,250,0]",
             "id: 0x00E15324, index: 3, tx: 120, seed: 0x0000",
             "light_0: [] / {'sub_type': 'cww', 'cold': 0, 'warm': 1}",
-            False,
         ),
         (
             "zhijia_v0",
@@ -466,7 +423,6 @@ class TestEncoderFanlamp(_TestEncoderBase):
             "cmd: 0xA3, param: 0x00, args: [0,255,0]",
             "id: 0x00005324, index: 3, tx: 100, seed: 0x0000",
             "light_0: [] / {'sub_type': 'cww', 'cold': 0, 'warm': 1}",
-            False,
         ),
         (
             "zhijia_v1",
@@ -474,7 +430,6 @@ class TestEncoderFanlamp(_TestEncoderBase):
             "cmd: 0xA8, param: 0x00, args: [0,250,0]",
             "id: 0x00E15324, index: 3, tx: 119, seed: 0x0000",
             "light_0: [] / {'sub_type': 'cww', 'cold': 0, 'warm': 1}",
-            False,
         ),
         # Button COLD
         (
@@ -483,7 +438,6 @@ class TestEncoderFanlamp(_TestEncoderBase):
             "cmd: 0xA8, param: 0x00, args: [250,0,0]",
             "id: 0x00E15324, index: 3, tx: 121, seed: 0x0000",
             "light_0: [] / {'sub_type': 'cww', 'cold': 1, 'warm': 0}",
-            False,
         ),
         (
             "zhijia_v2",
@@ -491,7 +445,6 @@ class TestEncoderFanlamp(_TestEncoderBase):
             "cmd: 0xA8, param: 0x00, args: [250,0,0]",
             "id: 0x00E15324, index: 3, tx: 122, seed: 0x0000",
             "light_0: [] / {'sub_type': 'cww', 'cold': 1, 'warm': 0}",
-            False,
         ),
         (
             "zhijia_v0",
@@ -499,9 +452,10 @@ class TestEncoderFanlamp(_TestEncoderBase):
             "cmd: 0xA2, param: 0x00, args: [255,0,0]",
             "id: 0x00005324, index: 3, tx: 101, seed: 0x0000",
             "light_0: [] / {'sub_type': 'cww', 'cold': 1, 'warm': 0}",
-            False,
         ),
     ],
 )
-class TestEncoderFanlampFull(_TestEncoderFull):
-    """Fanlamp Encoder / Decoder Full tests."""
+class TestEncoderZhijiaNoReverse(_TestEncoderFull):
+    """Zhi Jia Encoder / Decoder No Reverse tests."""
+
+    _with_reverse = False

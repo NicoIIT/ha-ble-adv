@@ -37,7 +37,6 @@ class TestEncoderFanlamp(_TestEncoderBase):
             "cmd: 0x28, param: 0x00, args: [0,0,0]",
             "id: 0xD2135C22, index: 2, tx: 117, seed: 0x2B53",
             "device_0: ['cmd'] / {'cmd': 'pair'}",
-            True,
         ),
         (
             "fanlamp_pro_v1",
@@ -45,7 +44,6 @@ class TestEncoderFanlamp(_TestEncoderBase):
             "cmd: 0x28, param: 0x00, args: [0,0,0]",
             "id: 0x003D5022, index: 2, tx: 102, seed: 0x0006",
             "device_0: ['cmd'] / {'cmd': 'pair'}",
-            True,
         ),
         (
             "fanlamp_pro_v2",
@@ -53,7 +51,6 @@ class TestEncoderFanlamp(_TestEncoderBase):
             "cmd: 0x28, param: 0x00, args: [0,0,0]",
             "id: 0xD2135C22, index: 2, tx: 117, seed: 0x2B53",
             "device_0: ['cmd'] / {'cmd': 'pair'}",
-            True,
         ),
         # Timer 2H (120min / 7200s)
         (
@@ -62,7 +59,6 @@ class TestEncoderFanlamp(_TestEncoderBase):
             "cmd: 0x41, param: 0x00, args: [120,0,0]",
             "id: 0xD2135C22, index: 2, tx: 142, seed: 0x2B53",
             "device_0: ['cmd'] / {'cmd': 'timer', 's': 7200.0}",
-            True,
         ),
         (
             "fanlamp_pro_v1",
@@ -70,7 +66,6 @@ class TestEncoderFanlamp(_TestEncoderBase):
             "cmd: 0x51, param: 0x00, args: [120,0,0]",
             "id: 0x003D5022, index: 2, tx: 127, seed: 0x00F1",
             "device_0: ['cmd'] / {'cmd': 'timer', 's': 7200.0}",
-            True,
         ),
         (
             "fanlamp_pro_v2",
@@ -78,7 +73,6 @@ class TestEncoderFanlamp(_TestEncoderBase):
             "cmd: 0x41, param: 0x00, args: [120,0,0]",
             "id: 0xD2135C22, index: 2, tx: 142, seed: 0x2B53",
             "device_0: ['cmd'] / {'cmd': 'timer', 's': 7200.0}",
-            True,
         ),
         # MAIN LIGHT OFF
         (
@@ -87,7 +81,6 @@ class TestEncoderFanlamp(_TestEncoderBase):
             "cmd: 0x11, param: 0x00, args: [0,0,0]",
             "id: 0xD2135C22, index: 2, tx: 17, seed: 0x2B53",
             "light_0: ['on'] / {'on': False}",
-            True,
         ),
         (
             "fanlamp_pro_v1",
@@ -95,7 +88,6 @@ class TestEncoderFanlamp(_TestEncoderBase):
             "cmd: 0x11, param: 0x00, args: [0,0,0]",
             "id: 0x003D5022, index: 2, tx: 2, seed: 0x008D",
             "light_0: ['on'] / {'on': False}",
-            True,
         ),
         (
             "fanlamp_pro_v2",
@@ -103,7 +95,6 @@ class TestEncoderFanlamp(_TestEncoderBase):
             "cmd: 0x11, param: 0x00, args: [0,0,0]",
             "id: 0xD2135C22, index: 2, tx: 17, seed: 0x2B53",
             "light_0: ['on'] / {'on': False}",
-            True,
         ),
         # MAIN LIGHT ON
         (
@@ -112,7 +103,6 @@ class TestEncoderFanlamp(_TestEncoderBase):
             "cmd: 0x10, param: 0x00, args: [0,0,0]",
             "id: 0xD2135C22, index: 2, tx: 16, seed: 0x2B53",
             "light_0: ['on'] / {'on': True}",
-            True,
         ),
         (
             "fanlamp_pro_v1",
@@ -120,7 +110,6 @@ class TestEncoderFanlamp(_TestEncoderBase):
             "cmd: 0x10, param: 0x00, args: [0,0,0]",
             "id: 0x003D5022, index: 2, tx: 1, seed: 0x000B",
             "light_0: ['on'] / {'on': True}",
-            True,
         ),
         (
             "fanlamp_pro_v2",
@@ -128,7 +117,6 @@ class TestEncoderFanlamp(_TestEncoderBase):
             "cmd: 0x10, param: 0x00, args: [0,0,0]",
             "id: 0xD2135C22, index: 2, tx: 16, seed: 0x2B53",
             "light_0: ['on'] / {'on': True}",
-            True,
         ),
         # BR 10 %
         (
@@ -137,7 +125,6 @@ class TestEncoderFanlamp(_TestEncoderBase):
             "cmd: 0x21, param: 0x00, args: [25,25,0]",
             "id: 0x003D5022, index: 2, tx: 169, seed: 0x005C",
             "light_0: ['cold', 'warm'] / {'sub_type': 'cww', 'cold': 0.09803921568627451, 'warm': 0.09803921568627451}",
-            True,
         ),
         (
             "fanlamp_pro_v2",
@@ -145,7 +132,6 @@ class TestEncoderFanlamp(_TestEncoderBase):
             "cmd: 0x21, param: 0x00, args: [0,25,25]",
             "id: 0xD2135C22, index: 2, tx: 184, seed: 0x2B53",
             "light_0: ['cold', 'warm'] / {'sub_type': 'cww', 'cold': 0.09803921568627451, 'warm': 0.09803921568627451}",
-            True,
         ),
         (
             "fanlamp_pro_v3",
@@ -153,7 +139,6 @@ class TestEncoderFanlamp(_TestEncoderBase):
             "cmd: 0x21, param: 0x00, args: [0,25,25]",
             "id: 0xD2135C22, index: 2, tx: 184, seed: 0x2B53",
             "light_0: ['cold', 'warm'] / {'sub_type': 'cww', 'cold': 0.09803921568627451, 'warm': 0.09803921568627451}",
-            True,
         ),
         # BR 100 %
         (
@@ -162,7 +147,6 @@ class TestEncoderFanlamp(_TestEncoderBase):
             "cmd: 0x21, param: 0x00, args: [255,255,0]",
             "id: 0x003D5022, index: 2, tx: 44, seed: 0x00AC",
             "light_0: ['cold', 'warm'] / {'sub_type': 'cww', 'cold': 1.0, 'warm': 1.0}",
-            True,
         ),
         (
             "fanlamp_pro_v2",
@@ -170,7 +154,6 @@ class TestEncoderFanlamp(_TestEncoderBase):
             "cmd: 0x21, param: 0x00, args: [0,255,255]",
             "id: 0xD2135C22, index: 2, tx: 59, seed: 0x2B53",
             "light_0: ['cold', 'warm'] / {'sub_type': 'cww', 'cold': 1.0, 'warm': 1.0}",
-            True,
         ),
         (
             "fanlamp_pro_v3",
@@ -178,7 +161,6 @@ class TestEncoderFanlamp(_TestEncoderBase):
             "cmd: 0x21, param: 0x00, args: [0,255,255]",
             "id: 0xD2135C22, index: 2, tx: 59, seed: 0x2B53",
             "light_0: ['cold', 'warm'] / {'sub_type': 'cww', 'cold': 1.0, 'warm': 1.0}",
-            True,
         ),
         # COLD
         (
@@ -187,7 +169,6 @@ class TestEncoderFanlamp(_TestEncoderBase):
             "cmd: 0x21, param: 0x00, args: [255,0,0]",
             "id: 0x003D5022, index: 2, tx: 53, seed: 0x009B",
             "light_0: ['cold', 'warm'] / {'sub_type': 'cww', 'cold': 1.0, 'warm': 0.0}",
-            True,
         ),
         (
             "fanlamp_pro_v2",
@@ -195,7 +176,6 @@ class TestEncoderFanlamp(_TestEncoderBase):
             "cmd: 0x21, param: 0x00, args: [0,255,0]",
             "id: 0xD2135C22, index: 2, tx: 68, seed: 0x2B53",
             "light_0: ['cold', 'warm'] / {'sub_type': 'cww', 'cold': 1.0, 'warm': 0.0}",
-            True,
         ),
         (
             "fanlamp_pro_v3",
@@ -203,7 +183,6 @@ class TestEncoderFanlamp(_TestEncoderBase):
             "cmd: 0x21, param: 0x00, args: [0,255,0]",
             "id: 0xD2135C22, index: 2, tx: 68, seed: 0x2B53",
             "light_0: ['cold', 'warm'] / {'sub_type': 'cww', 'cold': 1.0, 'warm': 0.0}",
-            True,
         ),
         # WARM
         (
@@ -212,7 +191,6 @@ class TestEncoderFanlamp(_TestEncoderBase):
             "cmd: 0x21, param: 0x00, args: [0,255,0]",
             "id: 0x003D5022, index: 2, tx: 59, seed: 0x00BE",
             "light_0: ['cold', 'warm'] / {'sub_type': 'cww', 'cold': 0.0, 'warm': 1.0}",
-            True,
         ),
         (
             "fanlamp_pro_v2",
@@ -220,7 +198,6 @@ class TestEncoderFanlamp(_TestEncoderBase):
             "cmd: 0x21, param: 0x00, args: [0,0,255]",
             "id: 0xD2135C22, index: 2, tx: 74, seed: 0x2B53",
             "light_0: ['cold', 'warm'] / {'sub_type': 'cww', 'cold': 0.0, 'warm': 1.0}",
-            True,
         ),
         (
             "fanlamp_pro_v3",
@@ -228,7 +205,6 @@ class TestEncoderFanlamp(_TestEncoderBase):
             "cmd: 0x21, param: 0x00, args: [0,0,255]",
             "id: 0xD2135C22, index: 2, tx: 74, seed: 0x2B53",
             "light_0: ['cold', 'warm'] / {'sub_type': 'cww', 'cold': 0.0, 'warm': 1.0}",
-            True,
         ),
         # RGB Full RED
         (
@@ -237,7 +213,6 @@ class TestEncoderFanlamp(_TestEncoderBase):
             "cmd: 0x22, param: 0x00, args: [255,0,0]",
             "id: 0xD2135C22, index: 2, tx: 125, seed: 0x2B53",
             "light_0: ['rf', 'gf', 'bf'] / {'sub_type': 'rgb', 'rf': 1.0, 'gf': 0.0, 'bf': 0.0}",
-            True,
         ),
         (
             "fanlamp_pro_v3",
@@ -245,7 +220,6 @@ class TestEncoderFanlamp(_TestEncoderBase):
             "cmd: 0x22, param: 0x00, args: [255,0,0]",
             "id: 0xD2135C22, index: 2, tx: 125, seed: 0x2B53",
             "light_0: ['rf', 'gf', 'bf'] / {'sub_type': 'rgb', 'rf': 1.0, 'gf': 0.0, 'bf': 0.0}",
-            True,
         ),
         # FAN ON SPEED 2 / 6
         (
@@ -254,7 +228,6 @@ class TestEncoderFanlamp(_TestEncoderBase):
             "cmd: 0x32, param: 0x00, args: [2,6,0]",
             "id: 0x003D5022, index: 2, tx: 112, seed: 0x00E3",
             "fan_0: ['on', 'speed'] / {'sub_type': '6speed', 'on': True, 'speed': 2.0}",
-            True,
         ),
         (
             "fanlamp_pro_v3",
@@ -262,7 +235,6 @@ class TestEncoderFanlamp(_TestEncoderBase):
             "cmd: 0x31, param: 0x00, args: [32,2,0]",
             "id: 0xD2135C22, index: 2, tx: 127, seed: 0x2B53",
             "fan_0: ['on', 'speed'] / {'sub_type': '6speed', 'on': True, 'speed': 2.0}",
-            True,
         ),
         (
             "fanlamp_pro_v2",
@@ -270,7 +242,6 @@ class TestEncoderFanlamp(_TestEncoderBase):
             "cmd: 0x31, param: 0x00, args: [32,2,0]",
             "id: 0xD2135C22, index: 2, tx: 127, seed: 0x2B53",
             "fan_0: ['on', 'speed'] / {'sub_type': '6speed', 'on': True, 'speed': 2.0}",
-            True,
         ),
         # FAN OFF
         (
@@ -279,7 +250,6 @@ class TestEncoderFanlamp(_TestEncoderBase):
             "cmd: 0x31, param: 0x00, args: [32,0,0]",
             "id: 0xD2135C22, index: 2, tx: 128, seed: 0x2B53",
             "fan_0: ['on'] / {'sub_type': '6speed', 'on': False}",
-            True,
         ),
         (
             "fanlamp_pro_v1",
@@ -287,7 +257,6 @@ class TestEncoderFanlamp(_TestEncoderBase):
             "cmd: 0x31, param: 0x00, args: [0,0,0]",
             "id: 0x003D5022, index: 2, tx: 113, seed: 0x00B7",
             "fan_0: ['on'] / {'sub_type': '3speed', 'on': False}",  # hum sub_type '3speed' ... to be checked ...
-            True,
         ),
         (
             "fanlamp_pro_v2",
@@ -295,7 +264,6 @@ class TestEncoderFanlamp(_TestEncoderBase):
             "cmd: 0x31, param: 0x00, args: [32,0,0]",
             "id: 0xD2135C22, index: 2, tx: 128, seed: 0x2B53",
             "fan_0: ['on'] / {'sub_type': '6speed', 'on': False}",
-            True,
         ),
         # FAN Direction Reverse
         (
@@ -304,7 +272,6 @@ class TestEncoderFanlamp(_TestEncoderBase):
             "cmd: 0x15, param: 0x00, args: [1,0,0]",
             "id: 0x003D5022, index: 2, tx: 123, seed: 0x007D",
             "fan_0: ['dir'] / {'dir': False}",
-            True,
         ),
         (
             "fanlamp_pro_v2",
@@ -312,7 +279,6 @@ class TestEncoderFanlamp(_TestEncoderBase):
             "cmd: 0x15, param: 0x00, args: [1,0,0]",
             "id: 0xD2135C22, index: 2, tx: 138, seed: 0x2B53",
             "fan_0: ['dir'] / {'dir': False}",
-            True,
         ),
         (
             "fanlamp_pro_v3",
@@ -320,7 +286,6 @@ class TestEncoderFanlamp(_TestEncoderBase):
             "cmd: 0x15, param: 0x00, args: [1,0,0]",
             "id: 0xD2135C22, index: 2, tx: 138, seed: 0x2B53",
             "fan_0: ['dir'] / {'dir': False}",
-            True,
         ),
         # FAN Direction Forward
         (
@@ -329,7 +294,6 @@ class TestEncoderFanlamp(_TestEncoderBase):
             "cmd: 0x15, param: 0x00, args: [0,0,0]",
             "id: 0xD2135C22, index: 2, tx: 139, seed: 0x2B53",
             "fan_0: ['dir'] / {'dir': True}",
-            True,
         ),
         (
             "fanlamp_pro_v1",
@@ -337,7 +301,6 @@ class TestEncoderFanlamp(_TestEncoderBase):
             "cmd: 0x15, param: 0x00, args: [0,0,0]",
             "id: 0x003D5022, index: 2, tx: 124, seed: 0x007B",
             "fan_0: ['dir'] / {'dir': True}",
-            True,
         ),
         (
             "fanlamp_pro_v2",
@@ -345,7 +308,6 @@ class TestEncoderFanlamp(_TestEncoderBase):
             "cmd: 0x15, param: 0x00, args: [0,0,0]",
             "id: 0xD2135C22, index: 2, tx: 139, seed: 0x2B53",
             "fan_0: ['dir'] / {'dir': True}",
-            True,
         ),
         # FAN Oscillation ON
         (
@@ -354,7 +316,6 @@ class TestEncoderFanlamp(_TestEncoderBase):
             "cmd: 0x16, param: 0x00, args: [1,0,0]",
             "id: 0xD2135C22, index: 2, tx: 141, seed: 0x2B53",
             "fan_0: ['osc'] / {'osc': True}",
-            True,
         ),
         (
             "fanlamp_pro_v1",
@@ -362,7 +323,6 @@ class TestEncoderFanlamp(_TestEncoderBase):
             "cmd: 0x16, param: 0x00, args: [1,0,0]",
             "id: 0x003D5022, index: 2, tx: 126, seed: 0x0017",
             "fan_0: ['osc'] / {'osc': True}",
-            True,
         ),
         (
             "fanlamp_pro_v2",
@@ -370,7 +330,6 @@ class TestEncoderFanlamp(_TestEncoderBase):
             "cmd: 0x16, param: 0x00, args: [1,0,0]",
             "id: 0xD2135C22, index: 2, tx: 141, seed: 0x2B53",
             "fan_0: ['osc'] / {'osc': True}",
-            True,
         ),
         # FAN Oscillation OFF
         (
@@ -379,7 +338,6 @@ class TestEncoderFanlamp(_TestEncoderBase):
             "cmd: 0x16, param: 0x00, args: [0,0,0]",
             "id: 0xD2135C22, index: 2, tx: 140, seed: 0x2B53",
             "fan_0: ['osc'] / {'osc': False}",
-            True,
         ),
         (
             "fanlamp_pro_v1",
@@ -387,7 +345,6 @@ class TestEncoderFanlamp(_TestEncoderBase):
             "cmd: 0x16, param: 0x00, args: [0,0,0]",
             "id: 0x003D5022, index: 2, tx: 125, seed: 0x00F2",
             "fan_0: ['osc'] / {'osc': False}",
-            True,
         ),
         (
             "fanlamp_pro_v2",
@@ -395,7 +352,6 @@ class TestEncoderFanlamp(_TestEncoderBase):
             "cmd: 0x16, param: 0x00, args: [0,0,0]",
             "id: 0xD2135C22, index: 2, tx: 140, seed: 0x2B53",
             "fan_0: ['osc'] / {'osc': False}",
-            True,
         ),
         # Second Light OFF
         (
@@ -404,7 +360,6 @@ class TestEncoderFanlamp(_TestEncoderBase):
             "cmd: 0x13, param: 0x00, args: [0,0,0]",
             "id: 0xD2135C22, index: 2, tx: 135, seed: 0x2B53",
             "light_1: ['on'] / {'on': False}",
-            True,
         ),
         (
             "fanlamp_pro_v1",
@@ -412,7 +367,6 @@ class TestEncoderFanlamp(_TestEncoderBase):
             "cmd: 0x13, param: 0x00, args: [0,0,0]",
             "id: 0x003D5022, index: 2, tx: 120, seed: 0x00D9",
             "light_1: ['on'] / {'on': False}",
-            True,
         ),
         (
             "fanlamp_pro_v2",
@@ -420,7 +374,6 @@ class TestEncoderFanlamp(_TestEncoderBase):
             "cmd: 0x13, param: 0x00, args: [0,0,0]",
             "id: 0xD2135C22, index: 2, tx: 135, seed: 0x2B53",
             "light_1: ['on'] / {'on': False}",
-            True,
         ),
         # Second Light ON
         (
@@ -429,7 +382,6 @@ class TestEncoderFanlamp(_TestEncoderBase):
             "cmd: 0x12, param: 0x00, args: [0,0,0]",
             "id: 0xD2135C22, index: 2, tx: 136, seed: 0x2B53",
             "light_1: ['on'] / {'on': True}",
-            True,
         ),
         (
             "fanlamp_pro_v1",
@@ -437,7 +389,6 @@ class TestEncoderFanlamp(_TestEncoderBase):
             "cmd: 0x12, param: 0x00, args: [0,0,0]",
             "id: 0x003D5022, index: 2, tx: 121, seed: 0x00E6",
             "light_1: ['on'] / {'on': True}",
-            True,
         ),
         (
             "fanlamp_pro_v2",
@@ -445,8 +396,16 @@ class TestEncoderFanlamp(_TestEncoderBase):
             "cmd: 0x12, param: 0x00, args: [0,0,0]",
             "id: 0xD2135C22, index: 2, tx: 136, seed: 0x2B53",
             "light_1: ['on'] / {'on': True}",
-            True,
         ),
+    ],
+)
+class TestEncoderFanlampFull(_TestEncoderFull):
+    """Fanlamp Encoder / Decoder Full tests."""
+
+
+@pytest.mark.parametrize(
+    _TestEncoderFull.PARAM_NAMES,
+    [
         # Device ALL OFF (NO REVERSE)
         (
             "fanlamp_pro_v3",
@@ -454,7 +413,6 @@ class TestEncoderFanlamp(_TestEncoderBase):
             "cmd: 0x6F, param: 0x00, args: [0,0,0]",
             "id: 0xD2135C22, index: 2, tx: 146, seed: 0x2B53",
             "device_0: ['on'] / {'on': False}",
-            False,
         ),
         (
             "fanlamp_pro_v1",
@@ -462,7 +420,6 @@ class TestEncoderFanlamp(_TestEncoderBase):
             "cmd: 0x6F, param: 0x00, args: [0,0,0]",
             "id: 0x003D5022, index: 2, tx: 131, seed: 0x0021",
             "device_0: ['on'] / {'on': False}",
-            False,
         ),
         (
             "fanlamp_pro_v2",
@@ -470,7 +427,6 @@ class TestEncoderFanlamp(_TestEncoderBase):
             "cmd: 0x6F, param: 0x00, args: [0,0,0]",
             "id: 0xD2135C22, index: 2, tx: 146, seed: 0x2B53",
             "device_0: ['on'] / {'on': False}",
-            False,
         ),
         # Remote BR+
         (
@@ -479,7 +435,6 @@ class TestEncoderFanlamp(_TestEncoderBase):
             "cmd: 0x21, param: 0x14, args: [0,0,0]",
             "id: 0x00014057, index: 0, tx: 9, seed: 0x1A68",
             "light_0: ['cmd'] / {'sub_type': 'cww', 'cmd': 'B+', 'step': 0.1}",
-            False,
         ),
         (
             "remote_v3",
@@ -487,7 +442,6 @@ class TestEncoderFanlamp(_TestEncoderBase):
             "cmd: 0x21, param: 0x00, args: [20,0,0]",
             "id: 0x02227574, index: 0, tx: 10, seed: 0xB743",
             "light_0: ['cmd'] / {'sub_type': 'cww', 'cmd': 'B+', 'step': 0.1}",
-            False,
         ),
         # Remote BR-
         (
@@ -496,7 +450,6 @@ class TestEncoderFanlamp(_TestEncoderBase):
             "cmd: 0x21, param: 0x28, args: [0,0,0]",
             "id: 0x00014057, index: 0, tx: 12, seed: 0x206C",
             "light_0: ['cmd'] / {'sub_type': 'cww', 'cmd': 'B-', 'step': 0.1}",
-            False,
         ),
         (
             "remote_v3",
@@ -504,7 +457,6 @@ class TestEncoderFanlamp(_TestEncoderBase):
             "cmd: 0x21, param: 0x00, args: [40,0,0]",
             "id: 0x02227574, index: 0, tx: 12, seed: 0x69B5",
             "light_0: ['cmd'] / {'sub_type': 'cww', 'cmd': 'B-', 'step': 0.1}",
-            False,
         ),
         # Remote Cycle Color: TODO
         # Remote Night Mode
@@ -514,7 +466,6 @@ class TestEncoderFanlamp(_TestEncoderBase):
             "cmd: 0x23, param: 0x00, args: [0,0,0]",
             "id: 0x02227574, index: 0, tx: 44, seed: 0xA4AD",
             "light_0: ['cold', 'warm'] / {'sub_type': 'cww', 'cold': 0.1, 'warm': 0.1}",
-            False,
         ),
         (
             "remote_v1",
@@ -522,9 +473,10 @@ class TestEncoderFanlamp(_TestEncoderBase):
             "cmd: 0x23, param: 0x00, args: [0,0,0]",
             "id: 0x00014057, index: 0, tx: 44, seed: 0xEF02",
             "light_0: ['cold', 'warm'] / {'sub_type': 'cww', 'cold': 0.1, 'warm': 0.1}",
-            False,
         ),
     ],
 )
-class TestEncoderFanlampFull(_TestEncoderFull):
-    """Fanlamp Encoder / Decoder Full tests."""
+class TestEncoderFanlampNoReverse(_TestEncoderFull):
+    """Fanlamp Encoder / Decoder No Reverse tests."""
+
+    _with_reverse = False

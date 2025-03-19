@@ -3,6 +3,7 @@
 from .fanlamp import CODECS as FANLAMP_CODECS
 from .models import BleAdvCodec
 from .zhijia import CODECS as ZHIJIA_CODECS
+from .zhimei import CODECS as ZHIMEI_CODECS
 
 PHONE_APPS = {
     "Fan Lamp Pro": ["fanlamp_pro_v3", "fanlamp_pro_v2", "fanlamp_pro_v1"],
@@ -14,4 +15,4 @@ PHONE_APPS = {
 
 def get_codecs() -> dict[str, BleAdvCodec]:
     """Get all codecs."""
-    return {x.codec_id: x for x in [*FANLAMP_CODECS, *ZHIJIA_CODECS]}
+    return {x.codec_id: x for x in [*FANLAMP_CODECS, *ZHIJIA_CODECS, *ZHIMEI_CODECS]}
