@@ -8,7 +8,7 @@ Same as [ESPHome integration](https://github.com/NicoIIT/esphome-components) but
 * Your Home Assistant must be on a LINUX host, have a Bluetooth Adapter available and, even if not strictly necessary, discovered by the [Bluetooth Integration](https://www.home-assistant.io/integrations/bluetooth/)
 * Your device can be reached by Bluetooth from the Home Assistant Host. ESPHome bluetooth proxies cannot be used (for now).
 * Have an up-to-date Home Assistant Core (2025.2.4 minimum) and HACS (2.0.1 minimum)
-* This integration communicates directly with the bluetooth adapters using HCI Sockets (cannot use the HA Bluetooth Adapters directly due to the need to use BLE Advertising in RAW mode), so your Home Assistant must have a direct authorized access to the Bluetooth adapter (run as root, direct network access - network mode 'host') for now.
+* This integration communicates directly with the bluetooth adapters using HCI Sockets (cannot use the HA Bluetooth Adapters directly due to the need to use BLE Advertising in RAW mode), so your Home Assistant must have a direct authorized access to the Bluetooth adapter (run as root, direct network access - network mode 'host'). For **advanced** users that defined their own HA docker container in a dedicated docker network behind nginx for example, a solution is available [here](https://github.com/NicoIIT/ha-ble-adv/wiki/Workaround-for-HA-non-root-installations).
 
 ## Supported Ceiling Fans / Lamps
 This integration does not support any specific device brand, but protocols used by the ANDROID apps controlling them. Protocols supported are the ones used by the following ANDROID Apps:
@@ -44,21 +44,7 @@ The main steps of the configuration flow are the following:
 
 
 ## Future Developments
-Those changes are on going, no need to open a feature request for that.
-
-### Support for "Reversed" Option
-Support the reversing of Cold / White colors in CWW Lamps.
-Well in fact understanding this option first as it is not clear AT ALL why this is needed, there must be a gap in our understanding of the protocols...
-
-### Support for Supplementary controlling devices
-Support to link an additional controlling device such as a Physical Remote.
-
-### Support Device specific features as a Service
-Features such as Pair / Unpair / Timer are not handled by the standard HA Entities and have to be defined as services.
-
-### BLE ADV Adapters
-* Docker Proxy (or even Host Proxy), in case your Home Assistant does not have a direct access to the HCI Bluetooth Adapter (not in network mode 'host', or not 'root'). The idea is to have another docker container with root access / network mode 'host' that will communicate with the HA Container using a Unix Socket shared on a docker volume. This would be a kind of 'low cost dbus'.
-* ESPHome BLE ADV Proxy, as done by standard ESPHome bluetooth proxy, if your HA is far from the device
+Future developments are tracked in [github feature requests](https://github.com/NicoIIT/ha-ble-adv/issues?q=is%3Aissue%20state%3Aopen%20label%3Aenhancement), do not hesitate to vote for them if you need them giving it a :thumbsup:, or open new ones!
 
 ## FAQ
 
@@ -66,4 +52,4 @@ Features such as Pair / Unpair / Timer are not handled by the standard HA Entiti
 Some devices are not available to receive commands while they are still processing one. You can increase the 'Minimum Duration' in between 2 commands in the 'Technical' part of the configuration to be sure we will wait this delay before sending new commands to the Device.
 
 ### When I change the Oscillation or Direction of the Fan when it is OFF, nothing happens despite the change is taken into account in the UI
-Those settings cannot be changed while the Fan is OFF, and they are not changed on the HA Entity side. Still there is a UI bug: the change should be reverted by the UI immediately to reflect the effective state of the Entity (that has not changed) but it is not, feel free to open them an issue.
+Those settings cannot be changed while the Fan is OFF, and they are not changed on the HA Entity side. Still there is a UI bug: the change should be reverted by the UI immediately to reflect the effective state of the Entity (that has not changed) but it is not, feel free to open 'home assistant frontend' an issue.

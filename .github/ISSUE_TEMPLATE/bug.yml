@@ -1,16 +1,17 @@
 ---
 name: "Bug report"
 description: "Report a bug with the integration"
+labels: ["bug"]
 body:
 - type: markdown
   attributes:
     value: Before you open a new issue, search through the existing issues to see if others have had the same problem.
-- type: textarea
-  attributes:
-    label: "System Health details"
-    description: "Paste the data from the System Health card in Home Assistant (https://www.home-assistant.io/more-info/system-health#github-issues)"
-  validations:
-    required: true
+# - type: textarea
+#   attributes:
+#     label: "System Health details"
+#     description: "Paste the data from the System Health card in Home Assistant (https://www.home-assistant.io/more-info/system-health#github-issues)"
+#   validations:
+#     required: true
 - type: checkboxes
   attributes:
     label: Checklist
@@ -21,7 +22,7 @@ body:
         required: true
       - label: This issue only contains 1 issue (if you have multiple issues, open one issue for each issue).
         required: true
-      - label: This issue is not a duplicate issue of any [previous issues](https://github.com/ludeeus/integration_blueprint/issues?q=is%3Aissue+label%3A%22Bug%22+)..
+      - label: This issue is not a duplicate issue of any [previous issues](https://github.com/NicoIIT/ha-ble-adv/issues?q=is%3Aissue%20state%3Aopen%20label%3Abug)..
         required: true
 - type: textarea
   attributes:
@@ -32,10 +33,10 @@ body:
 - type: textarea
   attributes:
     label: Reproduction steps
-    description: "Without steps to reproduce, it will be hard to fix. It is very important that you fill out this part. Issues without it will be closed."
+    description: "Without steps to reproduce, it will be hard to fix. It is very important that you fill out this part. Issues without it will be closed. Please specify the EXACT time (with 'second' precision) at which you performed a specific action so that we can correlate with the time in the logs. The description of the action must also be very clear as in the example below, in particulear on which device / controller you perform which action."
     value: |
-      1.
-      2.
+      1. At 15:32:51 I pressed on the "Light On" button of my Physical Remote defined as ble_adv integration 'My Controller name'
+      2. At 15:33:10 I changed the light from Cold to Warm using HA UI but the device went from Warm to Cold instead
       3.
       ...
   validations:
