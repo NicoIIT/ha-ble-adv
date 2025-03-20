@@ -309,6 +309,8 @@ CODECS = [
     FanLampEncoderV2(0x0100, True).id("lampsmart_pro_v3").header([0xF0, 0x08]).prefix([0x30, 0x80, 0x00]).ble(0x19, 0x03).add_translators(TRANS_FANLAMP_V2),
     # FanLamp remotes
     FanLampEncoderV1(0x83, False, True, 0x00, 0x9372).id("remote_v1").header([0x56, 0x55, 0x18, 0x87, 0x52]).ble(0x00, 0xFF).add_translators(TRANS_FANLAMP_V1),
+    FanLampEncoderV2(0x0400, False).id("remote_v2").header([0xF0, 0x08]).prefix([0x10, 0x00, 0x56]).ble(0x02, 0x16).add_translators(TRANS_FANLAMP_V2),
+    FanLampEncoderV2(0x0100, False).id("remote_v21").header([0xF0, 0x08]).prefix([0x10, 0x00, 0x56]).ble(0x02, 0x16).add_translators(TRANS_FANLAMP_V2),
     FanLampEncoderV2(0x0400, True).id("remote_v3").header([0xF0, 0x08]).prefix([0x10, 0x00, 0x56]).ble(0x02, 0x16).add_translators(TRANS_FANLAMP_V2),
     FanLampEncoderV2(0x0100, True).id("remote_v31").header([0xF0, 0x08]).prefix([0x10, 0x00, 0x56]).ble(0x02, 0x16).add_translators(TRANS_FANLAMP_V2),
     # Legacy variants from no known apps, initially present in ESPHome component. Still used by some remotes

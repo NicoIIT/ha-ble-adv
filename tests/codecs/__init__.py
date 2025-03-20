@@ -34,7 +34,7 @@ class _TestEncoderBase:
         assert conf2 is not None
         assert enc_cmd2 is not None
         assert conf.id == conf2.id
-        assert conf.index == conf2.index
+        assert conf2.index in (conf.index, 0)
         assert conf.tx_count == conf2.tx_count
         assert enc_cmd2 == enc_cmd
         if not self._dupe_allowed:

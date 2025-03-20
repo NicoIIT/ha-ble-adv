@@ -6,10 +6,6 @@ from .const import (
     ATTR_BLUE,
     ATTR_BR,
     ATTR_CMD,
-    ATTR_CMD_BR_DOWN,  # noqa: F401
-    ATTR_CMD_BR_UP,  # noqa: F401
-    ATTR_CMD_CT_DOWN,  # noqa: F401
-    ATTR_CMD_CT_UP,  # noqa: F401
     ATTR_CMD_PAIR,
     ATTR_CMD_TIMER,
     ATTR_CMD_UNPAIR,
@@ -20,7 +16,6 @@ from .const import (
     ATTR_ON,
     ATTR_RED,
     ATTR_SPEED,
-    ATTR_STEP,  # noqa: F401
     ATTR_TIME,
     ATTR_WARM,
 )
@@ -361,18 +356,18 @@ TRANS_V2 = [
 ]
 
 
-# TRANS_V2_FL = [
-#     *TRANS_COMMON_V1_V2,
-#     Trans(CTLightCmd().act(ATTR_COLD).act(ATTR_WARM), EncCmd(0xA8)).copy(ATTR_COLD, "arg0", 250).copy(ATTR_WARM, "arg1", 250),
-#     Trans(RGBLightCmd().act(ATTR_BR), EncCmd(0xC8)).copy(ATTR_BR, "arg0", 250),
-#     Trans(RGBLightCmd().act(ATTR_RED).act(ATTR_GREEN).act(ATTR_BLUE), EncCmd(0xCA))
-#     .copy(ATTR_RED, "arg0", 255)
-#     .copy(ATTR_GREEN, "arg1", 255)
-#     .copy(ATTR_BLUE, "arg2", 255),
-#     # req from app, only reverse, replaced by CT.LIGHT_CWW_COLD_WARM on direct to get ride of flickering
-#     Trans(CTLightCmd().act(ATTR_BR), EncCmd(0xAD)).copy(ATTR_BR, "arg0", 250).no_direct(),
-#     Trans(CTLightCmd().act(ATTR_CT), EncCmd(0xAE)).copy(ATTR_CT, "arg0", 250).no_direct(),
-# ]
+TRANS_V2_FL = [
+    *TRANS_COMMON_V1_V2,
+    Trans(CTLightCmd().act(ATTR_COLD).act(ATTR_WARM), EncCmd(0xA8)).copy(ATTR_COLD, "arg0", 250).copy(ATTR_WARM, "arg1", 250),
+    Trans(RGBLightCmd().act(ATTR_BR), EncCmd(0xC8)).copy(ATTR_BR, "arg0", 250),
+    Trans(RGBLightCmd().act(ATTR_RED).act(ATTR_GREEN).act(ATTR_BLUE), EncCmd(0xCA))
+    .copy(ATTR_RED, "arg0", 250)
+    .copy(ATTR_GREEN, "arg1", 250)
+    .copy(ATTR_BLUE, "arg2", 250),
+    # req from app, only reverse, replaced by CT.LIGHT_CWW_COLD_WARM on direct to get ride of flickering
+    Trans(CTLightCmd().act(ATTR_BR), EncCmd(0xAD)).copy(ATTR_BR, "arg0", 250).no_direct(),
+    Trans(CTLightCmd().act(ATTR_CT), EncCmd(0xAE)).copy(ATTR_CT, "arg0", 250).no_direct(),
+]
 
 TRANS_VR1 = [
     Trans(DeviceCmd().act(ATTR_CMD, ATTR_CMD_PAIR), EncCmd(0xA2)),
@@ -388,6 +383,7 @@ CODECS = [
     ZhijiaEncoderV0().id("zhijia_v0").header([0xF9, 0x08, 0x49]).prefix([0x08, 0x80, 0x98]).ble(0x1A, 0xFF).add_translators(TRANS_V0),
     ZhijiaEncoderV1([0x19, 0x01, 0x10]).id("zhijia_v1").header([0xF9, 0x08, 0x49]).prefix([0x55, 0x08, 0x80, 0x98]).ble(0x1A, 0xFF).add_translators(TRANS_V1),
     ZhijiaEncoderV2([0x19, 0x01, 0x10]).id("zhijia_v2").header([0x22, 0x9D]).ble(0x1A, 0xFF).add_translators(TRANS_V2),
+    ZhijiaEncoderV2([0x19, 0x01, 0x10]).id("zhijia_v2_fl").header([0x22, 0x9D]).ble(0x1A, 0xFF).add_translators(TRANS_V2_FL),
     # Zhi Guang standard Android App
     ZhijiaEncoderV0().id("zhiguang_v0").header([0xF9, 0x08, 0x49]).prefix([0x33, 0xAA, 0x55]).ble(0x1A, 0xFF).add_translators(TRANS_V0),
     ZhijiaEncoderV1([0x20, 0x03, 0x05]).id("zhiguang_v1").header([0xF9, 0x08, 0x49]).prefix([0xA0, 0xC0, 0x04, 0x04]).ble(0x1A, 0xFF).add_translators(TRANS_V1),

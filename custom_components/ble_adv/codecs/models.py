@@ -113,6 +113,7 @@ class BleAdvConfig:
     id: int = 0
     index: int = 0
     tx_count: int = 0
+    app_restart_count: int = 0
     seed: int = 0
 
     def __init__(self, config_id: int = 0, index: int = 0) -> None:

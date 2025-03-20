@@ -20,6 +20,8 @@ This integration does not support any specific device brand, but protocols used 
 * Zhi Guang
 * ApplianceSmart
 * Vmax smart
+* Zhi Mei Deng Kong
+* Smart Light (BETA) (Only the control by device, not the Master Control)
 * Other (Legacy), removed app from play store: 'FanLamp', 'ControlSwitch'
 
 ## Installing the component
@@ -43,10 +45,6 @@ The main steps of the configuration flow are the following:
 
 ## Future Developments
 Those changes are on going, no need to open a feature request for that.
-
-### Supplementary apps to be supported
-* ZhiMeiDengKong
-* Smart Light (Only the control by device, not the Master Control)
 
 ### Support for "Reversed" Option
 Support the reversing of Cold / White colors in CWW Lamps.
