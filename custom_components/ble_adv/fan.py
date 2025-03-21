@@ -21,7 +21,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.util.percentage import percentage_to_ranged_value, ranged_value_to_percentage
 
-from .codecs.const import ATTR_DIR, ATTR_OSC, ATTR_SPEED, FAN_TYPE, FAN_TYPE_3SPEED
+from .codecs.const import ATTR_DIR, ATTR_OSC, ATTR_SPEED, ATTR_SUB_TYPE, FAN_TYPE, FAN_TYPE_3SPEED
 from .const import CONF_FANS, CONF_REFRESH_ON_START, CONF_USE_DIR, CONF_USE_OSC, DOMAIN
 from .device import BleAdvDevice, BleAdvEntAttr, BleAdvEntity, handle_change
 
@@ -55,7 +55,7 @@ class BleAdvFan(BleAdvEntity, FanEntity):
     def __init__(self, device: BleAdvDevice, sub_type: str, index: int, features: FanEntityFeature, refresh_on_start: bool) -> None:
         super().__init__(FAN_TYPE, sub_type, device, index)
         self._attr_supported_features: FanEntityFeature = features
-        self._attr_speed_count: int = 3 if sub_type == FAN_TYPE_3SPEED else 6
+        self._attr_speed_count: int = self._get_speed_count_from_type(sub_type)
         self._refresh_on_start: bool = refresh_on_start
 
     # redefining 'current_direction' as the attribute name is messy, and not the one defined in the last_state
@@ -63,6 +63,10 @@ class BleAdvFan(BleAdvEntity, FanEntity):
     def current_direction(self) -> str | None:
         """Return the current direction of the fan."""
         return self._attr_direction
+
+    def _get_speed_count_from_type(self, sub_type: str) -> int:
+        """Convert the Fan sub_type into the number of speed."""
+        return 3 if sub_type == FAN_TYPE_3SPEED else 6
 
     def get_attrs(self) -> dict[str, Any]:
         """Get the attrs."""
@@ -93,7 +97,8 @@ class BleAdvFan(BleAdvEntity, FanEntity):
         if ATTR_OSC in ent_attr.chg_attrs:
             self._attr_oscillating = ent_attr.attrs[ATTR_OSC]  # type: ignore[none]
         if ATTR_SPEED in ent_attr.chg_attrs:
-            self._attr_percentage = ranged_value_to_percentage((1, 6), ent_attr.attrs[ATTR_SPEED])  # type: ignore[none]
+            recv_speed_count = self._get_speed_count_from_type(ent_attr.attrs[ATTR_SUB_TYPE])
+            self._attr_percentage = ranged_value_to_percentage((1, recv_speed_count), ent_attr.attrs[ATTR_SPEED])
 
     def _set_state_percentage(self, percentage: int | None) -> None:
         """Set the speed percentage of the fan."""

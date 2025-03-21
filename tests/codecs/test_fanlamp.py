@@ -458,7 +458,51 @@ class TestEncoderFanlampFull(_TestEncoderFull):
             "id: 0x02227574, index: 0, tx: 12, seed: 0x69B5",
             "light_0: ['cmd'] / {'sub_type': 'cww', 'cmd': 'B-', 'step': 0.1}",
         ),
-        # Remote Cycle Color: TODO
+        # Remote Cycle Color: WARM
+        (
+            "remote_v3",
+            "02.01.02.1B.16.F0.08.10.00.84.55.BB.FF.9B.1A.E4.2D.0B.3B.D9.3D.9D.06.77.15.08.19.1E.1B.FD.03",
+            "cmd: 0x21, param: 0x00, args: [64,0,255]",
+            "id: 0x02227574, index: 0, tx: 127, seed: 0x1B1E",
+            "light_0: ['cold', 'warm'] / {'sub_type': 'cww', 'cold': 0.0, 'warm': 1.0}",
+        ),
+        (
+            "remote_v1",
+            "1E.FF.56.55.18.87.52.B6.5F.2B.5E.00.FC.31.51.5C.50.9A.08.DB.0A.C5.FE.65.B7.67.C1.1F.FD.60.57",
+            "cmd: 0x21, param: 0x40, args: [0,255,0]",
+            "id: 0x00014057, index: 0, tx: 127, seed: 0xC929",
+            "light_0: ['cold', 'warm'] / {'sub_type': 'cww', 'cold': 0.0, 'warm': 1.0}",
+        ),
+        # Remote Cycle Color: NATURAL
+        (
+            "remote_v3",
+            "02.01.02.1B.16.F0.08.10.00.0C.49.56.CF.AA.39.0C.25.EB.5F.B9.7B.71.A0.15.07.1F.3B.CC.7C.F4.B6",
+            "cmd: 0x21, param: 0x00, args: [64,255,255]",
+            "id: 0x02227574, index: 0, tx: 128, seed: 0x7CCC",
+            "light_0: ['cold', 'warm'] / {'sub_type': 'cww', 'cold': 1.0, 'warm': 1.0}",
+        ),
+        (
+            "remote_v1",
+            "1E.FF.56.55.18.87.52.B6.5F.2B.5E.00.FC.31.51.5C.50.9A.F7.DB.0A.3A.FE.0A.D8.13.AE.7B.8B.60.57",
+            "cmd: 0x21, param: 0x40, args: [255,255,0]",
+            "id: 0x00014057, index: 0, tx: 128, seed: 0xE7DF",
+            "light_0: ['cold', 'warm'] / {'sub_type': 'cww', 'cold': 1.0, 'warm': 1.0}",
+        ),
+        # Remote Cycle Color: COLD
+        (
+            "remote_v3",
+            "02.01.02.1B.16.F0.08.10.00.8E.95.81.42.F0.BB.82.17.05.2D.C4.FF.47.69.D6.66.BA.EB.33.1F.87.E4",
+            "cmd: 0x21, param: 0x00, args: [64,255,0]",
+            "id: 0x02227574, index: 0, tx: 129, seed: 0x1F33",
+            "light_0: ['cold', 'warm'] / {'sub_type': 'cww', 'cold': 1.0, 'warm': 0.0}",
+        ),
+        (
+            "remote_v1",
+            "1E.FF.56.55.18.87.52.B6.5F.2B.5E.00.FC.31.51.5C.50.9A.F7.24.0A.BA.FE.95.47.16.31.8F.8E.60.57",
+            "cmd: 0x21, param: 0x40, args: [255,0,0]",
+            "id: 0x00014057, index: 0, tx: 129, seed: 0x4726",
+            "light_0: ['cold', 'warm'] / {'sub_type': 'cww', 'cold': 1.0, 'warm': 0.0}",
+        ),
         # Remote Night Mode
         (
             "remote_v3",

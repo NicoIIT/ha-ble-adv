@@ -36,10 +36,11 @@
       },
       "confirm": {
         "title": "Validation",
-        "description": "Testing {conf}. Did the light blink?",
+        "description": "Testing configuration {nb}/{tot}:\n\n    Bluetooth Adapter: {adapter}\n    Codec: {codec}\n    Id: {id}\n    Index: {index}\n\nDid the light blink?",
         "menu_options": {
-          "confirm_yes": "Yes",
-          "confirm_no": "No, try another."
+          "confirm_yes": "Yes!",
+          "confirm_no": "No, try another.",
+          "confirm_retry": "Retry the same."
         }
       },
       "finalize": {
@@ -53,21 +54,27 @@
             "name": "Main Light",
             "data": {
               "type": "Type",
-              "min_brightness": "Minimum Brightness"
+              "min_brightness": "Minimum Brightness",
+              "refresh_on_start": "Force color / brightness refresh when switched ON",
+              "reversed": "Reverse Cold / Warm"
             }
           },
           "light_1": {
             "name": "Second Light",
             "data": {
               "type": "Type",
-              "min_brightness": "Minimum Brightness"
+              "min_brightness": "Minimum Brightness",
+              "refresh_on_start": "Force color / brightness refresh when switched ON",
+              "reversed": "Reverse Cold / Warm"
             }
           },
           "light_2": {
             "name": "Third Light",
             "data": {
               "type": "Type",
-              "min_brightness": "Minimum Brightness"
+              "min_brightness": "Minimum Brightness",
+              "refresh_on_start": "Force color / brightness refresh when switched ON",
+              "reversed": "Reverse Cold / Warm"
             }
           },
           "fan_0": {
@@ -76,7 +83,7 @@
               "type": "Type",
               "direction": "Supports Direction",
               "oscillating": "Supports Oscillation",
-              "refresh_on_start": "Refresh On Start"
+              "refresh_on_start": "Force direction / oscillation refresh when switched ON"
             }
           },
           "fan_1": {
@@ -85,7 +92,7 @@
               "type": "Type",
               "direction": "Supports Direction",
               "oscillating": "Supports Oscillation",
-              "refresh_on_start": "Refresh On Start"
+              "refresh_on_start": "Force direction / oscillation refresh when switched ON"
             }
           },
           "fan_2": {
@@ -94,7 +101,7 @@
               "type": "Type",
               "direction": "Supports Direction",
               "oscillating": "Supports Oscillation",
-              "refresh_on_start": "Refresh On Start"
+              "refresh_on_start": "Force direction / oscillation refresh when switched ON"
             }
           },
           "technical": {
@@ -112,7 +119,7 @@
     "progress": {
       "wait_config": "Please press any button (preferably Pair) on the phone app controlling your device.",
       "agg_config": "Aggregating configuration data.",
-      "blink": "Making the light blink with configuration {conf}."
+      "blink": "Making the light blink with configuration {nb}/{tot}:\n\n    Bluetooth Adapter: {adapter}\n    Codec: {codec}\n    Id: {id}\n    Index: {index}"
     },
     "abort": {
       "no_adapters": "No Bluetooth adapter has been found. Aborting.",

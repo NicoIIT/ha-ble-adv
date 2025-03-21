@@ -21,6 +21,7 @@ CONF_MIN_BRIGHTNESS = "min_brightness"
 CONF_USE_DIR = "direction"
 CONF_USE_OSC = "oscillating"
 CONF_REFRESH_ON_START = "refresh_on_start"
+CONF_REVERSED = "reversed"
 CONF_LIGHTS = "lights"
 CONF_FANS = "fans"
 
