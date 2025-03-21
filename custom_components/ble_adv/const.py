@@ -3,7 +3,11 @@
 from homeassistant.const import Platform
 
 DOMAIN = "ble_adv"
-PLATFORMS = []
+PLATFORMS = [
+    Platform.FAN,
+    Platform.LIGHT,
+]
+
 
 CONF_COORDINATOR_ID = "coordinator_unique_id"
 
@@ -24,8 +28,3 @@ CONF_REFRESH_ON_START = "refresh_on_start"
 CONF_REVERSED = "reversed"
 CONF_LIGHTS = "lights"
 CONF_FANS = "fans"
-
-PLATFORMS = [
-    Platform.FAN,
-    Platform.LIGHT,
-]

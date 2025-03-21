@@ -280,7 +280,7 @@ class BleAdvConfigFlow(ConfigFlow, domain=DOMAIN):
         if user_input is not None:
             data = self._from_user_input(user_input)
             conf_name = user_input[CONF_NAME]
-            if len(data[CONF_FANS]) > 0 or len(data[CONF_FANS]) > 0:
+            if len(data[CONF_LIGHTS]) > 0 or len(data[CONF_FANS]) > 0:
                 config = self.configs[self.selected_config]
                 data[CONF_DEVICE] = {
                     CONF_NAME: conf_name,
@@ -305,7 +305,7 @@ class BleAdvConfigFlow(ConfigFlow, domain=DOMAIN):
         entry = self._get_reconfigure_entry()
         if user_input is not None:
             data = self._from_user_input(user_input)
-            if len(data[CONF_FANS]) > 0 or len(data[CONF_FANS]) > 0:
+            if len(data[CONF_LIGHTS]) > 0 or len(data[CONF_FANS]) > 0:
                 return self.async_update_reload_and_abort(entry, data_updates=data)
             errors["base"] = "missing_entity"
         else:
