@@ -219,19 +219,10 @@ class FanLampEncoderV2(FanLampEncoder):
 
     def convert_from_enc(self, enc_cmd: BleAdvEncCmd, conf: BleAdvConfig) -> bytes:
         """Convert an encoder command and a config into a readable buffer."""
-        obuf = bytearray()
-        obuf.append(conf.tx_count)
-        obuf += self._device_type.to_bytes(2, "little")
-        obuf += conf.id.to_bytes(4, "little")
-        obuf.append(conf.index)
-        obuf.append(enc_cmd.cmd)
-        obuf.append(0)
-        obuf.append(enc_cmd.param)
-        obuf.append(enc_cmd.arg0)
-        obuf.append(enc_cmd.arg1)
-        obuf.append(enc_cmd.arg2)
-        obuf += (conf.seed if conf.seed != 0 else randint(1, 0xFFF5)).to_bytes(2, "little")  # seed artificially pushed at the end of decoded buffer
-        return obuf
+        dt = self._device_type.to_bytes(2, "little")
+        uid = conf.id.to_bytes(4, "little")
+        seed = (conf.seed if conf.seed != 0 else randint(1, 0xFFF5)).to_bytes(2, "little")  # seed artificially pushed at the end of decoded buffer
+        return bytes([conf.tx_count, *dt, *uid, conf.index, enc_cmd.cmd, 0, enc_cmd.param, enc_cmd.arg0, enc_cmd.arg1, enc_cmd.arg2, *seed])
 
 
 def _get_fan_translators(speed_attr: str, speed_count_attr: str) -> list[Trans]:
@@ -267,6 +258,10 @@ def _get_light_translators(param_attr: str, cold_attr: str, warm_attr: str) -> l
         .copy(ATTR_WARM, warm_attr, 255),
         Trans(LightCmd().act(ATTR_CMD, ATTR_CMD_TOGGLE), EncCmd(0x09)).no_direct(),
         Trans(CTLightCmd().act(ATTR_COLD, 0.1).act(ATTR_WARM, 0.1), EncCmd(0x23)).no_direct(),  # night mode
+        Trans(CTLightCmd().act(ATTR_COLD).act(ATTR_WARM), EncCmd(0x21).eq(param_attr, 0x40))
+        .copy(ATTR_COLD, cold_attr, 255)
+        .copy(ATTR_WARM, warm_attr, 255)
+        .no_direct(),
         Trans(CTLightCmd().act(ATTR_CMD, ATTR_CMD_CT_UP).eq(ATTR_STEP, 0.1), EncCmd(0x21).eq(param_attr, 0x24)).no_direct(),
         Trans(CTLightCmd().act(ATTR_CMD, ATTR_CMD_CT_DOWN).eq(ATTR_STEP, 0.1), EncCmd(0x21).eq(param_attr, 0x18)).no_direct(),
         Trans(CTLightCmd().act(ATTR_CMD, ATTR_CMD_BR_UP).eq(ATTR_STEP, 0.1), EncCmd(0x21).eq(param_attr, 0x14)).no_direct(),

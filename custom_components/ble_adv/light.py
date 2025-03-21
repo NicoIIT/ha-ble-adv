@@ -44,7 +44,7 @@ from .codecs.const import (
     LIGHT_TYPE_ONOFF,
     LIGHT_TYPE_RGB,
 )
-from .const import CONF_LIGHTS, CONF_MIN_BRIGHTNESS, DOMAIN
+from .const import CONF_LIGHTS, CONF_MIN_BRIGHTNESS, CONF_REFRESH_ON_START, CONF_REVERSED, DOMAIN
 from .device import BleAdvDevice, BleAdvEntAttr, BleAdvEntity
 
 _LOGGER = logging.getLogger(__name__)
@@ -59,9 +59,12 @@ def create_entity(options: dict[str, str | float], device: BleAdvDevice, index: 
     light_type: str = str(options[CONF_TYPE])
     min_br: int = int(options.get(CONF_MIN_BRIGHTNESS, 3))
     if light_type == LIGHT_TYPE_RGB:
-        return BleAdvLightRGB(light_type, device, index, min_br)
+        refresh_on_start = bool(options.get(CONF_REFRESH_ON_START, False))
+        return BleAdvLightRGB(light_type, device, index, min_br, refresh_on_start)
     if light_type == LIGHT_TYPE_CWW:
-        return BleAdvLightCWW(light_type, device, index, min_br)
+        refresh_on_start = bool(options.get(CONF_REFRESH_ON_START, False))
+        reverse_cw = bool(options.get(CONF_REVERSED, False))
+        return BleAdvLightCWW(light_type, device, index, min_br, refresh_on_start, reverse_cw)
     if light_type == LIGHT_TYPE_ONOFF:
         return BleAdvLightBinary(light_type, device, index)
     raise BleAdvLightError("Invalid Type")
@@ -91,9 +94,11 @@ class BleAdvLightBinary(BleAdvLightBase):
 class BleAdvLightWithBrightness(BleAdvLightBase):
     """Base Light with Brightness."""
 
-    def __init__(self, sub_type: str, device: BleAdvDevice, index: int, min_br: float) -> None:
+    def __init__(self, sub_type: str, device: BleAdvDevice, index: int, min_br: float, refresh_on_start: bool, reverse_cw: bool = False) -> None:
         super().__init__(sub_type, device, index)
         self._min_brighntess = float(min_br / 100.0)
+        self._refresh_on_start = refresh_on_start
+        self._reverse_cw = reverse_cw
 
     def _pct(self, val: float, min_val: float = 0.0, max_val: float = 1.0) -> float:
         return min(max_val, max(min_val, val))
@@ -110,6 +115,10 @@ class BleAdvLightWithBrightness(BleAdvLightBase):
     def get_attrs(self) -> dict[str, Any]:
         """Get the attrs."""
         return {**super().get_attrs(), ATTR_BR: self._get_br()}
+
+    def forced_changed_attr_on_start(self) -> list[str]:
+        """List Forced changed attributes on start."""
+        return [ATTR_BR] if self._refresh_on_start else []
 
     def apply_attrs(self, ent_attr: BleAdvEntAttr) -> None:
         """Apply attributes to entity."""
@@ -145,6 +154,11 @@ class BleAdvLightRGB(BleAdvLightWithBrightness):
         r, g, b = self._get_rgb()
         return {**super().get_attrs(), ATTR_RED: r, ATTR_GREEN: g, ATTR_BLUE: b, ATTR_RED_F: r * br, ATTR_GREEN_F: g * br, ATTR_BLUE_F: b * br}
 
+    def forced_changed_attr_on_start(self) -> list[str]:
+        """List Forced changed attributes on start."""
+        forced_attrs = super().forced_changed_attr_on_start()
+        return [*forced_attrs, ATTR_RED, ATTR_RED_F, ATTR_GREEN, ATTR_GREEN_F, ATTR_BLUE, ATTR_BLUE_F] if forced_attrs else []
+
     def apply_attrs(self, ent_attr: BleAdvEntAttr) -> None:
         """Apply attributes to entity."""
         super().apply_attrs(ent_attr)
@@ -171,19 +185,39 @@ class BleAdvLightCWW(BleAdvLightWithBrightness):
     def _set_ct(self, ct_percent: float) -> None:
         """Set Color Temperature from float [0.0 -> 1.0].
 
-        Input 0.0 for COLD / DEFAULT_MAX_KELVIN
-        Input 1.0 for WARM / DEFAULT_MIN_KELVIN
+        if no 'reversed' option:
+            Input 0.0 for COLD / DEFAULT_MAX_KELVIN
+            Input 1.0 for WARM / DEFAULT_MIN_KELVIN
+        if 'reversed' option:
+            Input 1.0 for COLD / DEFAULT_MAX_KELVIN
+            Input 0.0 for WARM / DEFAULT_MIN_KELVIN
         """
-        self._attr_color_temp_kelvin = int(DEFAULT_MIN_KELVIN + (DEFAULT_MAX_KELVIN - DEFAULT_MIN_KELVIN) * self._pct(1.0 - ct_percent))
+        ctr = ct_percent if self._reverse_cw else 1.0 - ct_percent
+        self._attr_color_temp_kelvin = int(DEFAULT_MIN_KELVIN + (DEFAULT_MAX_KELVIN - DEFAULT_MIN_KELVIN) * self._pct(ctr))
+
+    def _add_to_ct(self, step: float) -> None:
+        """Add step to Color Temperature from float [0.0 -> 1.0].
+
+        if no 'reversed' option:
+            add step
+        if 'reversed' option:
+            remove step
+        """
+        self._set_ct((self._get_ct() - step) if self._reverse_cw else (self._get_ct() + step))
 
     def _get_ct(self) -> float:
         """Get Color Temperature as float [0.0 -> 1.0].
 
-        returns 0.0 for COLD / DEFAULT_MAX_KELVIN
-        returns 1.0 for WARM / DEFAULT_MIN_KELVIN
+        if no 'reversed' option:
+            returns 0.0 for COLD / DEFAULT_MAX_KELVIN
+            returns 1.0 for WARM / DEFAULT_MIN_KELVIN
+        if reversed option:
+            returns 1.0 for COLD / DEFAULT_MAX_KELVIN
+            returns 0.0 for WARM / DEFAULT_MIN_KELVIN
         """
         kelvin = self._attr_color_temp_kelvin if self._attr_color_temp_kelvin is not None else DEFAULT_MIN_KELVIN
-        return 1.0 - (kelvin - DEFAULT_MIN_KELVIN) / float(DEFAULT_MAX_KELVIN - DEFAULT_MIN_KELVIN)
+        ctr = (kelvin - DEFAULT_MIN_KELVIN) / float(DEFAULT_MAX_KELVIN - DEFAULT_MIN_KELVIN)
+        return ctr if self._reverse_cw else 1.0 - ctr
 
     def get_attrs(self) -> dict[str, Any]:
         """Get the attrs."""
@@ -195,6 +229,11 @@ class BleAdvLightCWW(BleAdvLightWithBrightness):
         cold = min(1.0, (1.0 - ct) * 2.0)
         warm = min(1.0, ct * 2.0)
         return {**super().get_attrs(), ATTR_CT: ct, ATTR_CT_REV: 1.0 - ct, ATTR_WARM: br * warm, ATTR_COLD: br * cold}
+
+    def forced_changed_attr_on_start(self) -> list[str]:
+        """List Forced changed attributes on start."""
+        forced_attrs = super().forced_changed_attr_on_start()
+        return [*forced_attrs, ATTR_CT, ATTR_CT_REV, ATTR_COLD, ATTR_WARM] if forced_attrs else []
 
     def apply_attrs(self, ent_attr: BleAdvEntAttr) -> None:
         """Apply attributes to entity."""
@@ -216,6 +255,6 @@ class BleAdvLightCWW(BleAdvLightWithBrightness):
             self._set_ct(1.0 - ent_attr.get_attr_as_float(ATTR_CT_REV))
         elif ATTR_CMD in ent_attr.chg_attrs:
             if ent_attr.attrs.get(ATTR_CMD) == ATTR_CMD_CT_UP:
-                self._set_ct(self._get_ct() + ent_attr.get_attr_as_float(ATTR_STEP))
+                self._add_to_ct(ent_attr.get_attr_as_float(ATTR_STEP))
             elif ent_attr.attrs.get(ATTR_CMD) == ATTR_CMD_CT_DOWN:
-                self._set_ct(self._get_ct() - ent_attr.get_attr_as_float(ATTR_STEP))
+                self._add_to_ct(-ent_attr.get_attr_as_float(ATTR_STEP))

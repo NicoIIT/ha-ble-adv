@@ -32,6 +32,7 @@ from .const import (
     CONF_PHONE_APP,
     CONF_REFRESH_ON_START,
     CONF_REPEAT,
+    CONF_REVERSED,
     CONF_TECHNICAL,
     CONF_TYPE_NONE,
     CONF_USE_DIR,
@@ -83,8 +84,16 @@ class BleAdvConfigFlow(ConfigFlow, domain=DOMAIN):
         self.blink_done = False
         self._clean_datetime = None
 
-    def _selected_conf_str(self) -> str:
-        return f"{self.selected_config + 1}/{len(self.configs)}: {self.configs[self.selected_config]}"
+    def _selected_conf_placeholders(self) -> dict[str, str]:
+        conf = self.configs[self.selected_config]
+        return {
+            "nb": str(self.selected_config + 1),
+            "tot": str(len(self.configs)),
+            "adapter": conf.adapter_id,
+            "codec": conf.codec_id,
+            "id": f"0x{conf.id:X}",
+            "index": str(conf.index),
+        }
 
     async def _async_on_new_config(self, codec_id: str, adapter_id: str, config: BleAdvConfig) -> None:
         self.configs.append(_CodecConfig(codec_id, adapter_id, config.id, config.index))
@@ -223,7 +232,7 @@ class BleAdvConfigFlow(ConfigFlow, domain=DOMAIN):
                     step_id="blink",
                     progress_action="blink",
                     progress_task=self.hass.async_create_task(self._async_blink_light()),
-                    description_placeholders={"conf": self._selected_conf_str()},
+                    description_placeholders=self._selected_conf_placeholders(),
                 )
             return self.async_abort(reason="no_config")
         return self.async_show_progress_done(next_step_id="confirm")
@@ -231,7 +240,9 @@ class BleAdvConfigFlow(ConfigFlow, domain=DOMAIN):
     async def async_step_confirm(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:  # noqa: ARG002
         """Confirm choice Step."""
         return self.async_show_menu(
-            step_id="confirm", menu_options=["confirm_yes", "confirm_no"], description_placeholders={"conf": self._selected_conf_str()}
+            step_id="confirm",
+            menu_options=["confirm_yes", "confirm_no", "confirm_retry"],
+            description_placeholders=self._selected_conf_placeholders(),
         )
 
     async def async_step_confirm_yes(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:  # noqa: ARG002
@@ -245,6 +256,12 @@ class BleAdvConfigFlow(ConfigFlow, domain=DOMAIN):
     async def async_step_confirm_no(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:  # noqa: ARG002
         """Confirm NO Step."""
         self.blink_done = False
+        return await self.async_step_blink()
+
+    async def async_step_confirm_retry(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:  # noqa: ARG002
+        """Confirm Retry Step."""
+        self.blink_done = False
+        self.selected_config = self.selected_config - 1
         return await self.async_step_blink()
 
     async def async_step_finalize(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
@@ -328,6 +345,8 @@ class BleAdvConfigFlow(ConfigFlow, domain=DOMAIN):
                             vol.Optional(CONF_MIN_BRIGHTNESS, default=opts.get(CONF_MIN_BRIGHTNESS, 3)): selector.NumberSelector(
                                 selector.NumberSelectorConfig(step=1, min=1, max=15, mode=selector.NumberSelectorMode.BOX)
                             ),
+                            vol.Required(CONF_REFRESH_ON_START, default=opts.get(CONF_REFRESH_ON_START, False)): bool,
+                            vol.Required(CONF_REVERSED, default=opts.get(CONF_REVERSED, False)): bool,
                         }
                     ),
                     {"collapsed": (CONF_TYPE not in opts) and (i > 0)},
