@@ -1,4 +1,5 @@
 # Home Assistant BLE ADV Ceiling Fan / Lamps
+[![GitHub release](https://img.shields.io/github/v/release/NicoIIT/ha-ble-adv.svg)](https://github.com/NicoIIT/ha-ble-adv/releases/)
 
 Home Assistant Custom Integration to control Ceiling Fan / Lamps using BLE Advertising.
 
@@ -29,6 +30,14 @@ This component is an [HACS](https://www.hacs.xyz/) Custom Repository. With HACS 
 * **Repository**: "NicoIIT/ha-ble-adv"
 * **Type**: "Integration"
 
+Alternatively if you do not want to use HACS, you can simply clone this repository and copy the 'custom_components' directly at the root of your HA config (at the same place than your configuration.xml):
+```
+/ha_root:
+  |-> custom_components
+  |    |-> ble_adv
+  |-> configuration.yaml
+```
+
 Once the repository is added, you need to restart Home Assistant so that it could be taken into account.
 
 ## Adding Integrations
@@ -48,8 +57,20 @@ Future developments are tracked in [github feature requests](https://github.com/
 
 ## FAQ
 
+### Can I change the entity parameters after having finished the configuration?
+Yes, you can use the HA 'Reconfigure' option:
+* Find the 'Modifying the integration' in this [page](https://www.home-assistant.io/getting-started/integration/)
+* Apply the same procedure (1) but click on 'Reconfigure' instead of 'Rename'
+
 ### When I perform changes very fast on the light or fan, sometimes the command is not taken into account
 Some devices are not available to receive commands while they are still processing one. You can increase the 'Minimum Duration' in between 2 commands in the 'Technical' part of the configuration to be sure we will wait this delay before sending new commands to the Device.
 
 ### When I change the Oscillation or Direction of the Fan when it is OFF, nothing happens despite the change is taken into account in the UI
 Those settings cannot be changed while the Fan is OFF, and they are not changed on the HA Entity side. Still there is a UI bug: the change should be reverted by the UI immediately to reflect the effective state of the Entity (that has not changed) but it is not, feel free to open 'home assistant frontend' an issue.
+
+### When I change the color of my Cold / Warm White light from COLD to WARM in HA, it results in the reversed action on the device
+The issue is not understood, but there is an option to fix it: modify the entity parameters (see first question) and check the box "Reverse Cold / Warm"
+
+### When I switch OFF my entity, the device fully resets its state to the default and is then not aligned with HA state when I switch it back ON (color, brightness, fan direction, ...)
+You can force the re send of the HA state when the entity is switched ON: modify the entity parameters (see first question) and check the box "Force (...) refresh when switched ON"
+Please note this will send several distinct commands very fast when the entity is switched ON: depending on your device it may be too fast, see second question
