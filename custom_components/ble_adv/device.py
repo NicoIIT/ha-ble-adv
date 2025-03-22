@@ -4,12 +4,13 @@ from __future__ import annotations
 
 import logging
 import traceback
+from abc import ABC, abstractmethod
 from datetime import datetime, timedelta
 from functools import wraps
 from typing import Any
 
 from homeassistant.const import STATE_ON
-from homeassistant.core import CALLBACK_TYPE, HomeAssistant, callback
+from homeassistant.core import CALLBACK_TYPE, HomeAssistant
 from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.event import async_track_point_in_utc_time
 from homeassistant.helpers.restore_state import RestoreEntity
@@ -164,8 +165,8 @@ class BleAdvEntity(RestoreEntity):
 class MatchingDeviceCallback(MatchingCallback):
     """Callback checking if callback is matching the device."""
 
-    def __init__(self, device: BleAdvDevice) -> None:
-        self.device: BleAdvDevice = device
+    def __init__(self, device: BleAdvMatchingDevice) -> None:
+        self.device: BleAdvMatchingDevice = device
 
     async def handle(self, codec_id: str, adapter_id: str, config: BleAdvConfig, ent_attrs: list[BleAdvEntAttr]) -> bool:
         """Handle the callback."""
@@ -183,7 +184,55 @@ class MatchingDeviceCallback(MatchingCallback):
         return f"adapter_id: {self.device.adapter_id}, codec_id: {self.device.codec_id}, config: {self.device.config}"
 
 
-class BleAdvDevice:
+class BleAdvMatchingDevice(ABC):
+    """Base Matching Device."""
+
+    def __init__(
+        self,
+        reg_name: str,
+        coordinator: BleAdvCoordinator,
+        codec_id: str,
+        adapter_id: str,
+        config: BleAdvConfig,
+    ) -> None:
+        self.coordinator: BleAdvCoordinator = coordinator
+        self.codec_id: str = codec_id
+        self.adapter_id: str = adapter_id
+        self.config: BleAdvConfig = config
+        self.reg_name: str = reg_name
+
+    @property
+    def available(self) -> bool:
+        """Return True if the device is available: if the adapter is available."""
+        return self.adapter_id in self.coordinator.adapters and self.coordinator.get_adapter(self.adapter_id).available
+
+    async def register(self) -> None:
+        """Register to coordinator."""
+        await self.coordinator.register_callback(self.reg_name, MatchingDeviceCallback(self))
+
+    async def unregister(self) -> None:
+        """Unregister."""
+        await self.coordinator.unregister_callback(self.reg_name)
+
+    @abstractmethod
+    async def async_on_command(self, ent_attrs: list[BleAdvEntAttr]) -> None:
+        """Call on matching command received."""
+
+
+class BleAdvRemote(BleAdvMatchingDevice):
+    """Class representing a remote."""
+
+    def __init__(self, name: str, codec_id: str, adapter_id: str, config: BleAdvConfig, coordinator: BleAdvCoordinator) -> None:
+        super().__init__(name, coordinator, codec_id, adapter_id, config)
+        self.device: BleAdvDevice | None = None
+
+    async def async_on_command(self, ent_attrs: list[BleAdvEntAttr]) -> None:
+        """Call on matching command received."""
+        if self.device is not None:
+            await self.device.async_on_command(ent_attrs)
+
+
+class BleAdvDevice(BleAdvMatchingDevice):
     """Class to control the device."""
 
     def __init__(
@@ -200,19 +249,17 @@ class BleAdvDevice:
         config: BleAdvConfig,
         coordinator: BleAdvCoordinator,
     ) -> None:
+        super().__init__(unique_id, coordinator, codec_id, adapter_id, config)
         self.hass: HomeAssistant = hass
         self.logger: logging.Logger = logger
         self.unique_id: str = unique_id
         self.name: str = name
-        self.codec_id: str = codec_id
-        self.adapter_id: str = adapter_id
         self.repeat: int = int(repeat)
         self.interval: int = int(interval)
         self.duration: int = int(duration)
-        self.config: BleAdvConfig = config
-        self.coordinator: BleAdvCoordinator = coordinator
         self.entities: dict[Any, BleAdvEntity] = {}
         self._timer_cancel: CALLBACK_TYPE | None = None
+        self.remotes: list[BleAdvRemote] = []
 
     @property
     def device_info(self) -> DeviceInfo:
@@ -225,23 +272,26 @@ class BleAdvDevice:
             model_id=f"0x{self.config.id:X} / {self.config.index}",
         )
 
-    @property
-    def available(self) -> bool:
-        """Return True if the device is available: if the adapter is available."""
-        return self.adapter_id in self.coordinator.adapters and self.coordinator.get_adapter(self.adapter_id).available
-
     def add_entity(self, ent: BleAdvEntity) -> None:
         """Add entity to this device."""
         self.entities[ent.id] = ent
 
-    @callback
+    def link_remote(self, remote: BleAdvRemote) -> None:
+        """Link a remote to this device."""
+        remote.device = self
+        self.remotes.append(remote)
+
     async def async_start(self) -> None:
         """Start the Device: register to coordinator."""
-        await self.coordinator.register_callback(self.unique_id, MatchingDeviceCallback(self))
+        await self.register()
+        for remote in self.remotes:
+            await remote.register()
 
     async def async_stop(self) -> None:
         """Stop the device: unregister."""
-        await self.coordinator.unregister_callback(self.unique_id)
+        for remote in self.remotes:
+            await remote.register()
+        await self.unregister()
 
     async def apply_change(self, ent_attr: BleAdvEntAttr) -> None:
         """Apply changes."""

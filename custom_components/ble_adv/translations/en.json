@@ -23,6 +23,13 @@
       "wait_config": {
         "title": "Listening to configuration from Paired Phone App"
       },
+      "no_config": {
+        "description": "No configuration listened within 10s",
+        "menu_options": {
+          "wait_config": "Retry",
+          "abort_config": "Abort"
+        }
+      },
       "blink": {
         "title": "Configuration Test"
       },
@@ -43,12 +50,19 @@
           "confirm_retry": "Retry the same."
         }
       },
-      "finalize": {
+      "configure": {
+        "title": "Configuration",
+        "description": "Configuring Entities, Physical Remote and Technical Parameters.\nThose parameters can be modified afterwards using the 'Reconfigure' path.",
+        "menu_options": {
+          "config_entities": "Configure Lights / Fans",
+          "config_remote": "Configure another controller (Physical Remote, ..)",
+          "config_technical": "Technical Parameters",
+          "finalize": "Finalize"
+        }
+      },
+      "config_entities": {
         "title": "Controlled Entities",
         "description": "Select the entities to create and their characteristics",
-        "data": {
-          "name": "Device name"
-        },
         "sections": {
           "light_0": {
             "name": "Main Light",
@@ -103,27 +117,53 @@
               "oscillating": "Supports Oscillation",
               "refresh_on_start": "Force direction / oscillation refresh when switched ON"
             }
-          },
-          "technical": {
-            "name": "Technical",
-            "description": "Each command is advertised (3 * 'Repetitions') times, at given 'Interval' (ms), and respecting a delay of 'Minimum Duration' in between 2 distinct commands",
-            "data": {
-              "interval": "Interval",
-              "repeat": "Repetitions",
-              "duration": "Minimum Duration"
-            }
           }
+        }
+      },
+      "config_remote": {
+        "title": "Configure Physical Remote",
+        "description": "Linked Controller:\n\n    Bluetooth Adapter: {adapter}\n    Codec: {codec}\n    Id: {id}\n    Index: {index}",
+        "menu_options": {
+          "config_remote_delete": "Delete the linked controller",
+          "config_remote_update": "Modify the linked controller Options",
+          "config_remote_new": "Replace the linked controller",
+          "configure": "Back"
+        }
+      },
+      "config_remote_new": {
+        "title": "Configure new Linked Controller"
+      },
+      "config_remote_update": {
+        "title": "Configure Linked Controller Options",
+        "description": "Linked Controller:\n\n    Bluetooth Adapter: {adapter}\n    Codec: {codec}\n    Id: {id}\n    Index: {index}"
+      },
+      "config_technical": {
+        "title": "Configure Technical Options",
+        "description": "Each command is advertised (3 * 'Repetitions') times, at given 'Interval' (ms), and respecting a delay of 'Minimum Duration' in between 2 distinct commands",
+        "data": {
+          "interval": "Interval",
+          "repeat": "Repetitions",
+          "duration": "Minimum Duration"
+        }
+      },
+      "finalize": {
+        "title": "Name your Device",
+        "description": "This is the last step!",
+        "data": {
+          "name": "Device name"
         }
       }
     },
     "progress": {
-      "wait_config": "Please press any button (preferably Pair) on the phone app controlling your device.",
+      "wait_config": "Please press any button (preferably Pair) on the phone app controlling your device within {max_seconds}s.",
       "agg_config": "Aggregating configuration data.",
-      "blink": "Making the light blink with configuration {nb}/{tot}:\n\n    Bluetooth Adapter: {adapter}\n    Codec: {codec}\n    Id: {id}\n    Index: {index}"
+      "blink": "Making the light blink with configuration {nb}/{tot}:\n\n    Bluetooth Adapter: {adapter}\n    Codec: {codec}\n    Id: {id}\n    Index: {index}",
+      "wait_config_remote": "Please press any button (preferably Pair) on the controller within {max_seconds}s."
     },
     "abort": {
       "no_adapters": "No Bluetooth adapter has been found. Aborting.",
-      "no_config": "No configuration has been found or tested successfully.",
+      "no_config": "No configuration has been discovered or tested successfully.",
+      "not_implemented": "Not Implemented (yet)",
       "reconfigure_successful": "Reconfigure successful!",
       "already_configured": "A device with the same (codec / id / index) is already configured."
     },
