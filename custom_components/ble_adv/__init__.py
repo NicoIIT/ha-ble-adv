@@ -19,13 +19,14 @@ from .const import (
     CONF_FORCED_ID,
     CONF_INDEX,
     CONF_INTERVAL,
+    CONF_REMOTE,
     CONF_REPEAT,
     CONF_TECHNICAL,
     DOMAIN,
     PLATFORMS,
 )
 from .coordinator import BleAdvCoordinator
-from .device import BleAdvDevice
+from .device import BleAdvDevice, BleAdvRemote
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -60,6 +61,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     hass.data.setdefault(DOMAIN, {})
     device_conf = entry.data[CONF_DEVICE]
     tech_conf = entry.data[CONF_TECHNICAL]
+    coordinator = await get_coordinator(hass)
     device = BleAdvDevice(
         hass,
         _LOGGER,
@@ -71,8 +73,18 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         tech_conf[CONF_INTERVAL],
         tech_conf[CONF_DURATION],
         BleAdvConfig(device_conf[CONF_FORCED_ID], device_conf[CONF_INDEX]),
-        await get_coordinator(hass),
+        coordinator,
     )
+    if CONF_REMOTE in entry.data and CONF_CODEC_ID in entry.data[CONF_REMOTE]:
+        remote_conf = entry.data[CONF_REMOTE]
+        remote = BleAdvRemote(
+            f"{entry.unique_id}_remote",
+            remote_conf[CONF_CODEC_ID],
+            remote_conf[CONF_ADAPTER_ID],
+            BleAdvConfig(remote_conf[CONF_FORCED_ID], remote_conf[CONF_INDEX]),
+            coordinator,
+        )
+        device.link_remote(remote)
 
     hass.data[DOMAIN][entry.entry_id] = device
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
