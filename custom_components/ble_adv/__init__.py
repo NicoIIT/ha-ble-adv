@@ -8,6 +8,7 @@ from homeassistant.const import (
     CONF_NAME,
 )
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers.singleton import singleton
 
 from .codecs import get_codecs
 from .codecs.models import BleAdvConfig
@@ -31,23 +32,33 @@ from .device import BleAdvDevice, BleAdvRemote
 _LOGGER = logging.getLogger(__name__)
 
 
+@singleton(f"{DOMAIN}/{CONF_COORDINATOR_ID}")
 async def get_coordinator(hass: HomeAssistant) -> BleAdvCoordinator:
     """Get and initiate a coordinator."""
-    hass.data.setdefault(DOMAIN, {})
-    if CONF_COORDINATOR_ID not in hass.data[DOMAIN]:
-        coordinator = BleAdvCoordinator(hass, _LOGGER, get_codecs())
-        hass.data[DOMAIN][CONF_COORDINATOR_ID] = coordinator
-        await coordinator.async_init()
-    return hass.data[DOMAIN][CONF_COORDINATOR_ID]
+    coordinator = BleAdvCoordinator(hass, _LOGGER, get_codecs())
+    await coordinator.async_init()
+    return coordinator
 
 
-async def clean_coordinator(hass: HomeAssistant) -> None:
-    """Clean coordinator if alone in the DOMAIN."""
-    if (len(hass.data[DOMAIN]) == 1) and (CONF_COORDINATOR_ID in hass.data[DOMAIN]):
-        _LOGGER.info("Removing coordinator")
-        coordinator = hass.data[DOMAIN].pop(CONF_COORDINATOR_ID)
-        await coordinator.async_final()
-        hass.data.pop(DOMAIN)
+async def async_migrate_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> bool:
+    """Migrate old entry."""
+
+    if config_entry.version < 2:
+        coordinator = await get_coordinator(hass)
+        adapt_ids = coordinator.get_adapter_ids()
+        if config_entry.data[CONF_DEVICE][CONF_ADAPTER_ID] not in adapt_ids:
+            _LOGGER.debug("Migrating configuration from version %s", config_entry.version)
+            if len(adapt_ids) != 1:
+                _LOGGER.error(
+                    "Automatic migration of your integration cannot be done as you do not have exactly one bluetooth adapter, please re create it."
+                )
+                return False
+            new_data = {**config_entry.data}
+            new_data[CONF_DEVICE][CONF_ADAPTER_ID] = adapt_ids[0]
+            hass.config_entries.async_update_entry(config_entry, data=new_data, version=2)
+            _LOGGER.debug("Migration to configuration version %s successful", config_entry.version)
+
+    return True
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
@@ -101,9 +112,3 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     if unload_ok:
         hass.data[DOMAIN].pop(entry.entry_id)
     return unload_ok
-
-
-async def async_remove_entry(hass: HomeAssistant, entry: ConfigEntry) -> None:
-    """Remove a config entry."""
-    _LOGGER.info(f"BLE ADV: Removing entry {entry.unique_id} / {entry.data}")
-    await clean_coordinator(hass)

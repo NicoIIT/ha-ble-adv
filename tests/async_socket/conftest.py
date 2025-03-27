@@ -37,6 +37,23 @@ def socket_mock_inst() -> Generator[_SocketMock]:
             yield mock_inst
 
 
+@pytest.fixture
+def btsocket_mock_inst() -> Generator[_SocketMock]:
+    """Mock a MGMT btsocket."""
+
+    def btclose(sock: _SocketMock) -> None:
+        sock.close()
+
+    with (
+        mock.patch("btsocket.btmgmt_socket.open", new_callable=_SocketMock) as mock_socket,
+        mock.patch("btsocket.btmgmt_socket.close", side_effect=btclose),
+    ):
+        mock_inst = mock_socket.return_value
+        mock_inst.init()
+        with mock.patch.object(asyncio.get_event_loop(), "sock_recv", side_effect=mock_inst.sock_recv):
+            yield mock_inst
+
+
 class _ConMock:
     """Mock a socket pair created by 'open_unix_connection'.
 

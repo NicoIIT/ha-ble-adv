@@ -77,7 +77,7 @@ class _CodecConfig(BleAdvConfig):
 class BleAdvConfigFlow(ConfigFlow, domain=DOMAIN):
     """Handle a config flow for BLE ADV."""
 
-    VERSION = 1
+    VERSION = 2
 
     def __init__(self) -> None:
         """Initialize the config flow."""
@@ -141,7 +141,7 @@ class BleAdvConfigFlow(ConfigFlow, domain=DOMAIN):
         await self._async_stop_listen_to_config()
 
     def _get_device(self, name: str, config: _CodecConfig) -> BleAdvDevice:
-        return BleAdvDevice(self.hass, _LOGGER, name, name, config.codec_id, config.adapter_id, 3, 20, 200, config, self._coordinator)
+        return BleAdvDevice(self.hass, _LOGGER, name, name, config.codec_id, config.adapter_id, 3, 20, 850, config, self._coordinator)
 
     async def _async_blink_light(self) -> None:
         config = self.configs[self.selected_config]
@@ -187,7 +187,7 @@ class BleAdvConfigFlow(ConfigFlow, domain=DOMAIN):
 
         data_schema = vol.Schema(
             {
-                vol.Required(CONF_ADAPTER_ID): vol.In(list(self._coordinator.adapters.keys())),
+                vol.Required(CONF_ADAPTER_ID): vol.In(self._coordinator.get_adapter_ids()),
                 vol.Required(CONF_CODEC_ID): vol.In(list(self._coordinator.codecs.keys())),
                 vol.Required(CONF_FORCED_ID): selector.TextSelector(selector.TextSelectorConfig(prefix="0x")),
                 vol.Required(CONF_INDEX): selector.NumberSelector(
@@ -210,7 +210,7 @@ class BleAdvConfigFlow(ConfigFlow, domain=DOMAIN):
 
         data_schema = vol.Schema(
             {
-                vol.Required(CONF_ADAPTER_ID): vol.In(list(self._coordinator.adapters.keys())),
+                vol.Required(CONF_ADAPTER_ID): vol.In(self._coordinator.get_adapter_ids()),
                 vol.Required(CONF_PHONE_APP): vol.In(list(PHONE_APPS.keys())),
             }
         )
@@ -426,7 +426,7 @@ class BleAdvConfigFlow(ConfigFlow, domain=DOMAIN):
                 vol.Optional(CONF_INTERVAL, default=def_tech.get(CONF_INTERVAL, 20)): selector.NumberSelector(
                     selector.NumberSelectorConfig(step=10, min=20, max=100, mode=selector.NumberSelectorMode.BOX)
                 ),
-                vol.Optional(CONF_REPEAT, default=def_tech.get(CONF_REPEAT, 2)): selector.NumberSelector(
+                vol.Optional(CONF_REPEAT, default=def_tech.get(CONF_REPEAT, 3)): selector.NumberSelector(
                     selector.NumberSelectorConfig(step=1, min=1, max=10, mode=selector.NumberSelectorMode.BOX)
                 ),
             }
@@ -434,8 +434,8 @@ class BleAdvConfigFlow(ConfigFlow, domain=DOMAIN):
         return self.async_show_form(step_id="config_technical", data_schema=data_schema)
 
     async def async_step_finalize(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
-        """Finalize Step, also handling Reconfigure in order to share the config in translation files."""
-        if len(self._data[CONF_LIGHTS]) == 0 and len(self._data[CONF_FANS]) == 0:
+        """Finalize Step."""
+        if len(self._data.get(CONF_LIGHTS, [])) == 0 and len(self._data.get(CONF_FANS, [])) == 0:
             self._finalize_requested = True
             return await self.async_step_config_entities()
 

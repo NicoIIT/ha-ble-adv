@@ -2,6 +2,7 @@
 
 import asyncio
 import atexit
+import logging
 import os
 import pickle
 import socket
@@ -10,11 +11,15 @@ from collections.abc import Awaitable, Callable, Coroutine
 from functools import partialmethod
 from typing import Any
 
+from btsocket import btmgmt_socket
+
 type SocketRecvCallback = Callable[[bytes], Coroutine]
 type SocketCloseCallback = Callable[[], Coroutine]
 type SocketWaitRecvCallback = Callable[[], Awaitable[tuple[bytes | None, bool]]]
 
 TUNNEL_SOCKET_FILE_VAR = "TUNNEL_SOCKET_FILE"
+
+_LOGGER = logging.getLogger(__name__)
 
 
 class AsyncSocketBase(ABC):
@@ -30,6 +35,7 @@ class AsyncSocketBase(ABC):
         self._cmd_exc: BaseException | None = None
         self._cmd_res: bytes | None = None
         self._cmd_lock = asyncio.Lock()
+        self._is_mgmt: bool = False
 
     @abstractmethod
     async def _async_open_socket(self, name: str, *args) -> int:  # noqa: ANN002
@@ -39,8 +45,16 @@ class AsyncSocketBase(ABC):
     async def _async_start_recv(self) -> None:
         """Init the socket."""
 
-    async def async_init(self, name: str, read_callback: SocketRecvCallback, close_callback: SocketCloseCallback, *args) -> int:  # noqa: ANN002
+    async def async_init(
+        self,
+        name: str,
+        read_callback: SocketRecvCallback | None,
+        close_callback: SocketCloseCallback | None,
+        is_mgmt: bool,
+        *args,  # noqa: ANN002
+    ) -> int:
         """Async Initialize an async socket: setup the callbacks and create the socket."""
+        self._is_mgmt = is_mgmt
         self._on_recv = read_callback
         self._on_close = close_callback
         return await self._async_open_socket(name, *args)
@@ -62,7 +76,10 @@ class AsyncSocketBase(ABC):
         while is_listening:
             data, is_listening = await wait_recv_callback()
             if is_listening and self._on_recv and data is not None:
-                await self._on_recv(data)
+                try:
+                    await self._on_recv(data)
+                except Exception as exc:
+                    _LOGGER.warning(f"Exception on recv: {exc}")
         if self._on_close and self._functional_recv_started:
             self._functional_recv_started = False
             self._on_close_task = asyncio.create_task(self._on_close())
@@ -114,7 +131,10 @@ class AsyncSocket(AsyncSocketBase):
         self._socket: socket.socket | None = None
 
     async def _async_open_socket(self, name: str, *args) -> int:  # noqa: ARG002, ANN002
-        self._socket = socket.socket(*args)
+        if self._is_mgmt:
+            self._socket = btmgmt_socket.open()
+        else:
+            self._socket = socket.socket(*args)
         atexit.register(self.close)
         return self._socket.fileno()
 
@@ -141,7 +161,10 @@ class AsyncSocket(AsyncSocketBase):
     def _close(self) -> None:
         """Close."""
         if self._socket:
-            self._socket.close()
+            if self._is_mgmt:
+                btmgmt_socket.close(self._socket)
+            else:
+                self._socket.close()
             self._socket = None
 
 
@@ -158,7 +181,7 @@ class AsyncTunnelSocket(AsyncSocketBase):
     async def _async_open_socket(self, name: str, *args) -> int:  # noqa: ANN002
         self._unix_reader, self._unix_writer = await asyncio.open_unix_connection(path=self.SOCKET_TUNNEL_FILE)
         await self._setup_recv_loop(self._async_recv)
-        return await self._async_call_base("##CREATE", name, *args)
+        return await self._async_call_base("##MGMTCREATE" if self._is_mgmt else "##CREATE", name, *args)
 
     async def _async_start_recv(self) -> None:
         await self._async_call_base("##RECV", 4096)

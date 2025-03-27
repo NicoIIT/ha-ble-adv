@@ -3,9 +3,10 @@
 
 import asyncio
 from collections.abc import AsyncGenerator
+from unittest import mock
 
 import pytest
-from ble_adv.adapters import BluetoothHCIAdapter
+from ble_adv.adapters import BleAdvBtManager, BluetoothHCIAdapter
 from ble_adv.async_socket import AsyncSocketBase
 
 
@@ -39,6 +40,15 @@ class _AsyncSocketMock(AsyncSocketBase):
                 self.simulate_recv(bytearray([0x04, 0x0E, 0x00, 0x00, data[1], 0x20, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]))
                 self._base_call_result(None)
                 return
+            self._calls.append(("mgmt", data[0], data))
+            if data == b"\x03\x00\xff\xff\x00\x00":  # get controller index list
+                self.simulate_recv(b"\x01\x00\xff\xff\x07\x00\x03\x00\x00\x01\x00\x00\x00")
+                self._base_call_result(None)
+                return
+            if data == b"\x04\x00\x00\x00\x00\x00":  # get controller info
+                self.simulate_recv(b"\x01\x00\x00\x00\x1b\x01\x04\x00\x00\xbfg7 EH\x08\x02\x00\xff\xfe\x01\x00\xc1\n\x00\x00\x0c\x01")
+                self._base_call_result(None)
+                return
         self._calls.append((method, args))
         self._base_call_result(None)
 
@@ -67,8 +77,34 @@ async def mock_socket() -> AsyncGenerator[_AsyncSocketMock]:
 
 @pytest.fixture
 async def hci_adapter(mock_socket: _AsyncSocketMock) -> AsyncGenerator[BluetoothHCIAdapter]:
-    hci_adapter = BluetoothHCIAdapter(1, mock_socket)
+    hci_adapter = BluetoothHCIAdapter("hci1", 1, mock_socket)
     await hci_adapter.async_init()
     yield hci_adapter
     await hci_adapter.drain()
     await hci_adapter.async_final()
+
+
+class _BtManagerMock(BleAdvBtManager):
+    def get_sock_mock(self) -> _AsyncSocketMock:
+        return self._mgmt_sock  # type: ignore[none]
+
+
+@pytest.fixture
+async def bt_manager() -> AsyncGenerator[_BtManagerMock]:
+    async def recv_callback(name: str, data: bytes) -> None:
+        pass
+
+    mocks: list[_AsyncSocketMock] = []
+
+    def create_mock_socket() -> _AsyncSocketMock:
+        amock = _AsyncSocketMock()
+        mocks.append(amock)
+        return amock
+
+    with mock.patch("ble_adv.adapters.create_async_socket", side_effect=create_mock_socket):
+        btmgt = _BtManagerMock(recv_callback)
+        await btmgt.async_init()
+        yield btmgt
+        await btmgt.async_final()
+        for amock in mocks:
+            await amock.wait_for_closure()
