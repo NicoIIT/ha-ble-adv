@@ -7,10 +7,9 @@ import traceback
 from abc import ABC, abstractmethod
 from datetime import datetime, timedelta
 
-from bluetooth_adapters import get_adapters_from_hci
 from homeassistant.core import HomeAssistant
 
-from .adapters import BleAdvAdapter, get_adapter
+from .adapters import BleAdvAdapter, BleAdvBtManager
 from .codecs.models import BleAdvAdvertisement, BleAdvCodec, BleAdvConfig, BleAdvEntAttr, as_hex
 
 _LOGGER = logging.getLogger(__name__)
@@ -42,45 +41,32 @@ class BleAdvCoordinator:
         self.hass: HomeAssistant = hass
         self.logger: logging.Logger = logger
         self.codecs: dict[str, BleAdvCodec] = codecs
-        self.adapters: dict[str, BleAdvAdapter] = {}
         self._last_advs: dict[bytes, datetime] = {}
         self._callbacks: dict[str, MatchingCallback] = {}
+        self._bt_manager: BleAdvBtManager = BleAdvBtManager(self.handle_raw_adv)
 
     async def async_init(self) -> None:
         """Async Init."""
-        bt_adapters: list[int] = list(get_adapters_from_hci().keys())
-        _LOGGER.debug(f"BT Adapters from hci: {bt_adapters}")
-        if not bt_adapters:
-            bt_adapters = list(range(3))
-        for adapter_id in bt_adapters:
-            try:
-                adapter = get_adapter(adapter_id)
-                await adapter.async_init()
-                self.adapters[adapter.name] = adapter
-            except Exception as exc:
-                _LOGGER.info(f"Failed to init adapter {adapter.name}:{type(exc)}:{exc}, ignoring it")
-                adapter.close()
+        await self._bt_manager.async_init()
 
     async def async_final(self) -> None:
         """Async Final: Clean-up."""
-        for adapter in self.adapters.values():
-            await adapter.async_final()
+        await self._bt_manager.async_final()
+
+    def get_adapter_ids(self) -> list[str]:
+        """Is an adapter exists."""
+        return list(self._bt_manager.adapters.keys())
 
     def get_adapter(self, adapter_id: str) -> BleAdvAdapter:
         """Get the adapter."""
-        return self.adapters[adapter_id]
+        return self._bt_manager.adapters[adapter_id]
 
     def has_available_adapters(self) -> bool:
         """Check if the coordinator has available adapters."""
-        return any(adapter.available for adapter in self.adapters.values())
+        return any(adapter is not None for adapter in self._bt_manager.adapters.values())
 
     async def register_callback(self, callback_id: str, callback: MatchingCallback) -> None:
         """Register a matching callback by its id."""
-        if len(self._callbacks) == 0:
-            for adapter in self.adapters.values():
-                await adapter.start_scan(self.handle_raw_adv)
-            self.logger.info("Adapters registered")
-
         self._callbacks[callback_id] = callback
         self.logger.info(f"Registered callback with id '{callback_id}': {callback}")
 
@@ -88,10 +74,6 @@ class BleAdvCoordinator:
         """Unregister a callback by its id."""
         self._callbacks.pop(callback_id)
         self.logger.info(f"Unregistered callback with id '{callback_id}'")
-        if len(self._callbacks) == 0:
-            for adapter in self.adapters.values():
-                await adapter.stop_scan()
-            self.logger.info("Adapters unregistered")
 
     async def handle_raw_adv(self, adapter_id: str, raw_adv: bytes) -> None:
         """Handle a raw advertising."""
@@ -119,22 +101,6 @@ class BleAdvCoordinator:
                 enc_cmd, conf = acodec.decode_adv(adv)
                 if conf is not None and enc_cmd is not None:
                     ent_attrs = acodec.enc_to_ent(enc_cmd)
-                    if False:
-                        # DEBUG MODE: Log and Test re encoding
-                        _LOGGER.info(f"[{codec_id}] enc: {enc_cmd} / config: {conf}")
-                        enc_cmds = []
-                        for ent_attr in ent_attrs:
-                            _LOGGER.debug(f"[{codec_id} COMP] ent: {ent_attr}")
-                            enc_cmds += acodec.ent_to_enc(ent_attr)
-                        if len(enc_cmds) > 1:
-                            _LOGGER.error(f"[{codec_id} COMP] more than one enc_cmd generated at re-encode")
-                        elif len(enc_cmds) == 0:
-                            _LOGGER.error(f"[{codec_id} COMP] no enc_cmd generated at re-encode")
-                        elif enc_cmds[0] != enc_cmd:
-                            _LOGGER.error(f"[{codec_id} COMP] diff - recv: {enc_cmd} / reenc - {enc_cmds[0]}")
-                        else:
-                            _LOGGER.info("[{codec_id} COMP] OK")
-
                     for device_callback in self._callbacks.values():
                         await device_callback.handle(codec_id, adapter_id, conf, ent_attrs)
 

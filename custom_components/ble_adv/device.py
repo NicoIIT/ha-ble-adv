@@ -204,7 +204,7 @@ class BleAdvMatchingDevice(ABC):
     @property
     def available(self) -> bool:
         """Return True if the device is available: if the adapter is available."""
-        return self.adapter_id in self.coordinator.adapters and self.coordinator.get_adapter(self.adapter_id).available
+        return self.adapter_id in self.coordinator.get_adapter_ids() and self.coordinator.get_adapter(self.adapter_id) is not None
 
     async def register(self) -> None:
         """Register to coordinator."""

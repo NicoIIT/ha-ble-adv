@@ -8,6 +8,8 @@ from abc import ABC, abstractmethod
 from binascii import hexlify
 from collections.abc import Awaitable, Callable
 
+from btsocket.btmgmt_protocol import reader as btmgmt_reader
+
 from ..async_socket import AsyncSocketBase, create_async_socket  # noqa: TID252
 
 _LOGGER = logging.getLogger(__name__)
@@ -192,15 +194,11 @@ class BluetoothHCIAdapter(BleAdvAdapter):
     EVT_LE_EXTENDED_ADVERTISING_REPORT = 0x0D
 
     OGF_LE_CTL = 0x08
-    OCF_LE_READ_LOCAL_SUPPORTED_FEATURES = 0x03
     OCF_LE_SET_ADVERTISING_PARAMETERS = 0x06
     OCF_LE_SET_ADVERTISING_DATA = 0x08
     OCF_LE_SET_ADVERTISE_ENABLE = 0x0A
     OCF_LE_SET_SCAN_PARAMETERS = 0x0B
     OCF_LE_SET_SCAN_ENABLE = 0x0C
-    OCF_LE_SET_EXTENDED_SCAN_PARAMETERS = 0x41
-    OCF_LE_SET_EXTENDED_SCAN_ENABLE = 0x42
-
     ADV_FILTER = struct.pack(
         "<LLLHxx",
         1 << HCI_EVENT_PKT,
@@ -211,14 +209,14 @@ class BluetoothHCIAdapter(BleAdvAdapter):
 
     def __init__(
         self,
+        name: str,
         device_id: int,
         async_socket: AsyncSocketBase,
     ) -> None:
         """Create Adapter."""
-        super().__init__(f"hci{device_id}")
+        super().__init__(name)
         self.device_id = device_id
         self._async_socket = async_socket
-        self._ext_adv = None
         self._cmd_event = asyncio.Event()
         self._on_going_cmd = None
         self._adv_lock = asyncio.Lock()
@@ -232,6 +230,7 @@ class BluetoothHCIAdapter(BleAdvAdapter):
             self.name,
             self._recv,
             self._remote_close,
+            False,
             SOCK_AF_BLUETOOTH,
             socket.SOCK_RAW | socket.SOCK_NONBLOCK,
             SOCK_BTPROTO_HCI,
@@ -240,10 +239,6 @@ class BluetoothHCIAdapter(BleAdvAdapter):
         await self._async_socket.async_setsockopt(SOCK_SOL_HCI, SOCK_HCI_FILTER, self.ADV_FILTER)
         await self._async_socket.async_start_recv()
         self._opened = True
-        ret_code, data = await self._send_hci_cmd(self.OCF_LE_READ_LOCAL_SUPPORTED_FEATURES)
-        if ret_code == self.HCI_SUCCESS and data is not None:
-            features = int.from_bytes(data)
-            self._ext_adv = features & (1 << 12)
         self._log(f"Connected - fileno: {fileno}")
 
     def close(self) -> None:
@@ -299,23 +294,10 @@ class BluetoothHCIAdapter(BleAdvAdapter):
 
     async def _set_scan_parameters(self, scan_type: int = 0x00, interval: int = 0x10, window: int = 0x10) -> None:
         cmd = bytearray([scan_type]) + interval.to_bytes(2, "little") + window.to_bytes(2, "little")
-        addr = 0x00
-        filter_ = 0x00
-        phys = 0x01
-        if self._ext_adv:
-            await self._send_hci_cmd(
-                self.OCF_LE_SET_EXTENDED_SCAN_PARAMETERS,
-                bytearray([addr, filter_, phys]) + cmd,
-            )
-        else:
-            await self._send_hci_cmd(self.OCF_LE_SET_SCAN_PARAMETERS, cmd + bytearray([addr, filter_]))
+        await self._send_hci_cmd(self.OCF_LE_SET_SCAN_PARAMETERS, cmd + bytearray([0x00, 0x00]))
 
-    async def _set_scan_enable(self, *, enabled: bool = True, filter_duplicates: bool = False) -> None:
-        cmd = bytearray([0x01 if enabled else 0x00, 0x01 if filter_duplicates else 0x00])
-        if self._ext_adv:
-            await self._send_hci_cmd(self.OCF_LE_SET_EXTENDED_SCAN_ENABLE, cmd + bytearray([0, 0, 0, 0]))
-        else:
-            await self._send_hci_cmd(self.OCF_LE_SET_SCAN_ENABLE, cmd)
+    async def _set_scan_enable(self, *, enabled: bool = True) -> None:
+        await self._send_hci_cmd(self.OCF_LE_SET_SCAN_ENABLE, bytearray([0x01 if enabled else 0x00, 0x00]))
 
     async def _set_advertise_enable(self, *, enabled: bool = True) -> None:
         await self._send_hci_cmd(self.OCF_LE_SET_ADVERTISE_ENABLE, bytearray([0x01 if enabled else 0x00]))
@@ -327,22 +309,22 @@ class BluetoothHCIAdapter(BleAdvAdapter):
         params += bytes([0, 0, 0, 0, 0, 0, 0, 0, 0, 0x07, 0])
         await self._send_hci_cmd(self.OCF_LE_SET_ADVERTISING_PARAMETERS, params)
 
-    async def _set_advertising_data(self, data: bytes | None) -> None:
-        await self._send_hci_cmd(
-            self.OCF_LE_SET_ADVERTISING_DATA,
-            bytearray([len(data), *data]) if data is not None else bytearray([0]),
-        )
+    async def _set_advertising_data(self, data: bytes) -> None:
+        # btmon will give error 'invalid packet size' if data not of len 31, but the command is successful.
+        await self._send_hci_cmd(self.OCF_LE_SET_ADVERTISING_DATA, bytearray([len(data), *data]))
 
     async def _advertise(self, interval: int, data: bytes) -> None:
         """Advertise the 'data' for the given interval."""
+        int_as_hex = int(interval * 1.6)
         async with self._adv_lock:
             await self._set_advertise_enable(enabled=False)
-            await self._set_advertising_parameter(int(interval), int(interval))
+            await self._set_advertising_parameter(int_as_hex, int_as_hex)
             await self._set_advertising_data(data)
             await self._set_advertise_enable()
             await asyncio.sleep(0.0028 * interval)
             await self._set_advertise_enable(enabled=False)
-            await self._set_advertising_data(None)
+            # set a fake adv, just in case it would be re enabled
+            await self._set_advertising_data(bytes([0x03, 0xFF, 0x00, 0x00]))
 
     async def _start_scan(self) -> None:
         await self._set_scan_enable(enabled=False)
@@ -353,6 +335,119 @@ class BluetoothHCIAdapter(BleAdvAdapter):
         await self._set_scan_enable(enabled=False)
 
 
-def get_adapter(device_id: int) -> BleAdvAdapter:
-    """Get the Adapter corresponding to the device_id and the potential tunneling config."""
-    return BluetoothHCIAdapter(device_id, create_async_socket())
+def lb(buf: bytes) -> int:
+    """Help convert from little indian byte."""
+    return int.from_bytes(buf, "little")
+
+
+class BleAdvBtManager:
+    """Manage the bluetooth Adapters using MGMT api.
+
+    Bluez mgmt-api: https://web.git.kernel.org/pub/scm/bluetooth/bluez.git/tree/doc/mgmt-api.txt
+    """
+
+    def __init__(self, adv_recv_callback: AdvRecvCallback) -> None:
+        self._mgmt_sock: AsyncSocketBase | None = None
+        self._hci_adapters: dict[str, BleAdvAdapter] = {}
+        self._hci_adapter_ids: dict[str, int] = {}
+        self._hci_adapter_names: dict[int, str] = {}
+        self._mgmt_cmd_event = asyncio.Event()
+        self._og_mgmt_cmd = None
+        self._og_mgmt_dev_id = None
+        self._mgmt_cmd_lock = asyncio.Lock()
+        self._adv_lock = asyncio.Lock()
+        self._mgmt_opened = False
+        self._adv_recv: AdvRecvCallback = adv_recv_callback
+
+    @property
+    def adapters(self) -> dict[str, BleAdvAdapter]:
+        """Get hci adapters dict."""
+        return self._hci_adapters
+
+    async def async_init(self) -> None:
+        """Init the handler: init the MGMT Socket and the discovered adapters."""
+        self._mgmt_sock = create_async_socket()
+        fileno = await self._mgmt_sock.async_init("mgmt", self._mgmt_recv, self._mgmt_close, True)
+        await self._mgmt_sock.async_start_recv()
+        _LOGGER.debug(f"MGMT Connected - fileno: {fileno}")
+        self._mgmt_opened = True
+        # Controller Index List
+        _, index_resp = await self.send_mgmt_cmd(0xFFFF, 0x03, b"")
+        nb = lb(index_resp[0:2])
+        _LOGGER.debug(f"MGMT Nb Adapters: {nb}")
+        for i in range(nb):
+            dev_id = lb(index_resp[2 * (i + 1) : 2 * (i + 2)])
+            _, info_resp = await self.send_mgmt_cmd(dev_id, 0x04, b"")
+            btaddr = ":".join([f"{x:02X}" for x in reversed(info_resp[0:6])])
+            _LOGGER.debug(f"MGMT Adapter hci{dev_id} btaddr: {btaddr}")
+            name = f"hci/{btaddr}"
+            self._hci_adapter_ids[name] = dev_id
+            self._hci_adapter_names[dev_id] = name
+            self._hci_adapters[name] = BluetoothHCIAdapter(name, dev_id, create_async_socket())
+            await self._hci_adapters[name].async_init()
+            await self._hci_adapters[name].start_scan(self._adv_recv)
+
+    async def async_final(self) -> None:
+        """Finalize: Stop Discovery and clean adapters."""
+        for adapter in self._hci_adapters.values():
+            await adapter.async_final()
+        if self._mgmt_sock is not None:
+            self._mgmt_sock.close()
+        self._hci_adapters.clear()
+        self._hci_adapter_ids.clear()
+        self._hci_adapter_names.clear()
+
+    async def _mgmt_recv(self, data: bytes) -> None:
+        # //_LOGGER.debug(f"mgmt recv: {data}")
+        cmd_type = lb(data[0:2])
+        dev_id = lb(data[2:4])
+        if cmd_type == 0x0001 and dev_id == self._og_mgmt_dev_id and lb(data[6:8]) == self._og_cmd:
+            # Command Complete on relevant controller and relevant pending command
+            self._ret_code = data[8]
+            self._ret_data = data[9:]
+            self._mgmt_cmd_event.set()
+        elif cmd_type in [0x12, 0x13]:
+            # discovery events, ignore
+            pass
+        elif cmd_type in [0x03, 0x04, 0x05, 0x06]:
+            # Adapter changes: trigger refresh
+            _LOGGER.info(f"Event triggering refresh: {cmd_type}")
+            await self.async_final()
+            await self.async_init()
+        else:
+            _LOGGER.debug(f"Unhandled Event: {btmgmt_reader(data)}")
+
+    async def _mgmt_close(self) -> None:
+        _LOGGER.debug("MGMT Connection closed by peer, reconnecting ..")
+        nb_attempt = 0
+        while True:
+            self._opened = False
+            await asyncio.sleep(1)
+            nb_attempt += 1
+            try:
+                await self.async_final()
+                await self.async_init()
+                break
+            except Exception as exc:
+                _LOGGER.debug(f"Reconnect failed ({nb_attempt}): {exc}, retrying..")
+
+    async def send_mgmt_cmd(self, device_id: int, cmd_type: int, cmd_data: bytes = bytearray()) -> tuple[int, bytes]:
+        """Send a MGMT command."""
+        if not self._mgmt_opened or self._mgmt_sock is None:
+            raise AdapterError("Adapter not available")
+        data_len = len(cmd_data)
+        cmd = struct.pack(f"<HHH{data_len}B", cmd_type, device_id, data_len, *cmd_data)
+        # //_LOGGER.debug(f"mgmt cmd: {cmd}")
+        async with self._mgmt_cmd_lock:
+            self._mgmt_cmd_event.clear()
+            self._og_cmd = cmd_type
+            self._og_mgmt_dev_id = device_id
+            self._ret_code = 0
+            self._ret_data = b""
+            await self._mgmt_sock.async_sendall(cmd)
+            try:
+                await asyncio.wait_for(self._mgmt_cmd_event.wait(), 3)
+            except TimeoutError as err:
+                ctx = f"Timeout sending command 0x{cmd_type:04X} to controller {device_id}"
+                raise AdapterError(ctx) from err
+            return self._ret_code, self._ret_data
