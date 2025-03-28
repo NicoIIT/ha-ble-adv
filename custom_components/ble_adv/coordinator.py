@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import logging
-import traceback
 from abc import ABC, abstractmethod
 from datetime import datetime, timedelta
 
@@ -105,7 +104,7 @@ class BleAdvCoordinator:
                         await device_callback.handle(codec_id, adapter_id, conf, ent_attrs)
 
         except Exception:
-            _LOGGER.error(traceback.format_exc())
+            _LOGGER.exception("Exception handling raw adv message")
 
 
 # ruff: noqa: ERA001

@@ -14,7 +14,7 @@ from typing import Any
 from btsocket import btmgmt_socket
 
 type SocketRecvCallback = Callable[[bytes], Coroutine]
-type SocketCloseCallback = Callable[[], Coroutine]
+type SocketErrorCallback = Callable[[str], Coroutine]
 type SocketWaitRecvCallback = Callable[[], Awaitable[tuple[bytes | None, bool]]]
 
 TUNNEL_SOCKET_FILE_VAR = "TUNNEL_SOCKET_FILE"
@@ -27,7 +27,7 @@ class AsyncSocketBase(ABC):
 
     def __init__(self) -> None:
         self._on_recv: SocketRecvCallback | None = None
-        self._on_close: SocketCloseCallback | None = None
+        self._on_error: SocketErrorCallback | None = None
         self._ready_recv_event = asyncio.Event()
         self._functional_recv_started: bool = False
         self._recv_task: asyncio.Task | None = None
@@ -49,14 +49,14 @@ class AsyncSocketBase(ABC):
         self,
         name: str,
         read_callback: SocketRecvCallback | None,
-        close_callback: SocketCloseCallback | None,
+        error_callback: SocketErrorCallback | None,
         is_mgmt: bool,
         *args,  # noqa: ANN002
     ) -> int:
         """Async Initialize an async socket: setup the callbacks and create the socket."""
         self._is_mgmt = is_mgmt
         self._on_recv = read_callback
-        self._on_close = close_callback
+        self._on_error = error_callback
         return await self._async_open_socket(name, *args)
 
     async def async_start_recv(self) -> None:
@@ -78,11 +78,12 @@ class AsyncSocketBase(ABC):
             if is_listening and self._on_recv and data is not None:
                 try:
                     await self._on_recv(data)
-                except Exception as exc:
-                    _LOGGER.warning(f"Exception on recv: {exc}")
-        if self._on_close and self._functional_recv_started:
+                except Exception:
+                    _LOGGER.exception("Exception on recv")
+                    is_listening = False
+        if self._on_error and self._functional_recv_started:
             self._functional_recv_started = False
-            self._on_close_task = asyncio.create_task(self._on_close())
+            await self._on_error("Socket closed by peer or Exception on recv.")
 
     @abstractmethod
     async def _async_call(self, method: str, *args) -> Any:  # noqa: ANN002, ANN401

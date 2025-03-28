@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import logging
-import traceback
 from abc import ABC, abstractmethod
 from datetime import datetime, timedelta
 from functools import wraps
@@ -307,7 +306,7 @@ class BleAdvDevice(BleAdvMatchingDevice):
                 qi: BleAdvQueueItem = BleAdvQueueItem(enc_cmd.cmd, self.repeat, self.duration, self.interval, adv.to_raw())
                 await self.coordinator.get_adapter(self.adapter_id).enqueue(self.unique_id, qi)
         except Exception:
-            _LOGGER.error(traceback.format_exc())
+            _LOGGER.exception("Exception applying changes")
 
     async def async_on_command(self, ent_attrs: list[BleAdvEntAttr]) -> None:
         """Process commands received."""

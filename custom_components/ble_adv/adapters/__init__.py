@@ -1,6 +1,7 @@
 """BLE ADV Adapters."""
 
 import asyncio
+import contextlib
 import logging
 import socket
 import struct
@@ -10,7 +11,7 @@ from collections.abc import Awaitable, Callable
 
 from btsocket.btmgmt_protocol import reader as btmgmt_reader
 
-from ..async_socket import AsyncSocketBase, create_async_socket  # noqa: TID252
+from ..async_socket import AsyncSocketBase, SocketErrorCallback, create_async_socket  # noqa: TID252
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -37,9 +38,11 @@ type AdvRecvCallback = Callable[[str, bytes], Awaitable[None]]
 class BleAdvAdapter(ABC):
     """Base BLE ADV Adapter including multi Advertising sequencing queues."""
 
+    MAX_ADV_WAIT: float = 3.0
+
     def __init__(self, name: str) -> None:
         """Init with name."""
-        self.name = name
+        self.name: str = name
         self._on_adv_recv: AdvRecvCallback | None = None
         self._qlen: int = 0
         self._queues_index: dict[str, int] = {}
@@ -50,8 +53,8 @@ class BleAdvAdapter(ABC):
         self._lock: asyncio.Lock = asyncio.Lock()
         self._processing: bool = False
         self._dequeue_task: asyncio.Task | None = None
-        self._opened = False
-        self._advertise_on_going = False
+        self._opened: bool = False
+        self._advertise_on_going: bool = False
 
     def _log(self, message: str) -> None:
         _LOGGER.info("[%s] %s.", self.name, message)
@@ -106,6 +109,10 @@ class BleAdvAdapter(ABC):
     @abstractmethod
     async def _advertise(self, interval: int, data: bytes) -> None:
         """Advertise the msg."""
+
+    @abstractmethod
+    async def _handle_error(self, message: str) -> None:
+        """Handle irrecoverable error."""
 
     async def start_scan(self, recv_callback: AdvRecvCallback) -> None:
         """Start Scan."""
@@ -166,12 +173,13 @@ class BleAdvAdapter(ABC):
                     self._add_event.clear()
                 if item is not None:
                     self._log_dbg(f"Advertising {hexlify(item.data, '.').upper()}")
-                    await self._advertise(item.interval, item.data)
+                    await asyncio.wait_for(self._advertise(item.interval, item.data), self.MAX_ADV_WAIT)
                     self._log_dbg(f"End Advertising {hexlify(item.data, '.').upper()}")
                     await self._lock_queue_for(self._cur_ind, lock_delay)
                     self._add_event.set()
-            except Exception as exc:
-                _LOGGER.warning(f"BleAdvAdapter - Exception in dequeue: {exc}")
+            except Exception:
+                _LOGGER.exception("BleAdvAdapter - Exception in dequeue")
+                await self._handle_error("Exception in Adapter Dequeue")
 
 
 SOCK_AF_BLUETOOTH = socket.AF_BLUETOOTH if hasattr(socket, "AF_BLUETOOTH") else 31  # type: ignore[none]
@@ -182,6 +190,8 @@ SOCK_SOL_HCI = socket.SOL_HCI if hasattr(socket, "SOL_HCI") else 0  # type: igno
 
 class BluetoothHCIAdapter(BleAdvAdapter):
     """BLE ADV direct HCI Adapter."""
+
+    CMD_RTO: float = 1.0
 
     HCI_SUCCESS = 0x00
     HCI_COMMAND_PKT = 0x01
@@ -212,15 +222,17 @@ class BluetoothHCIAdapter(BleAdvAdapter):
         name: str,
         device_id: int,
         async_socket: AsyncSocketBase,
+        on_error: SocketErrorCallback,
     ) -> None:
         """Create Adapter."""
         super().__init__(name)
-        self.device_id = device_id
-        self._async_socket = async_socket
-        self._cmd_event = asyncio.Event()
-        self._on_going_cmd = None
-        self._adv_lock = asyncio.Lock()
-        self._cmd_lock = asyncio.Lock()
+        self.device_id: int = device_id
+        self._async_socket: AsyncSocketBase = async_socket
+        self._on_error: SocketErrorCallback = on_error
+        self._cmd_event: asyncio.Event = asyncio.Event()
+        self._on_going_cmd: int | None = None
+        self._adv_lock: asyncio.Lock = asyncio.Lock()
+        self._cmd_lock: asyncio.Lock = asyncio.Lock()
 
     async def open(self) -> None:
         """Open the adapters. Can throw exception if invalid."""
@@ -229,7 +241,7 @@ class BluetoothHCIAdapter(BleAdvAdapter):
         fileno = await self._async_socket.async_init(
             self.name,
             self._recv,
-            self._remote_close,
+            self._on_error,
             False,
             SOCK_AF_BLUETOOTH,
             socket.SOCK_RAW,
@@ -246,6 +258,10 @@ class BluetoothHCIAdapter(BleAdvAdapter):
         self._opened = False
         self._async_socket.close()
 
+    async def _handle_error(self, message: str) -> None:
+        """Handle irrecoverable error."""
+        await self._on_error(message)
+
     async def _recv(self, data: bytes) -> None:
         if data[0] != self.HCI_EVENT_PKT:
             return
@@ -259,20 +275,6 @@ class BluetoothHCIAdapter(BleAdvAdapter):
             self._ret_data = data[7:]
             self._cmd_event.set()
 
-    async def _remote_close(self) -> None:
-        self._log("Connection closed by peer, reconnecting ..")
-        self._opened = False
-        nb_attempt = 0
-        while True:
-            await asyncio.sleep(1)
-            nb_attempt += 1
-            try:
-                await self.open()
-                break
-            except Exception as exc:
-                self._log_dbg(f"Reconnect failed ({nb_attempt}): {exc}, retrying..")
-                self.close()
-
     async def _send_hci_cmd(self, cmd_type: int, cmd_data: bytes = bytearray()) -> tuple[int, bytes | None]:
         if not self._opened:
             raise AdapterError("Adapter not available")
@@ -285,11 +287,7 @@ class BluetoothHCIAdapter(BleAdvAdapter):
             self._ret_code = 0
             self._ret_data = None
             await self._async_socket.async_sendall(cmd)
-            try:
-                await asyncio.wait_for(self._cmd_event.wait(), 1)
-            except TimeoutError as err:
-                ctx = f"Timeout sending command {op_code}"
-                raise AdapterError(ctx) from err
+            await asyncio.wait_for(self._cmd_event.wait(), self.CMD_RTO)
             return self._ret_code, self._ret_data
 
     async def _set_scan_parameters(self, scan_type: int = 0x00, interval: int = 0x10, window: int = 0x10) -> None:
@@ -346,8 +344,10 @@ class BleAdvBtManager:
     Bluez mgmt-api: https://web.git.kernel.org/pub/scm/bluetooth/bluez.git/tree/doc/mgmt-api.txt
     """
 
+    MGMT_CMD_RTO: float = 3.0
+
     def __init__(self, adv_recv_callback: AdvRecvCallback) -> None:
-        self._mgmt_sock: AsyncSocketBase | None = None
+        self._mgmt_sock: AsyncSocketBase = create_async_socket()
         self._hci_adapters: dict[str, BleAdvAdapter] = {}
         self._hci_adapter_ids: dict[str, int] = {}
         self._hci_adapter_names: dict[int, str] = {}
@@ -358,6 +358,7 @@ class BleAdvBtManager:
         self._adv_lock = asyncio.Lock()
         self._mgmt_opened = False
         self._adv_recv: AdvRecvCallback = adv_recv_callback
+        self._reconnecting: bool = False
 
     @property
     def adapters(self) -> dict[str, BleAdvAdapter]:
@@ -366,7 +367,6 @@ class BleAdvBtManager:
 
     async def async_init(self) -> None:
         """Init the handler: init the MGMT Socket and the discovered adapters."""
-        self._mgmt_sock = create_async_socket()
         fileno = await self._mgmt_sock.async_init("mgmt", self._mgmt_recv, self._mgmt_close, True)
         await self._mgmt_sock.async_start_recv()
         _LOGGER.debug(f"MGMT Connected - fileno: {fileno}")
@@ -383,16 +383,16 @@ class BleAdvBtManager:
             name = f"hci/{btaddr}"
             self._hci_adapter_ids[name] = dev_id
             self._hci_adapter_names[dev_id] = name
-            self._hci_adapters[name] = BluetoothHCIAdapter(name, dev_id, create_async_socket())
+            self._hci_adapters[name] = BluetoothHCIAdapter(name, dev_id, create_async_socket(), self._hci_adapter_error)
             await self._hci_adapters[name].async_init()
             await self._hci_adapters[name].start_scan(self._adv_recv)
 
     async def async_final(self) -> None:
         """Finalize: Stop Discovery and clean adapters."""
+        self._mgmt_opened = False
         for adapter in self._hci_adapters.values():
             await adapter.async_final()
-        if self._mgmt_sock is not None:
-            self._mgmt_sock.close()
+        self._mgmt_sock.close()
         self._hci_adapters.clear()
         self._hci_adapter_ids.clear()
         self._hci_adapter_names.clear()
@@ -411,25 +411,39 @@ class BleAdvBtManager:
             pass
         elif cmd_type in [0x03, 0x04, 0x05, 0x06]:
             # Adapter changes: trigger refresh
-            _LOGGER.info(f"Event triggering refresh: {cmd_type}")
-            await self.async_final()
-            await self.async_init()
+            _LOGGER.debug(f"Event triggering refresh: 0x{cmd_type:04X}")
+            self._launch_refresh()
         else:
-            _LOGGER.debug(f"Unhandled Event: {btmgmt_reader(data)}")
+            with contextlib.suppress(Exception):
+                _LOGGER.debug(f"Unhandled Event: {btmgmt_reader(data)}")
 
-    async def _mgmt_close(self) -> None:
-        _LOGGER.debug("MGMT Connection closed by peer, reconnecting ..")
+    async def _hci_adapter_error(self, message: str) -> None:
+        _LOGGER.debug(f"HCI Adapter error: {message}, resetting")
+        self._launch_refresh()
+
+    async def _mgmt_close(self, message: str) -> None:
+        _LOGGER.debug(f"MGMT Error: {message}, resetting ..")
+        self._launch_refresh()
+
+    def _launch_refresh(self) -> None:
+        if self._reconnecting:
+            return
+        self._reconnecting = True
+        self._reset_task = asyncio.create_task(self._acquire_connection())
+
+    async def _acquire_connection(self) -> None:
+        """Securely acquire connection."""
+        await self.async_final()
         nb_attempt = 0
-        while True:
-            self._opened = False
-            await asyncio.sleep(1)
+        while self._reconnecting:
             nb_attempt += 1
             try:
-                await self.async_final()
                 await self.async_init()
-                break
+                self._reconnecting = False
             except Exception as exc:
                 _LOGGER.debug(f"Reconnect failed ({nb_attempt}): {exc}, retrying..")
+                await self.async_final()
+                await asyncio.sleep(1)
 
     async def send_mgmt_cmd(self, device_id: int, cmd_type: int, cmd_data: bytes = bytearray()) -> tuple[int, bytes]:
         """Send a MGMT command."""
@@ -445,9 +459,5 @@ class BleAdvBtManager:
             self._ret_code = 0
             self._ret_data = b""
             await self._mgmt_sock.async_sendall(cmd)
-            try:
-                await asyncio.wait_for(self._mgmt_cmd_event.wait(), 3)
-            except TimeoutError as err:
-                ctx = f"Timeout sending command 0x{cmd_type:04X} to controller {device_id}"
-                raise AdapterError(ctx) from err
+            await asyncio.wait_for(self._mgmt_cmd_event.wait(), self.MGMT_CMD_RTO)
             return self._ret_code, self._ret_data
