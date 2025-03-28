@@ -11,6 +11,7 @@ from . import _TestEncoderBase, _TestEncoderFull
         ("zhimei_fan_v0", 0x03, "55.02.01.02.C0.B4.AA.66.55.33"),
         ("zhimei_v2", 0x03, "F9.08.49.B2.CE.2C.81.3B.6B.90.08.CE.EF.3D.6F.C8.10.11.12.13.14.15.16.17.18.19"),
         ("zhimei_v1b", 0xFF, "58.55.18.48.46.4B.4A.1C.AB.1F.B8.0E.B7.E1.7D.98.82.31.A5.7E.7E.DB.68.10.11.12.13.14.15"),
+        ("zhimei_fan_vr1", 0xFF, "1F.61.3E.48.46.4B.4A.16.77.19.1F.72.BD.E7.D5.77.36.70.52.67.23.79.0C.10.11.12.13.14.15"),
     ],
 )
 class TestEncoderZhimei(_TestEncoderBase):

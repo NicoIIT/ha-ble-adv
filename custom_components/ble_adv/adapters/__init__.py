@@ -232,7 +232,7 @@ class BluetoothHCIAdapter(BleAdvAdapter):
             self._remote_close,
             False,
             SOCK_AF_BLUETOOTH,
-            socket.SOCK_RAW | socket.SOCK_NONBLOCK,
+            socket.SOCK_RAW,
             SOCK_BTPROTO_HCI,
         )
         await self._async_socket.async_bind((self.device_id,))

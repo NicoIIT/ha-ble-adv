@@ -17,7 +17,7 @@ PHONE_APPS = {
     "Smart Lights": ["agarce_v4", "agarce_v3"],
     "Other (legacy)": ["other_v1a", "other_v1b"],
     "Physical Remotes (FanLamp)": ["remote_v1", "remote_v2", "remote_v21", "remote_v3", "remote_v31"],
-    "Physical Remotes (Others)": ["zhijia_vr1", "remote_v4"],
+    "Physical Remotes (Others)": ["zhijia_vr1", "remote_v4", "zhimei_fan_vr1"],
 }
 
 

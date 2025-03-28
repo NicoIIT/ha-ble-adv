@@ -145,6 +145,7 @@ class AsyncSocket(AsyncSocketBase):
         """Receive Data from socket."""
         if self._socket is None:
             return None, False
+        self._socket.setblocking(False)
         data = await asyncio.get_event_loop().sock_recv(self._socket, 4096)
         return data, len(data) > 0
 
