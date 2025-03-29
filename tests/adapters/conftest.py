@@ -14,7 +14,9 @@ class _AsyncSocketMock(AsyncSocketBase):
     def __init__(self) -> None:
         super().__init__()
         self._recv_queue: asyncio.Queue = asyncio.Queue()
-        self.fail_open_nb = 0
+        self.fail_open_nb: int = 0
+        self.hci_adv_not_allowed: bool = False
+        self.hci_ext_adv: bool = False
         self._calls = []
 
     async def _async_open_socket(self, name: str, *args) -> int:  # noqa: ARG002, ANN002
@@ -38,8 +40,13 @@ class _AsyncSocketMock(AsyncSocketBase):
             if data[0] == 0x01 and data[2] == 0x20:
                 if data == b"\x01\x08 \n\tforce_rto":
                     return
+                ret_code = 0x0C if self.hci_adv_not_allowed and data[1] in [0x06, 0x08, 0x0A] else 0x00
                 self._calls.append(("op_call", data[1], data[4:]))
-                self.simulate_recv(bytearray([0x04, 0x0E, 0x00, 0x00, data[1], 0x20, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]))
+                if data[1] == 0x03 and self.hci_ext_adv:
+                    features = (1 << 12).to_bytes(8, "little")
+                    self.simulate_recv(bytearray([0x04, 0x0E, 0x00, 0x00, data[1], 0x20, ret_code, *features]))
+                else:
+                    self.simulate_recv(bytearray([0x04, 0x0E, 0x00, 0x00, data[1], 0x20, ret_code, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]))
                 self._base_call_result(None)
                 return
             self._calls.append(("mgmt", data[0], data))
@@ -78,23 +85,7 @@ async def mock_socket() -> AsyncGenerator[_AsyncSocketMock]:
 
 
 @pytest.fixture
-async def hci_adapter(mock_socket: _AsyncSocketMock) -> AsyncGenerator[BluetoothHCIAdapter]:
-    async def _close(message: str) -> None:
-        pass
-
-    hci_adapter = BluetoothHCIAdapter("hci0", 0, mock_socket, _close)
-    BluetoothHCIAdapter.CMD_RTO = 0.1
-    await hci_adapter.async_init()
-    yield hci_adapter
-    await hci_adapter.drain()
-    await hci_adapter.async_final()
-
-
-@pytest.fixture
 async def bt_manager() -> AsyncGenerator[BleAdvBtManager]:
-    async def recv_callback(name: str, data: bytes) -> None:
-        pass
-
     mocks: list[_AsyncSocketMock] = []
 
     def create_mock_socket() -> _AsyncSocketMock:
@@ -103,7 +94,7 @@ async def bt_manager() -> AsyncGenerator[BleAdvBtManager]:
         return amock
 
     with mock.patch("ble_adv.adapters.create_async_socket", side_effect=create_mock_socket):
-        btmgt = BleAdvBtManager(recv_callback)
+        btmgt = BleAdvBtManager(mock.AsyncMock())
         BleAdvAdapter.MAX_ADV_WAIT = 0.2
         BluetoothHCIAdapter.CMD_RTO = 0.1
         BleAdvBtManager.MGMT_CMD_RTO = 0.1
