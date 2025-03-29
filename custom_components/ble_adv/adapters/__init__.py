@@ -179,6 +179,7 @@ class BluetoothHCIAdapter(BleAdvAdapter):
     ADV_INST: int = 1
 
     HCI_SUCCESS = 0x00
+    HCI_DISALLOWED = 0x0C
     HCI_COMMAND_PKT = 0x01
     HCI_EVENT_PKT = 0x04
 
@@ -189,11 +190,15 @@ class BluetoothHCIAdapter(BleAdvAdapter):
     EVT_LE_EXTENDED_ADVERTISING_REPORT = 0x0D
 
     OGF_LE_CTL = 0x08
+    OCF_LE_READ_LOCAL_SUPPORTED_FEATURES = 0x03
     OCF_LE_SET_ADVERTISING_PARAMETERS = 0x06
     OCF_LE_SET_ADVERTISING_DATA = 0x08
     OCF_LE_SET_ADVERTISE_ENABLE = 0x0A
     OCF_LE_SET_SCAN_PARAMETERS = 0x0B
     OCF_LE_SET_SCAN_ENABLE = 0x0C
+    OCF_LE_SET_EXT_ADVERTISING_PARAMETERS = 0x36
+    OCF_LE_SET_EXT_ADVERTISING_DATA = 0x37
+    OCF_LE_SET_EXT_ADVERTISE_ENABLE = 0x39
     ADV_FILTER = struct.pack(
         "<LLLHxx",
         1 << HCI_EVENT_PKT,
@@ -220,6 +225,8 @@ class BluetoothHCIAdapter(BleAdvAdapter):
         self._on_going_cmd: int | None = None
         self._adv_lock: asyncio.Lock = asyncio.Lock()
         self._cmd_lock: asyncio.Lock = asyncio.Lock()
+        self._use_ext_adv = False
+        self._use_mgmt_adv = False
 
     async def open(self) -> None:
         """Open the adapters. Can throw exception if invalid."""
@@ -239,10 +246,23 @@ class BluetoothHCIAdapter(BleAdvAdapter):
         await self._async_socket.async_start_recv()
         self._opened = True
         self._log(f"Connected - fileno: {fileno}")
+
+        # Get LE Features to check if extended advertising is supported / needed
+        ret_code, data = await self._send_hci_cmd(self.OCF_LE_READ_LOCAL_SUPPORTED_FEATURES)
+        if ret_code == self.HCI_SUCCESS and data is not None:
+            features = int.from_bytes(data, "little")
+            self._use_ext_adv = bool(features & (1 << 12))
+            _LOGGER.debug(f"Extended Adv Available: {self._use_ext_adv}")
+
+        if not self._use_ext_adv:
+            # Check if the HCI Raw advertising is possible or if we need to use mgmt:
+            ret_enable = await self._set_advertise_enable(enabled=True)
+            ret_disable = await self._set_advertise_enable(enabled=False)
+            self._use_mgmt_adv = (ret_enable == self.HCI_DISALLOWED) and (ret_disable == self.HCI_DISALLOWED)
+            _LOGGER.debug(f"Forced MGMT for ADV: {self._use_mgmt_adv}")
+
+        # Start Scan
         await self._start_scan()
-        # Check if the HCI Raw advertising is possible or if we need to use mgmt:
-        ret, _ = await self._send_hci_cmd(self.OCF_LE_SET_ADVERTISE_ENABLE, bytearray([0x01]))
-        self._use_mgmt_advertising = ret == 0x0C
 
     def close(self) -> None:
         """Close Adapter."""
@@ -284,8 +304,19 @@ class BluetoothHCIAdapter(BleAdvAdapter):
     async def _set_scan_enable(self, *, enabled: bool = True) -> None:
         await self._send_hci_cmd(self.OCF_LE_SET_SCAN_ENABLE, bytearray([0x01 if enabled else 0x00, 0x00]))
 
-    async def _set_advertise_enable(self, *, enabled: bool = True) -> None:
-        await self._send_hci_cmd(self.OCF_LE_SET_ADVERTISE_ENABLE, bytearray([0x01 if enabled else 0x00]))
+    async def _advertise(self, interval: int, data: bytes) -> None:
+        """Advertise the 'data' for the given interval."""
+        async with self._adv_lock:
+            if self._use_ext_adv:
+                await self._hci_ext_advertise(interval, data)
+            elif self._use_mgmt_adv:
+                await self._mgmt_advertise(interval, data)
+            else:
+                await self._hci_advertise(interval, data)
+
+    async def _set_advertise_enable(self, *, enabled: bool = True) -> int:
+        ret, _ = await self._send_hci_cmd(self.OCF_LE_SET_ADVERTISE_ENABLE, bytearray([0x01 if enabled else 0x00]))
+        return ret
 
     async def _set_advertising_parameter(self, min_interval: int = 0xA0, max_interval: int = 0xA0) -> None:
         params = bytearray()
@@ -298,14 +329,6 @@ class BluetoothHCIAdapter(BleAdvAdapter):
         # btmon will give error 'invalid packet size' if data not of len 31, but the command is successful.
         await self._send_hci_cmd(self.OCF_LE_SET_ADVERTISING_DATA, bytearray([len(data), *data]))
 
-    async def _advertise(self, interval: int, data: bytes) -> None:
-        """Advertise the 'data' for the given interval."""
-        async with self._adv_lock:
-            if self._use_mgmt_advertising:
-                await self._mgmt_advertise(interval, data)
-            else:
-                await self._hci_advertise(interval, data)
-
     async def _hci_advertise(self, interval: int, data: bytes) -> None:
         int_as_hex = int(interval * 1.6)
         await self._set_advertise_enable(enabled=False)
@@ -317,10 +340,55 @@ class BluetoothHCIAdapter(BleAdvAdapter):
         # set a fake adv, just in case it would be re enabled
         await self._set_advertising_data(bytes([0x03, 0xFF, 0x00, 0x00]))
 
+    async def _set_ext_advertise_enable(self, *, enabled: bool = True) -> int:
+        enb = 0x01 if enabled else 0x00
+        ret, _ = await self._send_hci_cmd(self.OCF_LE_SET_EXT_ADVERTISE_ENABLE, bytearray([enb, 0x01, self.ADV_INST, 0x00, 0x00, 0x00]))
+        return ret
+
+    async def _set_ext_advertising_parameter(self, min_interval: int = 0xA0, max_interval: int = 0xA0) -> None:
+        btaddr = [0x00] * 6
+        cmd = struct.pack(
+            "<BHHBHBBBB6BBBBBBBB",
+            self.ADV_INST,
+            0x0010,  # Properties (Use legacy advertising PDUs: ADV_NONCONN_IND)
+            min_interval,  # Min advertising interval
+            0x00,
+            max_interval,  # Max advertising interval
+            0x00,
+            0x07,  # Channel map: 37, 38, 39
+            0x00,  # Own address type: Public
+            0x00,  # Peer address type: Public
+            *btaddr,  # Peer address: 00:00:00:00:00:00
+            0x00,  # Filter policy: Allow Scan Request from Any, Allow Connect Request from Any
+            0x7F,  # TX power: Host has no preference
+            0x01,  # Primary PHY: LE 1M
+            0x00,  # Secondary max skip
+            0x01,  # Secondary PHY: LE 1M
+            0x00,  # SID
+            0x00,  # Scan request notifications: Disabled
+        )
+        await self._send_hci_cmd(self.OCF_LE_SET_EXT_ADVERTISING_PARAMETERS, cmd)
+
+    async def _set_ext_advertising_data(self, data: bytes) -> None:
+        data_len = len(data)
+        cmd = struct.pack(f"<BBBB{data_len}B", self.ADV_INST, 0x03, 0x01, data_len, *data)
+        await self._send_hci_cmd(self.OCF_LE_SET_EXT_ADVERTISING_DATA, cmd)
+
+    async def _hci_ext_advertise(self, interval: int, data: bytes) -> None:
+        int_as_hex = int(interval * 1.6)
+        await self._set_ext_advertise_enable(enabled=False)
+        await self._set_ext_advertising_parameter(int_as_hex, int_as_hex)
+        await self._set_ext_advertising_data(data)
+        await self._set_ext_advertise_enable()
+        await asyncio.sleep(0.0028 * interval)
+        await self._set_ext_advertise_enable(enabled=False)
+        # set a fake adv, just in case it would be re enabled
+        await self._set_ext_advertising_data(bytes([0x03, 0xFF, 0x00, 0x00]))
+
     async def _mgmt_advertise(self, interval: int, data: bytes) -> None:
         data_len = len(data)
         await self._mgmt_send(self.device_id, 0x003E, struct.pack(f"<BIHHBB{data_len}B", self.ADV_INST, 0, 0, 0, data_len, 0, *data))
-        await asyncio.sleep(0.0028 * interval)
+        await asyncio.sleep(max(0.0028 * interval, 0.5))
         await self._mgmt_send(self.device_id, 0x003F, bytes([self.ADV_INST]))
 
     async def _start_scan(self) -> None:

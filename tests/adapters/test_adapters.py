@@ -22,20 +22,34 @@ def adv_msg(interval: int, data: bytes) -> list[tuple[str, int, bytes]]:
     ]
 
 
+def adv_ext_msg(interval: int, data: bytes) -> list[tuple[str, int, bytes]]:
+    inter = int(interval * 1.6).to_bytes(2, "little")
+    return [
+        ("op_call", 0x39, b"\x00\x01\x01\x00\x00\x00"),  # DISABLE ADV EXT
+        ("op_call", 0x36, b"\x01\x10\x00" + inter + b"\x00" + inter + b"\x00\x07\x00\x00\x00\x00\x00\x00\x00\x00\x00\x7f\x01\x00\x01\x00\x00"),
+        ("op_call", 0x37, b"\x01\x03\x01" + len(data).to_bytes(1) + data),  # SET ADV DATA EXT
+        ("op_call", 0x39, b"\x01\x01\x01\x00\x00\x00"),  # ENABLE ADV EXT
+        ("op_call", 0x39, b"\x00\x01\x01\x00\x00\x00"),  # DISABLE ADV EXT
+        ("op_call", 0x37, b"\x01\x03\x01\x04\x03\xff\x00\x00"),  # RESET ADV DATA  EXT
+    ]
+
+
 def adv_mgmt_msg(data: bytes) -> list[mock._Call]:
     return [
-        mock.call(0, 62, b"\x01\x00\x00\x00\x00\x00\x00\x00\x00" + len(data).to_bytes(2, "little") + data),
-        mock.call(0, 63, b"\x01"),
+        mock.call(0, 0x3E, b"\x01\x00\x00\x00\x00\x00\x00\x00\x00" + len(data).to_bytes(2, "little") + data),
+        mock.call(0, 0x3F, b"\x01"),
     ]
 
 
 INIT_CALLS = [
     ("bind", ((0,),)),
     ("setsockopt", (0, 2, b"\x10\x00\x00\x00\x00@\x00\x00\x00\x00\x00@\x00\x00\x00\x00")),
-    ("op_call", 0x0C, b"\x00\x00"),
-    ("op_call", 0x0B, b"\x00\x10\x00\x10\x00\x00\x00"),
-    ("op_call", 0x0C, b"\x01\x00"),
-    ("op_call", 0x0A, b"\x01"),
+    ("op_call", 0x03, b""),  # LE Features
+    ("op_call", 0x0A, b"\x01"),  # Test ADV Enabled
+    ("op_call", 0x0A, b"\x00"),  # Test ADV Disabled
+    ("op_call", 0x0C, b"\x00\x00"),  # Disable Scan
+    ("op_call", 0x0B, b"\x00\x10\x00\x10\x00\x00\x00"),  # Scan Parameters
+    ("op_call", 0x0C, b"\x01\x00"),  # Enable Scan
 ]
 
 HCI_NAME = "hci/48:45:20:37:67:BF"
@@ -67,6 +81,31 @@ async def test_adapter(mock_socket: _AsyncSocketMock) -> None:
     await hci_adapter.async_final()
     with pytest.raises(AdapterError):
         await hci_adapter._advertise(20, b"")
+
+
+INIT_CALLS_EXT_ADV = [
+    ("bind", ((0,),)),
+    ("setsockopt", (0, 2, b"\x10\x00\x00\x00\x00@\x00\x00\x00\x00\x00@\x00\x00\x00\x00")),
+    ("op_call", 0x03, b""),  # LE Features
+    ("op_call", 0x0C, b"\x00\x00"),  # Disable Scan
+    ("op_call", 0x0B, b"\x00\x10\x00\x10\x00\x00\x00"),  # Scan Parameters
+    ("op_call", 0x0C, b"\x01\x00"),  # Enable Scan
+]
+
+
+async def test_adapter_ext_adv(mock_socket: _AsyncSocketMock) -> None:
+    hci_adapter = BluetoothHCIAdapter("hci0", 0, mock.AsyncMock(), mock.AsyncMock(), mock.AsyncMock())
+    hci_adapter._async_socket = mock_socket
+    hci_adapter._async_socket.hci_ext_adv = True
+    BluetoothHCIAdapter.CMD_RTO = 0.1
+    await hci_adapter.async_init()
+    assert mock_socket.get_calls() == INIT_CALLS_EXT_ADV
+    assert hci_adapter.available, "HCI Adapter available"
+    await hci_adapter.enqueue("q1", BleAdvQueueItem(20, 1, 150, 20, b"msg01"))
+    await hci_adapter.enqueue("q1", BleAdvQueueItem(30, 2, 100, 20, b"msg02"))
+    await hci_adapter.drain()
+    assert mock_socket.get_calls() == [*adv_ext_msg(20, b"msg01"), *adv_ext_msg(20, b"msg02"), *adv_ext_msg(20, b"msg02")]
+    await hci_adapter.async_final()
 
 
 async def test_adapter_mgmt_adv(mock_socket: _AsyncSocketMock) -> None:

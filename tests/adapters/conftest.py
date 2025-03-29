@@ -16,6 +16,7 @@ class _AsyncSocketMock(AsyncSocketBase):
         self._recv_queue: asyncio.Queue = asyncio.Queue()
         self.fail_open_nb: int = 0
         self.hci_adv_not_allowed: bool = False
+        self.hci_ext_adv: bool = False
         self._calls = []
 
     async def _async_open_socket(self, name: str, *args) -> int:  # noqa: ARG002, ANN002
@@ -41,7 +42,11 @@ class _AsyncSocketMock(AsyncSocketBase):
                     return
                 ret_code = 0x0C if self.hci_adv_not_allowed and data[1] in [0x06, 0x08, 0x0A] else 0x00
                 self._calls.append(("op_call", data[1], data[4:]))
-                self.simulate_recv(bytearray([0x04, 0x0E, 0x00, 0x00, data[1], 0x20, ret_code, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]))
+                if data[1] == 0x03 and self.hci_ext_adv:
+                    features = (1 << 12).to_bytes(8, "little")
+                    self.simulate_recv(bytearray([0x04, 0x0E, 0x00, 0x00, data[1], 0x20, ret_code, *features]))
+                else:
+                    self.simulate_recv(bytearray([0x04, 0x0E, 0x00, 0x00, data[1], 0x20, ret_code, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]))
                 self._base_call_result(None)
                 return
             self._calls.append(("mgmt", data[0], data))
