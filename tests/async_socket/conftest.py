@@ -15,7 +15,7 @@ class _SocketMock(mock.MagicMock):
     def init(self) -> None:
         self._recv_queue: asyncio.Queue = asyncio.Queue()
 
-    async def sock_recv(self, sock: Self, leng: int) -> bytes:  # noqa: ARG002
+    async def sock_recv(self, _: Self, __: int) -> bytes:
         data = await self._recv_queue.get()
         self._recv_queue.task_done()
         return data
@@ -91,7 +91,7 @@ class _ConMock:
         else:
             self.simulate_recv(0, None)
 
-    async def _read(self, leng: int) -> bytes:  # noqa: ARG002
+    async def _read(self, _: int) -> bytes:
         data = await self._recv_queue.get()
         self._recv_queue.task_done()
         return data

@@ -230,10 +230,10 @@ class _TestCodec(BleAdvCodec):
     def encrypt(self, decoded: bytes) -> bytes:
         return decoded
 
-    def convert_to_enc(self, decoded: bytes) -> tuple[BleAdvEncCmd | None, BleAdvConfig | None]:  # noqa: ARG002
+    def convert_to_enc(self, _: bytes) -> tuple[BleAdvEncCmd | None, BleAdvConfig | None]:
         return BleAdvEncCmd(0x10), BleAdvConfig()
 
-    def convert_from_enc(self, enc_cmd: BleAdvEncCmd, conf: BleAdvConfig) -> bytes:  # noqa: ARG002
+    def convert_from_enc(self, _: BleAdvEncCmd, __: BleAdvConfig) -> bytes:
         return b"test"
 
 

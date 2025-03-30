@@ -58,7 +58,7 @@ class _MatchingAllCallback(MatchingCallback):
     def __repr__(self) -> str:
         return "Matching ALL"
 
-    async def handle(self, codec_id: str, adapter_id: str, config: BleAdvConfig, ent_attrs: list[BleAdvEntAttr]) -> bool:  # noqa: ARG002
+    async def handle(self, codec_id: str, adapter_id: str, config: BleAdvConfig, _: list[BleAdvEntAttr]) -> bool:
         await self.callback(codec_id, adapter_id, config)
         return True
 
@@ -89,7 +89,7 @@ class BleAdvConfigFlow(ConfigFlow, domain=DOMAIN):
         self._clean_datetime = None
 
         self._final_config: _CodecConfig | None = None
-        self._data = {}
+        self._data: dict[str, Any] = {CONF_LIGHTS: [], CONF_FANS: [], CONF_TECHNICAL: {CONF_DURATION: 850, CONF_INTERVAL: 20, CONF_REPEAT: 3}}
         self._conf_name: str = ""
         self._finalize_requested: bool = False
 
@@ -167,7 +167,7 @@ class BleAdvConfigFlow(ConfigFlow, domain=DOMAIN):
             await asyncio.sleep(0.3)
             await tmp_device.async_stop()
 
-    async def async_step_user(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:  # noqa: ARG002
+    async def async_step_user(self, _: dict[str, Any] | None = None) -> ConfigFlowResult:
         """Handle the user step to setup a device."""
         self._coordinator: BleAdvCoordinator = await get_coordinator(self.hass)
         if not self._coordinator.has_available_adapters():
@@ -216,7 +216,7 @@ class BleAdvConfigFlow(ConfigFlow, domain=DOMAIN):
         )
         return self.async_show_form(step_id="pair", data_schema=data_schema)
 
-    async def async_step_wait_config(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:  # noqa: ARG002
+    async def async_step_wait_config(self, _: dict[str, Any] | None = None) -> ConfigFlowResult:
         """Wait for listened config Step."""
         if not self.configs:
             if not self.rem_task:
@@ -234,15 +234,15 @@ class BleAdvConfigFlow(ConfigFlow, domain=DOMAIN):
         self.wait_for_agg = False
         return self.async_show_progress_done(next_step_id="agg_config")
 
-    async def async_step_no_config(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:  # noqa: ARG002
+    async def async_step_no_config(self, _: dict[str, Any] | None = None) -> ConfigFlowResult:
         """No Config found, abort or retry."""
         return self.async_show_menu(step_id="no_config", menu_options=["wait_config", "abort_config"])
 
-    async def async_step_abort_config(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:  # noqa: ARG002
+    async def async_step_abort_config(self, _: dict[str, Any] | None = None) -> ConfigFlowResult:
         """No Config found, abort."""
         return self.async_abort(reason="no_config")
 
-    async def async_step_agg_config(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:  # noqa: ARG002
+    async def async_step_agg_config(self, _: dict[str, Any] | None = None) -> ConfigFlowResult:
         """Supplementary wait for other config Step."""
         if not self.wait_for_agg:
             self.wait_for_agg = True
@@ -252,9 +252,22 @@ class BleAdvConfigFlow(ConfigFlow, domain=DOMAIN):
                 progress_task=self.hass.async_create_task(asyncio.sleep(2.0)),
             )
         await self._async_stop_listen_to_config()
-        return self.async_show_progress_done(next_step_id="blink")
+        return self.async_show_progress_done(next_step_id="choose_adapter")
 
-    async def async_step_blink(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:  # noqa: ARG002
+    async def async_step_choose_adapter(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
+        """Choose adapter."""
+        adapter_ids = {x.adapter_id for x in self.configs}
+        if len(adapter_ids) != 1:
+            if user_input is not None:
+                self.configs = [x for x in self.configs if x.adapter_id == user_input[CONF_ADAPTER_ID]]
+                return await self.async_step_blink()
+
+            data_schema = vol.Schema({vol.Required(CONF_ADAPTER_ID): vol.In(adapter_ids)})
+            return self.async_show_form(step_id="choose_adapter", data_schema=data_schema)
+
+        return await self.async_step_blink()
+
+    async def async_step_blink(self, _: dict[str, Any] | None = None) -> ConfigFlowResult:
         """Blink Step."""
         if not self.blink_done:
             self.blink_done = True
@@ -269,7 +282,7 @@ class BleAdvConfigFlow(ConfigFlow, domain=DOMAIN):
             return self.async_abort(reason="no_config")
         return self.async_show_progress_done(next_step_id="confirm")
 
-    async def async_step_confirm(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:  # noqa: ARG002
+    async def async_step_confirm(self, _: dict[str, Any] | None = None) -> ConfigFlowResult:
         """Confirm choice Step."""
         return self.async_show_menu(
             step_id="confirm",
@@ -277,25 +290,25 @@ class BleAdvConfigFlow(ConfigFlow, domain=DOMAIN):
             description_placeholders=self._selected_conf_placeholders(),
         )
 
-    async def async_step_confirm_yes(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:  # noqa: ARG002
+    async def async_step_confirm_yes(self, _: dict[str, Any] | None = None) -> ConfigFlowResult:
         """Confirm YES Step."""
         self._final_config = self.configs[self.selected_config]
         await self.async_set_unique_id(f"{self._final_config}", raise_on_progress=False)
         self._abort_if_unique_id_configured()
         return await self.async_step_configure()
 
-    async def async_step_confirm_no(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:  # noqa: ARG002
+    async def async_step_confirm_no(self, _: dict[str, Any] | None = None) -> ConfigFlowResult:
         """Confirm NO Step."""
         self.blink_done = False
         return await self.async_step_blink()
 
-    async def async_step_confirm_retry(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:  # noqa: ARG002
+    async def async_step_confirm_retry(self, _: dict[str, Any] | None = None) -> ConfigFlowResult:
         """Confirm Retry Step."""
         self.blink_done = False
         self.selected_config = self.selected_config - 1
         return await self.async_step_blink()
 
-    async def async_step_configure(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:  # noqa: ARG002
+    async def async_step_configure(self, _: dict[str, Any] | None = None) -> ConfigFlowResult:
         """Configure choice Step."""
         return self.async_show_menu(
             step_id="configure",
@@ -357,7 +370,7 @@ class BleAdvConfigFlow(ConfigFlow, domain=DOMAIN):
 
         return self.async_show_form(step_id="config_entities", data_schema=data_schema, errors=errors)
 
-    async def async_step_config_remote(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:  # noqa: ARG002
+    async def async_step_config_remote(self, _: dict[str, Any] | None = None) -> ConfigFlowResult:
         """Configure Remote."""
         self.configs.clear()
         self.selected_config = -1
@@ -370,12 +383,12 @@ class BleAdvConfigFlow(ConfigFlow, domain=DOMAIN):
             )
         return await self.async_step_config_remote_new()
 
-    async def async_step_config_remote_delete(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:  # noqa: ARG002
+    async def async_step_config_remote_delete(self, _: dict[str, Any] | None = None) -> ConfigFlowResult:
         """Remove Remote."""
         self._data[CONF_REMOTE].clear()
         return await self.async_step_configure()
 
-    async def async_step_config_remote_new(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:  # noqa: ARG002
+    async def async_step_config_remote_new(self, _: dict[str, Any] | None = None) -> ConfigFlowResult:
         """Configure New Remote."""
         if not self.configs:
             if not self.rem_task:
@@ -417,16 +430,16 @@ class BleAdvConfigFlow(ConfigFlow, domain=DOMAIN):
             self._data[CONF_TECHNICAL] = user_input
             return await self.async_step_configure()
 
-        def_tech = self._data.get(CONF_TECHNICAL, {})
+        def_tech = self._data[CONF_TECHNICAL]
         data_schema = vol.Schema(
             {
-                vol.Optional(CONF_DURATION, default=def_tech.get(CONF_DURATION, 850)): selector.NumberSelector(
+                vol.Optional(CONF_DURATION, default=def_tech[CONF_DURATION]): selector.NumberSelector(
                     selector.NumberSelectorConfig(step=50, min=100, max=1000, mode=selector.NumberSelectorMode.SLIDER)
                 ),
-                vol.Optional(CONF_INTERVAL, default=def_tech.get(CONF_INTERVAL, 20)): selector.NumberSelector(
+                vol.Optional(CONF_INTERVAL, default=def_tech[CONF_INTERVAL]): selector.NumberSelector(
                     selector.NumberSelectorConfig(step=10, min=20, max=100, mode=selector.NumberSelectorMode.BOX)
                 ),
-                vol.Optional(CONF_REPEAT, default=def_tech.get(CONF_REPEAT, 3)): selector.NumberSelector(
+                vol.Optional(CONF_REPEAT, default=def_tech[CONF_REPEAT]): selector.NumberSelector(
                     selector.NumberSelectorConfig(step=1, min=1, max=10, mode=selector.NumberSelectorMode.BOX)
                 ),
             }
@@ -457,7 +470,7 @@ class BleAdvConfigFlow(ConfigFlow, domain=DOMAIN):
 
         return self.async_show_form(step_id="finalize", data_schema=vol.Schema({vol.Required(CONF_NAME): str}))
 
-    async def async_step_reconfigure(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:  # noqa: ARG002
+    async def async_step_reconfigure(self, _: dict[str, Any] | None = None) -> ConfigFlowResult:
         """Reconfigure Step."""
         self._coordinator = await get_coordinator(self.hass)
         self._data = self._get_reconfigure_entry().data.copy()

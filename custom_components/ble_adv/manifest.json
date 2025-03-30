@@ -1,6 +1,9 @@
 {
   "domain": "ble_adv",
   "name": "BLE ADV Ceiling Fan / Lamps",
+  "after_dependencies": [
+    "esphome"
+  ],
   "codeowners": [
     "@NicoIIT"
   ],

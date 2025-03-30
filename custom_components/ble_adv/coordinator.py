@@ -6,12 +6,24 @@ import logging
 from abc import ABC, abstractmethod
 from datetime import datetime, timedelta
 
-from homeassistant.core import HomeAssistant
+from homeassistant.const import EVENT_HOMEASSISTANT_STOP
+from homeassistant.core import CALLBACK_TYPE, Event, HomeAssistant
 
-from .adapters import BleAdvAdapter, BleAdvBtManager
+from ble_adv.const import DOMAIN
+
+from .adapters import AdvRecvCallback, BleAdvAdapter, BleAdvBtManager, BleAdvQueueItem
 from .codecs.models import BleAdvAdvertisement, BleAdvCodec, BleAdvConfig, BleAdvEntAttr, as_hex
 
 _LOGGER = logging.getLogger(__name__)
+
+ESPHOME_DOMAIN = "esphome"
+ESPHOME_BLE_ADV_DISCOVERY_EVENT = f"{ESPHOME_DOMAIN}.{DOMAIN}.discovery"
+CONF_ATTR_RAW = "raw"
+CONF_ATTR_NAME = "name"
+CONF_ATTR_MAC = "mac"
+CONF_ATTR_DURATION = "duration"
+CONF_ATTR_RECV_EVENT_NAME = "adv_recv_event"
+CONF_ATTR_PUBLISH_ADV_SVC = "publish_adv_svc"
 
 
 class CoordinatorError(Exception):
@@ -27,6 +39,44 @@ class MatchingCallback(ABC):
         raise CoordinatorError("Not Implemented")
 
 
+class BleAdvEsphomeAdapter(BleAdvAdapter):
+    """ESPHome BT Adapter."""
+
+    def __init__(
+        self,
+        hass: HomeAssistant,
+        conf: dict[str, str],
+        on_adv_recv: AdvRecvCallback,
+    ) -> None:
+        super().__init__(conf[CONF_ATTR_NAME], self._on_error)
+        self._conf = conf
+        self.hass = hass
+        self._on_adv_recv = on_adv_recv
+
+    async def open(self) -> None:
+        """Open adapter."""
+        self._unreg_listen = self.hass.bus.async_listen(self._conf[CONF_ATTR_RECV_EVENT_NAME], self._on_adv_recv_event)
+        _LOGGER.info(f"ESPHome ble_adv_proxy connected: {self.name}")
+
+    def close(self) -> None:
+        """Close the adapter, nothing to do."""
+        self._unreg_listen()
+
+    async def _on_error(self, message: str) -> None:
+        _LOGGER.warning(f"Unhandled error: {message}")
+
+    async def _on_adv_recv_event(self, event: Event) -> None:
+        """Act on Adv Received event."""
+        _LOGGER.debug(f"ESPHome ADV recv Event: {event.data}")
+        await self._on_adv_recv(self.name, bytes.fromhex(event.data[CONF_ATTR_RAW]))
+
+    async def _advertise(self, interval: int, data: bytes) -> None:
+        """Advertise the msg."""
+        await self.hass.services.async_call(
+            ESPHOME_DOMAIN, self._conf[CONF_ATTR_PUBLISH_ADV_SVC], {CONF_ATTR_RAW: data.hex(), CONF_ATTR_DURATION: 3 * interval}
+        )
+
+
 class BleAdvCoordinator:
     """Class to manage fetching any BLE ADV data."""
 
@@ -40,29 +90,46 @@ class BleAdvCoordinator:
         self.hass: HomeAssistant = hass
         self.logger: logging.Logger = logger
         self.codecs: dict[str, BleAdvCodec] = codecs
-        self._last_advs: dict[bytes, datetime] = {}
+        self._last_advs: dict[str, dict[bytes, datetime]] = {}
         self._callbacks: dict[str, MatchingCallback] = {}
         self._bt_manager: BleAdvBtManager = BleAdvBtManager(self.handle_raw_adv)
+        self._esp_bt_adapters: dict[str, BleAdvAdapter] = {}
+        self._cnl_clbck: list[CALLBACK_TYPE] = []
 
     async def async_init(self) -> None:
         """Async Init."""
         await self._bt_manager.async_init()
+        self._cnl_clbck.append(self.hass.bus.async_listen(ESPHOME_BLE_ADV_DISCOVERY_EVENT, self.on_discovery_event))
+        self.hass.bus.async_listen_once(EVENT_HOMEASSISTANT_STOP, self.on_stop_event)
 
     async def async_final(self) -> None:
         """Async Final: Clean-up."""
+        _LOGGER.info("Cleaning BT Connections.")
+        for cancel_callback in self._cnl_clbck:
+            cancel_callback()
+        for adapter in self._esp_bt_adapters.values():
+            await adapter.async_final()
         await self._bt_manager.async_final()
 
     def get_adapter_ids(self) -> list[str]:
-        """Is an adapter exists."""
-        return list(self._bt_manager.adapters.keys())
-
-    def get_adapter(self, adapter_id: str) -> BleAdvAdapter:
-        """Get the adapter."""
-        return self._bt_manager.adapters[adapter_id]
+        """List bt adapters."""
+        return list(self._bt_manager.adapters.keys()) + list(self._esp_bt_adapters.keys())
 
     def has_available_adapters(self) -> bool:
         """Check if the coordinator has available adapters."""
-        return any(adapter is not None for adapter in self._bt_manager.adapters.values())
+        return len(self._bt_manager.adapters) > 0 or len(self._esp_bt_adapters) > 0
+
+    async def on_stop_event(self, _: Event) -> None:
+        """Act on stop event."""
+        await self.async_final()
+
+    async def on_discovery_event(self, event: Event) -> None:
+        """Act on discovery event."""
+        _LOGGER.debug(f"Discovery Event: {event.data}")
+        adapter_name = event.data[CONF_ATTR_NAME]
+        if adapter_name not in self._esp_bt_adapters:
+            self._esp_bt_adapters[adapter_name] = BleAdvEsphomeAdapter(self.hass, {**event.data}, self.handle_raw_adv)
+            await self._esp_bt_adapters[adapter_name].async_init()
 
     async def register_callback(self, callback_id: str, callback: MatchingCallback) -> None:
         """Register a matching callback by its id."""
@@ -74,15 +141,28 @@ class BleAdvCoordinator:
         self._callbacks.pop(callback_id)
         self.logger.info(f"Unregistered callback with id '{callback_id}'")
 
+    async def advertise(self, adapter_id: str, queue_id: str, qi: BleAdvQueueItem) -> None:
+        """Advertise."""
+        for last_advs in self._last_advs.values():
+            last_advs[bytes(qi.data)] = datetime.now()  # do not re process in case re listen by another adapter
+        if adapter_id in self._bt_manager.adapters:
+            await self._bt_manager.adapters[adapter_id].enqueue(queue_id, qi)
+        elif adapter_id in self._esp_bt_adapters:
+            await self._esp_bt_adapters[adapter_id].enqueue(queue_id, qi)
+        else:
+            _LOGGER.error(f"Cannot process advertising: adapter '{adapter_id}' is not available.")
+
     async def handle_raw_adv(self, adapter_id: str, raw_adv: bytes) -> None:
         """Handle a raw advertising."""
         try:
-            # clean-up last advs and check for dupe
+            # clean-up last advs for this adapter and check for dupe
+            if adapter_id not in self._last_advs:
+                self._last_advs[adapter_id] = {}
             limit_creation = datetime.now() - timedelta(seconds=35)
-            self._last_advs = {x: y for x, y in self._last_advs.items() if (y > limit_creation)}
-            if raw_adv in self._last_advs:
+            self._last_advs[adapter_id] = {x: y for x, y in self._last_advs[adapter_id].items() if (y > limit_creation)}
+            if raw_adv in self._last_advs[adapter_id]:
                 return
-            self._last_advs[raw_adv] = datetime.now()
+            self._last_advs[adapter_id][raw_adv] = datetime.now()
 
             # Parse the raw data and find the relevant info
             adv = BleAdvAdvertisement.FromRaw(raw_adv)
@@ -91,9 +171,9 @@ class BleAdvCoordinator:
                 return
 
             # also add the decoded data to the ignore list
-            if adv.raw in self._last_advs:
+            if adv.raw in self._last_advs[adapter_id]:
                 return
-            self._last_advs[adv.raw] = datetime.now()
+            self._last_advs[adapter_id][adv.raw] = datetime.now()
 
             _LOGGER.debug(f"BLE ADV received - {adv}")
             for codec_id, acodec in self.codecs.items():
@@ -105,176 +185,3 @@ class BleAdvCoordinator:
 
         except Exception:
             _LOGGER.exception("Exception handling raw adv message")
-
-
-# ruff: noqa: ERA001
-
-# from __future__ import annotations
-
-# import asyncio
-# import logging
-# import traceback
-# import re
-
-# from datetime import datetime, timedelta
-# from time import clock_gettime
-
-# from habluetooth import BluetoothScanningMode
-# from homeassistant.components import bluetooth
-# from homeassistant.core import HomeAssistant, callback
-# from homeassistant.components.bluetooth.models import BluetoothChange, BluetoothServiceInfoBleak
-
-# from homeassistant.components.bluetooth.api import _get_manager
-# from bluetooth_adapters import get_dbus_managed_objects
-
-# from .codecs.models import MatchingDeviceCallback, BleAdvAdvertisement, BleAdvEncCmd, BleAdvConfig, as_hex
-# # NOOOOOOOOOOO from .device import BleAdvDevice
-
-# _LOGGER = logging.getLogger(__name__)
-
-# UUID_REGEX = re.compile("0000([0-9a-fA-F]{4})-0000-1000-8000-00805f9b34fb")
-# UUID_GEN = "0000{:02x}{:02x}-0000-1000-8000-00805f9b34fb"
-
-# class BleAdvCoordinator:
-
-#     """Class to manage fetching any BLE ADV data."""
-
-#     def __init__(
-#         self,
-#         hass: HomeAssistant,
-#         logger: logging.Logger,
-#         codecs,
-#     ) -> None:
-#         """Initialize"""
-#         self.hass = hass
-#         self.logger = logger
-#         self.codecs = codecs
-#         self._last_advs = []
-#         self._last_adv_03 = {}
-#         self._bluetooth_rem_callback = None
-#         self._callbacks: dict[MatchingDeviceCallback] = {}
-#         self._ready = False
-
-#     async def register_callback(self, id, callback: MatchingDeviceCallback) -> None:
-#         if len(self._callbacks) == 0:
-#             self._bluetooth_rem_callback = bluetooth.api.async_register_callback(
-#                     self.hass,
-#                     self._handle_bluetooth_event,
-#                     None,
-#                     BluetoothScanningMode.PASSIVE,
-#             )
-#             self.logger.info(f"Bluetooth callback registered")
-#             #await asyncio.sleep(0.2) # ignore the initial elements sent by HA bluetooth and that are not live
-#             self._ready = True
-
-#         self._callbacks[id] = callback
-#         self.logger.info(f"Registered callback with id '{id}': {callback}")
-
-#     async def unregister_callback(self, id) -> None:
-#         self._callbacks.pop(id)
-#         self.logger.info(f"Unregistered callback with id '{id}'")
-#         if len(self._callbacks) == 0 and self._bluetooth_rem_callback is not None:
-#             self.logger.info(f"Bluetooth callback unregistered")
-#             self._ready = False
-#             self._bluetooth_rem_callback()
-#             self._bluetooth_rem_callback = None
-
-#     @callback
-#     def _handle_bluetooth_event(
-#         self,
-#         service_info: BluetoothServiceInfoBleak,
-#         change: BluetoothChange,
-#     ) -> None:
-#         """Handle a bluetooth event."""
-#         # if too far in the past, ignore
-#         if service_info.time < (clock_gettime(6) - 0.1):
-#             _LOGGER.info(f"Ignored")
-#             return
-
-#         # clean-up last advs
-#         limit_creation = datetime.now() - timedelta(seconds=35)
-#         self._last_advs = [ x for x in self._last_advs if (x._created > limit_creation) ]
-#         self._last_adv_03 = { x:y for x,y in self._last_adv_03.items() if (y[2] > limit_creation) }
-
-#         # convert the newly received one
-#         raw_data = bytes()
-#         ble_type = None
-#         for k,v in service_info.manufacturer_data.items():
-#             raw_data += k.to_bytes(2, 'little')
-#             raw_data += v
-#             ble_type = 0xFF
-#         if ble_type is None:
-#             for k, v in service_info.service_data.items():
-#                 if match := UUID_REGEX.fullmatch(k):
-#                     raw_data += int(match.group(1), 16).to_bytes(2, 'little')
-#                     raw_data += v
-#                     ble_type = 0x16
-#         if ble_type is None:
-#             for uuid in service_info.service_uuids:
-#                 if match := UUID_REGEX.fullmatch(uuid):
-#                     raw_data += int(match.group(1), 16).to_bytes(2, 'little')
-#                     ble_type = 0x03
-#         if not ble_type:
-#             return
-
-#         # WORKAROUND for (stupid? BLE Apps using BLE ADV in non standard way...) non compatible behaviour
-#         # The HA framework and BlueZ aggregates the UUIDs previously received for an address
-#         # with the ones newly received, resulting in a "message" unreadable for us
-#         # We keep the previously received UUIDs for this address and we rebuild the message with only the new parts
-#         # And the common part a the beginning of the message (that are not re added as considered duplicate...)
-#         # BUT if some other part of the message is common in between the previous and the new, we will NOT be able to identify them...
-#         if ble_type == 0x03:
-#             # find if this one starts as the previous 0x03 adv for the same address
-#             prev_raw, adv_len, created_time = self._last_adv_03.get(service_info.address, (None,None,None))
-#             if prev_raw and raw_data.startswith(prev_raw) and prev_raw != raw_data:
-#                 # _LOGGER.info(f"exists - prev: {as_hex(prev_raw)}, len: {adv_len}")
-#                 new_data = raw_data[len(prev_raw):]
-#                 new_data = prev_raw[:adv_len - len(new_data)] + new_data
-#                 # _LOGGER.info(f"new: {as_hex(new_data)}, len: {len(new_data)}")
-#                 self._last_adv_03[service_info.address] = (raw_data, adv_len, datetime.now())
-#                 raw_data = new_data
-#             else:
-#                 # _LOGGER.info(f"new: {as_hex(raw_data)}, len: {len(raw_data)}")
-#                 self._last_adv_03[service_info.address] = (raw_data, len(raw_data), datetime.now())
-#         # End of WORKAROUND
-
-#         adv = BleAdvAdvertisement(ble_type, raw_data)
-
-#         # check if not dupe and launch async callback
-#         if not adv in self._last_advs:
-#             self._last_advs.append(adv)
-#             asyncio.run_coroutine_threadsafe(self._async_handle_bluetooth_event(adv), self.hass.loop)
-
-#     async def _async_handle_bluetooth_event(self, adv: BleAdvAdvertisement) -> None:
-#         _LOGGER.info(f"BLE ADV received - {adv}")
-#         try:
-#             for id, acodec in self.codecs.items():
-#                 enc_cmd, conf = acodec.decode_adv(adv)
-#                 if conf != None:
-#                     _LOGGER.info(f"[{id}] enc: {enc_cmd} / config: {conf}")
-#                     for device_callback in self._callbacks.values():
-#                         if device_callback.matches(id, conf):
-#                             await device_callback.callback(id, conf, enc_cmd)
-
-#         except Exception:
-#             _LOGGER.error(traceback.format_exc())
-
-#     async def async_send_command(self,  codec_id: str, conf: BleAdvConfig, enc_cmd: BleAdvEncCmd):
-#         _LOGGER.info(f"Sending command: '{enc_cmd}' to '{codec_id}'")
-#         try:
-#             acodec = self.codecs.get(codec_id)
-#             adv: BleAdvAdvertisement = acodec.encode_adv(enc_cmd, conf)
-#             _LOGGER.info(f"Gen ADV: {adv}")
-#             if adv._ble_type == 0x03:
-#                 uuids = [ UUID_GEN.format(adv._raw[i+1], adv._raw[i]) for i in range(0, len(adv._raw), 2) ]
-#                 _LOGGER.info(uuids)
-
-#         except Exception:
-#             _LOGGER.error(traceback.format_exc())
-
-#         manager = _get_manager(self.hass)
-#         # adapters = await manager.async_get_bluetooth_adapters()
-#         # _LOGGER.info(adapters)
-#         dbuses = await get_dbus_managed_objects()
-#         adv_ifaces = [ key for key, val in dbuses.items() if 'org.bluez.LEAdvertisingManager1' in val]
-#         _LOGGER.info(f"{adv_ifaces} support advertising")
