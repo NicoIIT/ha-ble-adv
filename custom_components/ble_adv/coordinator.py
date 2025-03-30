@@ -9,10 +9,9 @@ from datetime import datetime, timedelta
 from homeassistant.const import EVENT_HOMEASSISTANT_STOP
 from homeassistant.core import CALLBACK_TYPE, Event, HomeAssistant
 
-from ble_adv.const import DOMAIN
-
 from .adapters import AdvRecvCallback, BleAdvAdapter, BleAdvBtManager, BleAdvQueueItem
 from .codecs.models import BleAdvAdvertisement, BleAdvCodec, BleAdvConfig, BleAdvEntAttr, as_hex
+from .const import DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
 
