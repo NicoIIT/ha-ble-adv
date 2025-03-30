@@ -10,6 +10,7 @@ Same as [ESPHome integration](https://github.com/NicoIIT/esphome-components) but
 * Your device can be reached by Bluetooth from the Home Assistant Host. ESPHome bluetooth proxies cannot be used (for now).
 * Have an up-to-date Home Assistant Core (2025.2.4 minimum) and HACS (2.0.1 minimum)
 * This integration communicates directly with the bluetooth adapters using HCI Sockets (cannot use the HA Bluetooth Adapters directly due to the need to use BLE Advertising in RAW mode), so your Home Assistant must have a direct authorized access to the Bluetooth adapter (run as root, direct network access - network mode 'host'). For **advanced** users that defined their own HA docker container in a dedicated docker network behind nginx for example, a solution is available [here](https://github.com/NicoIIT/ha-ble-adv/wiki/Workaround-for-HA-non-root-installations).
+* Alternatively you can use the ESPHome custom component [ble_adv_proxy](https://github.com/NicoIIT/esphome-ble_adv_proxy) which can be added to the config of a Bluetooth Proxy if your Host do not have a working or recognized bluetooth adapter.
 
 ## Supported Ceiling Fans / Lamps
 This integration does not support any specific device brand, but protocols used by the ANDROID apps controlling them. Protocols supported are the ones used by the following ANDROID Apps:

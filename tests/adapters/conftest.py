@@ -19,7 +19,7 @@ class _AsyncSocketMock(AsyncSocketBase):
         self.hci_ext_adv: bool = False
         self._calls = []
 
-    async def _async_open_socket(self, name: str, *args) -> int:  # noqa: ARG002, ANN002
+    async def _async_open_socket(self, _: str, *__) -> int:  # noqa: ANN002
         if self.fail_open_nb > 0:
             self.fail_open_nb -= 1
             raise OSError("Forced Error")

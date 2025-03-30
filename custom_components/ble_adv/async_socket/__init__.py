@@ -131,7 +131,7 @@ class AsyncSocket(AsyncSocketBase):
         super().__init__()
         self._socket: socket.socket | None = None
 
-    async def _async_open_socket(self, name: str, *args) -> int:  # noqa: ARG002, ANN002
+    async def _async_open_socket(self, _: str, *args) -> int:  # noqa: ANN002
         if self._is_mgmt:
             self._socket = btmgmt_socket.open()
         else:

@@ -4,7 +4,7 @@
     "step": {
       "user": {
         "menu_options": {
-          "manual": "Manual Input",
+          "manual": "Manual Input (Expert)",
           "wait_config": "Duplicate Paired Phone App config (Recommended)",
           "pair": "Pairing"
         }
@@ -21,7 +21,7 @@
         }
       },
       "wait_config": {
-        "title": "Listening to configuration from Paired Phone App"
+        "title": "Listening to configuration from Paired Phone App."
       },
       "no_config": {
         "description": "No configuration listened within 10s",
@@ -39,6 +39,13 @@
         "data": {
           "adapter_id": "BLE ADV Adapter",
           "phone_app": "Phone Application"
+        }
+      },
+      "choose_adapter": {
+        "title": "Adapter Selection",
+        "description": "More than one bluetooth adapter have listen some config, please select the nearest to your device",
+        "data": {
+          "adapter_id": "BLE ADV Adapter"
         }
       },
       "confirm": {

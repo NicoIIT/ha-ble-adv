@@ -99,12 +99,12 @@ class BleAdvEntity(RestoreEntity):
             setattr(self, f"_attr_{attr_name}", attr_value)
 
     @handle_change
-    async def async_turn_off(self, **kwargs) -> None:  # noqa: ANN003, ARG002
+    async def async_turn_off(self, **_) -> None:  # noqa: ANN003
         """Turn off the Entity."""
         self._attr_is_on = False
 
     @handle_change
-    async def async_turn_on(self, *args, **kwargs) -> None:  # noqa: ANN002, ANN003, ARG002
+    async def async_turn_on(self, *_, **kwargs) -> None:  # noqa: ANN002, ANN003
         """Turn Entity on."""
         for attr_name, _ in self._state_attributes:
             if (val := kwargs.get(attr_name)) is not None:
@@ -203,7 +203,7 @@ class BleAdvMatchingDevice(ABC):
     @property
     def available(self) -> bool:
         """Return True if the device is available: if the adapter is available."""
-        return self.adapter_id in self.coordinator.get_adapter_ids() and self.coordinator.get_adapter(self.adapter_id) is not None
+        return self.adapter_id in self.coordinator.get_adapter_ids()
 
     async def register(self) -> None:
         """Register to coordinator."""
@@ -304,7 +304,7 @@ class BleAdvDevice(BleAdvMatchingDevice):
                 self.config.tx_count = (self.config.tx_count + 1) % 125
                 adv: BleAdvAdvertisement = acodec.encode_adv(enc_cmd, self.config)
                 qi: BleAdvQueueItem = BleAdvQueueItem(enc_cmd.cmd, self.repeat, self.duration, self.interval, adv.to_raw())
-                await self.coordinator.get_adapter(self.adapter_id).enqueue(self.unique_id, qi)
+                await self.coordinator.advertise(self.adapter_id, self.unique_id, qi)
         except Exception:
             _LOGGER.exception("Exception applying changes")
 
@@ -341,7 +341,7 @@ class BleAdvDevice(BleAdvMatchingDevice):
             self._timer_cancel = None
             self.logger.info("Timer cancelled.")
 
-    async def _async_timeout(self, now: datetime) -> None:  # noqa: ARG002
+    async def _async_timeout(self, _: datetime) -> None:
         self.logger.info("Timer expired: switch all entities OFF.")
         await self._async_cmd_all(BleAdvEntAttr([ATTR_ON], {ATTR_ON: False}, "", 0))
 
