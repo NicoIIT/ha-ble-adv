@@ -74,8 +74,8 @@ class FanLampEncoderV1(FanLampEncoder):
         """Compute CRC 2 as ccitt crc16."""
         return self._forced_crc2 if self._forced_crc2 != 0 else self._crc16(buffer, self._crc2_seed)
 
-    def _get_arg2(self, cmd: int) -> int:
-        return self._arg2 if (cmd == 0x28 or (not self._arg2_only_on_pair and cmd not in [0x12, 0x13])) else 0
+    def _get_arg2(self, cmd: int, arg2: int) -> int:
+        return arg2 if cmd == 0x22 else self._arg2 if (cmd == 0x28 or (not self._arg2_only_on_pair and cmd not in [0x12, 0x13])) else 0
 
     def decrypt(self, buffer: bytes) -> bytes | None:
         """Decrypt / unwhiten an incoming raw buffer into a readable buffer."""
@@ -91,7 +91,7 @@ class FanLampEncoderV1(FanLampEncoder):
         seed8 = seed & 0xFF
         if (
             not self.is_eq(self._crc16(decoded[:12], seed ^ 0xFFFF), int.from_bytes(decoded[12:14]), "CRC")
-            or not self.is_eq(self._get_arg2(decoded[0]), decoded[5], "Arg2")
+            or not self.is_eq(self._get_arg2(decoded[0], decoded[5]), decoded[5], "Arg2")
             or not self.is_eq(seed8 ^ 1 if self._xor1 else seed8, decoded[9], "r2")
             or (self._with_crc2 and not self.is_eq(self._crc2(decoded[:-2]), int.from_bytes(decoded[14:16]), "CRC2"))
         ):
@@ -109,6 +109,8 @@ class FanLampEncoderV1(FanLampEncoder):
         if enc_cmd.cmd != 0x28:
             enc_cmd.arg0 = decoded[3]
             enc_cmd.arg1 = decoded[4]
+            if enc_cmd.cmd == 0x22:
+                enc_cmd.arg2 = decoded[5]
         elif not self.is_eq(conf.id & 0xFF, decoded[3], "Pair Arg0") or not self.is_eq((conf.id >> 8) & 0xF0, decoded[4], "Pair Arg1"):
             return None, None
 
@@ -122,7 +124,7 @@ class FanLampEncoderV1(FanLampEncoder):
         obuf += ((conf.id & 0xF0FF) | ((conf.index & 0x0F) << 8)).to_bytes(2, "little")
         obuf.append(conf.id & 0xFF if is_pair_cmd else enc_cmd.arg0)
         obuf.append((conf.id >> 8) & 0xF0 if is_pair_cmd else enc_cmd.arg1)
-        obuf.append(self._get_arg2(enc_cmd.cmd))
+        obuf.append(self._get_arg2(enc_cmd.cmd, enc_cmd.arg2))
         obuf.append(conf.tx_count)
         obuf.append(enc_cmd.param)
         seed = conf.seed if conf.seed != 0 else randint(0, 0xFFF5)
@@ -269,8 +271,20 @@ def _get_light_translators(param_attr: str, cold_attr: str, warm_attr: str) -> l
     ]
 
 
+def _get_rgb_translators() -> list[Trans]:
+    return [
+        Trans(RGBLightCmd(1).act(ATTR_RED_F).act(ATTR_GREEN_F).act(ATTR_BLUE_F), EncCmd(0x22))
+        .copy(ATTR_RED_F, "arg0", 255)
+        .copy(ATTR_GREEN_F, "arg1", 255)
+        .copy(ATTR_BLUE_F, "arg2", 255),
+        Trans(RGBLightCmd(1).act(ATTR_CMD, ATTR_CMD_BR_UP).eq(ATTR_STEP, 0.1), EncCmd(0x22).eq("arg0", 0x14)).no_direct(),  # NOT TESTED
+        Trans(RGBLightCmd(1).act(ATTR_CMD, ATTR_CMD_BR_DOWN).eq(ATTR_STEP, 0.1), EncCmd(0x22).eq("arg0", 0x28)).no_direct(),  # NOT TESTED
+    ]
+
+
 TRANS_FANLAMP_V1 = [
     *_get_light_translators("param", "arg0", "arg1"),
+    *_get_rgb_translators(),
     Trans(Fan6SpeedCmd().act(ATTR_ON, False), EncCmd(0x32).eq("arg1", 6).eq("arg0", 0)),
     Trans(Fan6SpeedCmd().act(ATTR_ON, True).act(ATTR_SPEED), EncCmd(0x32).eq("arg1", 6).min("arg0", 1)).copy(ATTR_SPEED, "arg0"),
     *_get_fan_translators("arg0", "arg1"),
@@ -280,12 +294,7 @@ TRANS_FANLAMP_V1 = [
 
 TRANS_FANLAMP_V2 = [
     *_get_light_translators("arg0", "arg1", "arg2"),
-    Trans(RGBLightCmd(1).act(ATTR_RED_F).act(ATTR_GREEN_F).act(ATTR_BLUE_F), EncCmd(0x22))
-    .copy(ATTR_RED_F, "arg0", 255)
-    .copy(ATTR_GREEN_F, "arg1", 255)
-    .copy(ATTR_BLUE_F, "arg2", 255),
-    Trans(RGBLightCmd(1).act(ATTR_CMD, ATTR_CMD_BR_UP).eq(ATTR_STEP, 0.1), EncCmd(0x22).eq("arg0", 0x14)).no_direct(),  # NOT TESTED
-    Trans(RGBLightCmd(1).act(ATTR_CMD, ATTR_CMD_BR_DOWN).eq(ATTR_STEP, 0.1), EncCmd(0x22).eq("arg0", 0x28)).no_direct(),  # NOT TESTED
+    *_get_rgb_translators(),
     Trans(Fan6SpeedCmd().act(ATTR_ON, False), EncCmd(0x31).eq("arg0", 0x20).eq("arg1", 0)),
     Trans(Fan6SpeedCmd().act(ATTR_ON, True).act(ATTR_SPEED), EncCmd(0x31).eq("arg0", 0x20).min("arg1", 1)).copy(ATTR_SPEED, "arg1"),
     *_get_fan_translators("arg1", "arg0"),

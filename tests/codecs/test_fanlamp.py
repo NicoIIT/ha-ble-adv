@@ -28,6 +28,19 @@ class TestEncoderFanlamp(_TestEncoderBase):
 
 
 @pytest.mark.parametrize(
+    _TestEncoderBase.PARAM_NAMES,
+    [
+        ("lampsmart_pro_v1", 0x03, "77.F8.B6.5F.2B.5E.00.FC.31.51.9C.FE.D2.DE.6E.34.A9.FC.6B.05.F4.F3.34.89.B2.3D"),
+        ("fanlamp_pro_v1", 0x03, "77.F8.B6.5F.2B.5E.00.FC.31.51.9C.FE.D2.CE.1E.34.CC.FC.0B.65.F4.93.CF.BD.43.EB"),
+    ],
+)
+class TestEncoderFanlampDupe(_TestEncoderBase):
+    """Fan Lamp Encoder tests with duplicate codecs (RGB case)."""
+
+    _dupe_allowed = True
+
+
+@pytest.mark.parametrize(
     _TestEncoderFull.PARAM_NAMES,
     [
         # PAIR
@@ -383,6 +396,13 @@ class TestEncoderFanlamp(_TestEncoderBase):
             "light_1: ['on'] / {'on': True}",
         ),
         # Second Light RGB Full RED
+        (
+            "fanlamp_pro_v1",
+            "02.01.19.1B.03.77.F8.B6.5F.2B.5E.00.FC.31.51.9C.FE.D2.F7.24.CB.8C.FC.7C.12.F4.E4.D7.38.21.7F",
+            "cmd: 0x22, param: 0x00, args: [255,0,0]",
+            "id: 0x003D5022, index: 2, tx: 237, seed: 0x008D",
+            "light_1: ['rf', 'gf', 'bf'] / {'sub_type': 'rgb', 'rf': 1.0, 'gf': 0.0, 'bf': 0.0}",
+        ),
         (
             "fanlamp_pro_v2",
             "02.01.19.1B.03.F0.08.10.80.B8.09.E1.22.C6.F2.D3.A7.67.4E.A4.9F.98.F6.B6.A2.22.8B.53.2B.AD.B3",
