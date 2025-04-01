@@ -1,0 +1,23 @@
+---
+name: "Support New Android Application using BLE ADV"
+description: "Request for the support of a new application that is using BLE ADV as a mechanism to control a Device."
+labels: ["enhancement"]
+body:
+- type: markdown
+  attributes:
+    value: Before you open a new app request, search through the existing app requests to see if others have had the same reaust already.
+- type: checkboxes
+  attributes:
+    label: Checklist
+    options:
+      - label: This issue is not a duplicate app request of [previous app requests](https://github.com/NicoIIT/ha-ble-adv/issues?q=is%3Aissue%20state%3Aopen%20label%3Aenhancement).
+        required: true
+      - label: I am not requesting for the support of a new device brand, as this integration is supporting Android Phone App protocols and not device brands.
+        required: true
+
+- type: textarea
+  attributes:
+    label: "Android Phoene app info"
+    description: "All the info you have to allow the developper to find it and install it. (EXACT name on the Android App Store, download link, ...)"
+  validations:
+    required: true

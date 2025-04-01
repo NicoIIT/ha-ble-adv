@@ -206,21 +206,6 @@ class TestEncoderFanlamp(_TestEncoderBase):
             "id: 0xD2135C22, index: 2, tx: 74, seed: 0x2B53",
             "light_0: ['cold', 'warm'] / {'sub_type': 'cww', 'cold': 0.0, 'warm': 1.0}",
         ),
-        # RGB Full RED
-        (
-            "fanlamp_pro_v2",
-            "02.01.19.1B.03.F0.08.10.80.B8.09.E1.22.C6.F2.D3.A7.67.4E.A4.9F.98.F6.B6.A2.22.8B.53.2B.AD.B3",
-            "cmd: 0x22, param: 0x00, args: [255,0,0]",
-            "id: 0xD2135C22, index: 2, tx: 125, seed: 0x2B53",
-            "light_0: ['rf', 'gf', 'bf'] / {'sub_type': 'rgb', 'rf': 1.0, 'gf': 0.0, 'bf': 0.0}",
-        ),
-        (
-            "fanlamp_pro_v3",
-            "02.01.19.1B.03.F0.08.20.80.B8.09.E1.22.C6.F2.D3.A7.67.4E.A4.9F.98.F6.B6.5C.74.8B.53.2B.1A.C6",
-            "cmd: 0x22, param: 0x00, args: [255,0,0]",
-            "id: 0xD2135C22, index: 2, tx: 125, seed: 0x2B53",
-            "light_0: ['rf', 'gf', 'bf'] / {'sub_type': 'rgb', 'rf': 1.0, 'gf': 0.0, 'bf': 0.0}",
-        ),
         # FAN ON SPEED 2 / 6
         (
             "fanlamp_pro_v1",
@@ -396,6 +381,21 @@ class TestEncoderFanlamp(_TestEncoderBase):
             "cmd: 0x12, param: 0x00, args: [0,0,0]",
             "id: 0xD2135C22, index: 2, tx: 136, seed: 0x2B53",
             "light_1: ['on'] / {'on': True}",
+        ),
+        # Second Light RGB Full RED
+        (
+            "fanlamp_pro_v2",
+            "02.01.19.1B.03.F0.08.10.80.B8.09.E1.22.C6.F2.D3.A7.67.4E.A4.9F.98.F6.B6.A2.22.8B.53.2B.AD.B3",
+            "cmd: 0x22, param: 0x00, args: [255,0,0]",
+            "id: 0xD2135C22, index: 2, tx: 125, seed: 0x2B53",
+            "light_1: ['rf', 'gf', 'bf'] / {'sub_type': 'rgb', 'rf': 1.0, 'gf': 0.0, 'bf': 0.0}",
+        ),
+        (
+            "fanlamp_pro_v3",
+            "02.01.19.1B.03.F0.08.20.80.B8.09.E1.22.C6.F2.D3.A7.67.4E.A4.9F.98.F6.B6.5C.74.8B.53.2B.1A.C6",
+            "cmd: 0x22, param: 0x00, args: [255,0,0]",
+            "id: 0xD2135C22, index: 2, tx: 125, seed: 0x2B53",
+            "light_1: ['rf', 'gf', 'bf'] / {'sub_type': 'rgb', 'rf': 1.0, 'gf': 0.0, 'bf': 0.0}",
         ),
     ],
 )

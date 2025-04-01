@@ -1,0 +1,41 @@
+---
+name: "New Physical Remote"
+description: "Request support for new Physical Remote not recognized yet."
+labels: ["enhancement"]
+body:
+- type: markdown
+  attributes:
+    value: Before you open a new "New Remote" request, search through the existing feature requests to see if others have requested it already. If your remote is recognized but only partially works please open a Bug Report.
+- type: checkboxes
+  attributes:
+    label: Checklist
+    options:
+      - label: I have filled out the template COMPLETELY. In particular if either of the mandatory info is not given then your request is useless and will be rejected.
+        required: true
+      - label: This only contains 1 remote request (if you have multiple remote requests, open one remote request for each remote request).
+        required: true
+      - label: This issue is not a duplicate remote request of [previous remote requests](https://github.com/NicoIIT/ha-ble-adv/issues?q=is%3Aissue%20state%3Aopen%20label%3Aenhancement).
+        required: true
+
+- type: textarea
+  attributes:
+    label: "Describe ALL buttons"
+    description: "Describe all buttons, what happens on the device when you press them once (and a second time if the result differs), and at what time exactly you pressed them so that we can correlate this info with the logs."
+    value: |
+      1. Button "Fan ON/OFF":
+        * At 15:32:51 I pressed the button and the Fan started
+        * At 15:32:55 I pressed again the button and the Fan stopped
+      2. Button "Main Light Brightness+"
+        * At 15:33:11 I pressed the button and the light brightness increased by 15 % (6 press to go from minimum to maximum brightness)
+      3. Button ...
+      ...
+  validations:
+    required: true
+
+- type: textarea
+  attributes:
+    label: "Debug logs"
+    description: "To enable debug logs check this https://www.home-assistant.io/integrations/logger/, this **needs** to include _everything_ from the first button pressed until the last one."
+    render: text
+  validations:
+    required: true

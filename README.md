@@ -9,8 +9,8 @@ Same as [ESPHome integration](https://github.com/NicoIIT/esphome-components) but
 * Your Home Assistant must be on a LINUX host, have a Bluetooth Adapter available and, even if not strictly necessary, discovered by the [Bluetooth Integration](https://www.home-assistant.io/integrations/bluetooth/)
 * Your device can be reached by Bluetooth from the Home Assistant Host. ESPHome bluetooth proxies cannot be used (for now).
 * Have an up-to-date Home Assistant Core (2025.2.4 minimum) and HACS (2.0.1 minimum)
-* This integration communicates directly with the bluetooth adapters using HCI Sockets (cannot use the HA Bluetooth Adapters directly due to the need to use BLE Advertising in RAW mode), so your Home Assistant must have a direct authorized access to the Bluetooth adapter (run as root, direct network access - network mode 'host'). For **advanced** users that defined their own HA docker container in a dedicated docker network behind nginx for example, a solution is available [here](https://github.com/NicoIIT/ha-ble-adv/wiki/Workaround-for-HA-non-root-installations).
-* Alternatively you can use the ESPHome custom component [ble_adv_proxy](https://github.com/NicoIIT/esphome-ble_adv_proxy) which can be added to the config of a Bluetooth Proxy if your Host do not have a working or recognized bluetooth adapter.
+* This integration communicates directly with the bluetooth adapters using HCI Sockets (cannot use the HA Bluetooth Adapters directly due to the need to use BLE Advertising in RAW mode), so your Home Assistant must have a direct authorized access to the Bluetooth adapter (run as root, direct network access - network mode 'host'). For **advanced** users that defined their own HA docker container in a dedicated docker network behind nginx for example, a solution is available [here](https://github.com/NicoIIT/ha-ble-adv/wiki/Workaround-for-HA-non-'network_mode:-host'-or-non-root-installations).
+* Alternatively you can use the ESPHome custom component [ble_adv_proxy](https://github.com/NicoIIT/esphome-ble_adv_proxy) which can be added to the config of a Bluetooth Proxy if your Host is not Linux based or do not have a working or recognized bluetooth adapter.
 
 ## Supported Ceiling Fans / Lamps
 This integration does not support any specific device brand, but protocols used by the ANDROID apps controlling them. Protocols supported are the ones used by the following ANDROID Apps:
@@ -43,6 +43,11 @@ Once the repository is added, you need to restart Home Assistant so that it coul
 
 ## Adding Integrations
 Once the component is installed, you can now [add](https://www.home-assistant.io/getting-started/integration/) a **"BLE ADV Ceiling Fan / Lamps"** integration for each of the Devices you want to control.
+
+The configuration flow will listen to the commands emitted by your phone / physical remote and/or try to control your device (make the lamp blink) so you have to be **located in the same room than the device** in order to be sure:
+* a bluetooth adapter is able to listen to the commands from where they will be used.
+* the same bluetooth adapter is able to control your device
+* you can check if the lamp blinked
 
 The main steps of the configuration flow are the following:
 * **Configuration discovery**, with 3 ways to proceed:

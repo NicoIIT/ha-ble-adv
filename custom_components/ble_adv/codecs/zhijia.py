@@ -348,8 +348,8 @@ TRANS_V2 = [
     *TRANS_COMMON_V1_V2,
     Trans(CTLightCmd().act(ATTR_BR), EncCmd(0xAD)).copy(ATTR_BR, "arg0", 250),
     Trans(CTLightCmd().act(ATTR_CT), EncCmd(0xAE)).copy(ATTR_CT, "arg0", 250),
-    Trans(RGBLightCmd().act(ATTR_BR), EncCmd(0xC8)).copy(ATTR_BR, "arg0", 250),
-    Trans(RGBLightCmd().act(ATTR_RED).act(ATTR_GREEN).act(ATTR_BLUE), EncCmd(0xCA))
+    Trans(RGBLightCmd(1).act(ATTR_BR), EncCmd(0xC8)).copy(ATTR_BR, "arg0", 250),
+    Trans(RGBLightCmd(1).act(ATTR_RED).act(ATTR_GREEN).act(ATTR_BLUE), EncCmd(0xCA))
     .copy(ATTR_RED, "arg0", 250)
     .copy(ATTR_GREEN, "arg1", 250)
     .copy(ATTR_BLUE, "arg2", 250),
@@ -359,8 +359,8 @@ TRANS_V2 = [
 TRANS_V2_FL = [
     *TRANS_COMMON_V1_V2,
     Trans(CTLightCmd().act(ATTR_COLD).act(ATTR_WARM), EncCmd(0xA8)).copy(ATTR_COLD, "arg0", 250).copy(ATTR_WARM, "arg1", 250),
-    Trans(RGBLightCmd().act(ATTR_BR), EncCmd(0xC8)).copy(ATTR_BR, "arg0", 250),
-    Trans(RGBLightCmd().act(ATTR_RED).act(ATTR_GREEN).act(ATTR_BLUE), EncCmd(0xCA))
+    Trans(RGBLightCmd(1).act(ATTR_BR), EncCmd(0xC8)).copy(ATTR_BR, "arg0", 250),
+    Trans(RGBLightCmd(1).act(ATTR_RED).act(ATTR_GREEN).act(ATTR_BLUE), EncCmd(0xCA))
     .copy(ATTR_RED, "arg0", 250)
     .copy(ATTR_GREEN, "arg1", 250)
     .copy(ATTR_BLUE, "arg2", 250),
