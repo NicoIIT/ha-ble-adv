@@ -249,13 +249,14 @@ class BleAdvConfigFlow(ConfigFlow, domain=DOMAIN):
             return self.async_show_progress(
                 step_id="agg_config",
                 progress_action="agg_config",
-                progress_task=self.hass.async_create_task(asyncio.sleep(2.0)),
+                progress_task=self.hass.async_create_task(asyncio.sleep(3.0)),
             )
         await self._async_stop_listen_to_config()
         return self.async_show_progress_done(next_step_id="choose_adapter")
 
     async def async_step_choose_adapter(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         """Choose adapter."""
+        _LOGGER.info(f"Config listened({len(self.configs)}): {self.configs}")
         adapter_ids = {x.adapter_id for x in self.configs}
         if len(adapter_ids) != 1:
             if user_input is not None:

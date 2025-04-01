@@ -14,7 +14,8 @@
     },
     "containerEnv": {
         "TUNNEL_SOCKET_FILE": "/tunnel_socket/hci.sock",
-        "PYTHONPATH": ":${containerWorkspaceFolder}/custom_components"
+        "PYTHONPATH": ":${containerWorkspaceFolder}/custom_components",
+        "GIT_EDITOR": "code --wait"
     },
     "mounts": [
         "source=/data/tunnel_socket,target=/tunnel_socket,type=bind,consistency=cached",

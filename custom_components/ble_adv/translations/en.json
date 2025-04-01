@@ -3,6 +3,7 @@
   "config": {
     "step": {
       "user": {
+        "description": "Before starting, be sure to be located in the same room than the device you want to control!",
         "menu_options": {
           "manual": "Manual Input (Expert)",
           "wait_config": "Duplicate Paired Phone App config (Recommended)",

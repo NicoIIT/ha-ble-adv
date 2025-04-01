@@ -280,12 +280,12 @@ TRANS_FANLAMP_V1 = [
 
 TRANS_FANLAMP_V2 = [
     *_get_light_translators("arg0", "arg1", "arg2"),
-    Trans(RGBLightCmd().act(ATTR_RED_F).act(ATTR_GREEN_F).act(ATTR_BLUE_F), EncCmd(0x22))
+    Trans(RGBLightCmd(1).act(ATTR_RED_F).act(ATTR_GREEN_F).act(ATTR_BLUE_F), EncCmd(0x22))
     .copy(ATTR_RED_F, "arg0", 255)
     .copy(ATTR_GREEN_F, "arg1", 255)
     .copy(ATTR_BLUE_F, "arg2", 255),
-    Trans(RGBLightCmd().act(ATTR_CMD, ATTR_CMD_BR_UP).eq(ATTR_STEP, 0.1), EncCmd(0x22).eq("arg0", 0x14)).no_direct(),  # NOT TESTED
-    Trans(RGBLightCmd().act(ATTR_CMD, ATTR_CMD_BR_DOWN).eq(ATTR_STEP, 0.1), EncCmd(0x22).eq("arg0", 0x28)).no_direct(),  # NOT TESTED
+    Trans(RGBLightCmd(1).act(ATTR_CMD, ATTR_CMD_BR_UP).eq(ATTR_STEP, 0.1), EncCmd(0x22).eq("arg0", 0x14)).no_direct(),  # NOT TESTED
+    Trans(RGBLightCmd(1).act(ATTR_CMD, ATTR_CMD_BR_DOWN).eq(ATTR_STEP, 0.1), EncCmd(0x22).eq("arg0", 0x28)).no_direct(),  # NOT TESTED
     Trans(Fan6SpeedCmd().act(ATTR_ON, False), EncCmd(0x31).eq("arg0", 0x20).eq("arg1", 0)),
     Trans(Fan6SpeedCmd().act(ATTR_ON, True).act(ATTR_SPEED), EncCmd(0x31).eq("arg0", 0x20).min("arg1", 1)).copy(ATTR_SPEED, "arg1"),
     *_get_fan_translators("arg1", "arg0"),

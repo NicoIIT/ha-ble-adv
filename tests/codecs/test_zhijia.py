@@ -212,30 +212,6 @@ class TestEncoderZhijiaDupe(_TestEncoderBase):
             "id: 0x00E15324, index: 1, tx: 86, seed: 0x0000",
             "light_0: ['ct'] / {'sub_type': 'cww', 'ct': 1.0}",
         ),
-        # RGB BR 0%
-        (
-            "zhijia_v2",
-            "02.01.1A.1B.FF.22.9D.E9.A6.1D.8D.45.BE.B6.1D.38.C4.0F.C7.42.04.87.B1.B0.4A.5F.85.F6.9C.A9.19",
-            "cmd: 0xC8, param: 0x00, args: [0,0,0]",
-            "id: 0x00E15324, index: 4, tx: 47, seed: 0x0000",
-            "light_0: ['br'] / {'sub_type': 'rgb', 'br': 0.0}",
-        ),
-        # RGB BR 100%
-        (
-            "zhijia_v2",
-            "02.01.1A.1B.FF.22.9D.F1.A3.FF.6F.BA.5C.54.FF.C7.26.ED.25.A0.FB.78.53.52.4A.5F.85.F6.9C.A9.19",
-            "cmd: 0xC8, param: 0x00, args: [250,0,0]",
-            "id: 0x00E15324, index: 4, tx: 50, seed: 0x0000",
-            "light_0: ['br'] / {'sub_type': 'rgb', 'br': 1.0}",
-        ),
-        # RGB RED (mainly)
-        (
-            "zhijia_v2",
-            "02.01.1A.1B.FF.22.9D.A1.EE.AF.7D.FA.43.04.AF.C5.74.BD.75.F0.BB.78.01.02.4A.5F.85.F6.9C.A9.19",
-            "cmd: 0xCA, param: 0x00, args: [250,66,79]",
-            "id: 0x00E15324, index: 4, tx: 34, seed: 0x0000",
-            "light_0: ['r', 'g', 'b'] / {'sub_type': 'rgb', 'r': 1.0, 'g': 0.264, 'b': 0.316}",
-        ),
         # FAN Speed 2/3
         (
             "zhijia_v2",
@@ -367,6 +343,30 @@ class TestEncoderZhijiaDupe(_TestEncoderBase):
             "cmd: 0xAF, param: 0x00, args: [0,0,0]",
             "id: 0x00E15324, index: 1, tx: 49, seed: 0x0000",
             "light_1: ['on'] / {'on': True}",
+        ),
+        # Second Light RGB BR 0%
+        (
+            "zhijia_v2",
+            "02.01.1A.1B.FF.22.9D.E9.A6.1D.8D.45.BE.B6.1D.38.C4.0F.C7.42.04.87.B1.B0.4A.5F.85.F6.9C.A9.19",
+            "cmd: 0xC8, param: 0x00, args: [0,0,0]",
+            "id: 0x00E15324, index: 4, tx: 47, seed: 0x0000",
+            "light_1: ['br'] / {'sub_type': 'rgb', 'br': 0.0}",
+        ),
+        # Second Light RGB BR 100%
+        (
+            "zhijia_v2",
+            "02.01.1A.1B.FF.22.9D.F1.A3.FF.6F.BA.5C.54.FF.C7.26.ED.25.A0.FB.78.53.52.4A.5F.85.F6.9C.A9.19",
+            "cmd: 0xC8, param: 0x00, args: [250,0,0]",
+            "id: 0x00E15324, index: 4, tx: 50, seed: 0x0000",
+            "light_1: ['br'] / {'sub_type': 'rgb', 'br': 1.0}",
+        ),
+        # Second Light RGB RED (mainly)
+        (
+            "zhijia_v2",
+            "02.01.1A.1B.FF.22.9D.A1.EE.AF.7D.FA.43.04.AF.C5.74.BD.75.F0.BB.78.01.02.4A.5F.85.F6.9C.A9.19",
+            "cmd: 0xCA, param: 0x00, args: [250,66,79]",
+            "id: 0x00E15324, index: 4, tx: 34, seed: 0x0000",
+            "light_1: ['r', 'g', 'b'] / {'sub_type': 'rgb', 'r': 1.0, 'g': 0.264, 'b': 0.316}",
         ),
     ],
 )
