@@ -17,6 +17,9 @@ from ble_adv.codecs.const import (
     ATTR_GREEN_F,
     ATTR_ON,
     ATTR_OSC,
+    ATTR_PRESET,
+    ATTR_PRESET_BREEZE,
+    ATTR_PRESET_SLEEP,
     ATTR_RED,
     ATTR_RED_F,
     ATTR_SPEED,
@@ -244,6 +247,8 @@ def test_codec() -> None:
         [
             Trans(LightCmd().act(ATTR_ON, True), EncCmd(0x10)),
             Trans(LightCmd().act(ATTR_ON, False), EncCmd(0x11)),
+            Trans(FanCmd().act(ATTR_PRESET, ATTR_PRESET_BREEZE), EncCmd(0x33).eq("arg0", 2)),
+            Trans(FanCmd().act(ATTR_PRESET, ATTR_PRESET_SLEEP), EncCmd(0x33).eq("arg0", 1)),
         ]
     )
     assert codec.codec_id == "test_codec"
@@ -251,6 +256,8 @@ def test_codec() -> None:
     assert codec._header == bytearray([0x55, 0x56])  # noqa: SLF001
     assert codec.get_features(LIGHT_TYPE) == [["onoff"], None, None]
     assert codec.get_features(FAN_TYPE) == [None, None, None]
+    assert codec.get_supported_attr_values(ATTR_PRESET) == {ATTR_PRESET_BREEZE, ATTR_PRESET_SLEEP}
+    assert codec.get_supported_attr_values(ATTR_CMD) == set()
     codec.add_translators(
         [
             Trans(LightCmd(1).act(ATTR_ON, True), EncCmd(0x12)),

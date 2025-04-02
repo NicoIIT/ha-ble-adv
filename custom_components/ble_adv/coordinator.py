@@ -179,7 +179,7 @@ class BleAdvCoordinator:
                 enc_cmd, conf = acodec.decode_adv(adv)
                 if conf is not None and enc_cmd is not None:
                     ent_attrs = acodec.enc_to_ent(enc_cmd)
-                    _LOGGER.debug(f"{conf} / {enc_cmd} / {ent_attrs}")
+                    _LOGGER.debug(f"[{codec_id}] {conf} / {enc_cmd} / {ent_attrs}")
                     for device_callback in self._callbacks.values():
                         await device_callback.handle(codec_id, adapter_id, conf, ent_attrs)
 

@@ -154,6 +154,14 @@ class TestEncoderZhimeiWithDupes(_TestEncoderBase):
             "id: 0x0000C002, index: 2, tx: 33, seed: 0x0000",
             "light_0: ['ctr'] / {'sub_type': 'cww', 'ctr': 0.0}",
         ),
+        # Second Light (nearly) Full RED
+        (
+            "zhimei_fan_v1",
+            "02.01.19.1B.03.48.46.4B.4A.0A.CA.3B.CE.20.C9.F3.95.A2.37.6F.5B.62.2A.AB.57.10.11.12.13.14.15",
+            "cmd: 0xCA, param: 0x00, args: [250,0,0]",
+            "id: 0x0000C002, index: 4, tx: 45, seed: 0x0099",
+            "light_1: ['rf', 'gf', 'bf'] / {'sub_type': 'rgb', 'rf': 0.9803921568627451, 'gf': 0.0, 'bf': 0.0}",
+        ),
         # FAN Speed 2/6
         (
             "zhimei_fan_v0",
@@ -243,6 +251,21 @@ class TestEncoderZhimeiWithDupes(_TestEncoderBase):
             "cmd: 0xDE, param: 0x00, args: [2,0,0]",
             "id: 0x0000C002, index: 2, tx: 46, seed: 0x00C5",
             "fan_0: ['osc'] / {'osc': False}",
+        ),
+        # FAN Natural Wind
+        (
+            "zhimei_fan_v0",
+            "02.01.19.0B.03.55.02.27.02.C0.DB.00.00.00.1B",
+            "cmd: 0xDB, param: 0x00, args: [0,0,0]",
+            "id: 0x0000C002, index: 2, tx: 39, seed: 0x0000",
+            "fan_0: ['preset'] / {'preset': 'breeze'}",
+        ),
+        (
+            "zhimei_fan_v1",
+            "02.01.19.1B.03.48.46.4B.4A.9E.64.B9.3A.8C.35.5F.10.14.D2.94.C6.CB.97.A1.A7.10.11.12.13.14.15",
+            "cmd: 0xDB, param: 0x00, args: [0,0,0]",
+            "id: 0x0000C002, index: 2, tx: 39, seed: 0x0097",
+            "fan_0: ['preset'] / {'preset': 'breeze'}",
         ),
     ],
 )

@@ -80,7 +80,8 @@
               "type": "Type",
               "min_brightness": "Minimum Brightness",
               "refresh_on_start": "Force color / brightness refresh when switched ON",
-              "reversed": "Reverse Cold / Warm"
+              "reversed": "Reverse Cold / Warm",
+              "effects": "Light Modes"
             }
           },
           "light_1": {
@@ -89,7 +90,8 @@
               "type": "Type",
               "min_brightness": "Minimum Brightness",
               "refresh_on_start": "Force color / brightness refresh when switched ON",
-              "reversed": "Reverse Cold / Warm"
+              "reversed": "Reverse Cold / Warm",
+              "effects": "Light Modes"
             }
           },
           "light_2": {
@@ -98,7 +100,8 @@
               "type": "Type",
               "min_brightness": "Minimum Brightness",
               "refresh_on_start": "Force color / brightness refresh when switched ON",
-              "reversed": "Reverse Cold / Warm"
+              "reversed": "Reverse Cold / Warm",
+              "effects": "Light Modes"
             }
           },
           "fan_0": {
@@ -107,7 +110,8 @@
               "type": "Type",
               "direction": "Supports Direction",
               "oscillating": "Supports Oscillation",
-              "refresh_on_start": "Force direction / oscillation refresh when switched ON"
+              "refresh_on_start": "Force direction / oscillation refresh when switched ON",
+              "presets": "Fan modes"
             }
           },
           "fan_1": {
@@ -116,7 +120,8 @@
               "type": "Type",
               "direction": "Supports Direction",
               "oscillating": "Supports Oscillation",
-              "refresh_on_start": "Force direction / oscillation refresh when switched ON"
+              "refresh_on_start": "Force direction / oscillation refresh when switched ON",
+              "presets": "Fan modes"
             }
           },
           "fan_2": {
@@ -125,7 +130,8 @@
               "type": "Type",
               "direction": "Supports Direction",
               "oscillating": "Supports Oscillation",
-              "refresh_on_start": "Force direction / oscillation refresh when switched ON"
+              "refresh_on_start": "Force direction / oscillation refresh when switched ON",
+              "presets": "Fan modes"
             }
           }
         }
@@ -197,29 +203,89 @@
         "6speed": "6 Levels Fan",
         "none": "None"
       }
+    },
+    "effects": {
+      "options": {
+        "rgb": "RGB Cycle",
+        "rgbk": "RGBK Cycle"
+      }
+    },
+    "presets": {
+      "options": {
+        "breeze": "Natural wind",
+        "sleep": "Sleep mode"
+      }
     }
   },
   "entity": {
     "fan": {
       "fan_0": {
-        "name": "Main Fan"
+        "name": "Main Fan",
+        "state_attributes": {
+          "preset_mode": {
+            "state": {
+              "breeze": "Natural Wind",
+              "sleep": "Sleep Mode"
+            }
+          }
+        }
       },
       "fan_1": {
-        "name": "Second Fan"
+        "name": "Second Fan",
+        "state_attributes": {
+          "preset_mode": {
+            "state": {
+              "breeze": "Natural Wind",
+              "sleep": "Sleep Mode"
+            }
+          }
+        }
       },
       "fan_2": {
-        "name": "Third Fan"
+        "name": "Third Fan",
+        "state_attributes": {
+          "preset_mode": {
+            "state": {
+              "breeze": "Natural Wind",
+              "sleep": "Sleep Mode"
+            }
+          }
+        }
       }
     },
     "light": {
       "light_0": {
-        "name": "Main Light"
+        "name": "Main Light",
+        "state_attributes": {
+          "effect": {
+            "state": {
+              "rgb": "RGB Cycle",
+              "rgbk": "RGBK Cycle"
+            }
+          }
+        }
       },
       "light_1": {
-        "name": "Second Light"
+        "name": "Second Light",
+        "state_attributes": {
+          "effect": {
+            "state": {
+              "rgb": "RGB Cycle",
+              "rgbk": "RGBK Cycle"
+            }
+          }
+        }
       },
       "light_2": {
-        "name": "Third Light"
+        "name": "Third Light",
+        "state_attributes": {
+          "effect": {
+            "state": {
+              "rgb": "RGB Cycle",
+              "rgbk": "RGBK Cycle"
+            }
+          }
+        }
       }
     }
   }

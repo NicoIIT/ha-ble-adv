@@ -368,6 +368,22 @@ class TestEncoderZhijiaDupe(_TestEncoderBase):
             "id: 0x00E15324, index: 4, tx: 34, seed: 0x0000",
             "light_1: ['r', 'g', 'b'] / {'sub_type': 'rgb', 'r': 1.0, 'g': 0.264, 'b': 0.316}",
         ),
+        # Second Light RGB button
+        (
+            "zhijia_v2",
+            "02.01.1A.1B.FF.22.9D.49.2D.BD.2D.CE.1E.16.BD.B3.10.AF.67.E2.8F.78.65.10.4A.5F.85.F6.9C.A9.19",
+            "cmd: 0xBC, param: 0x00, args: [0,0,0]",
+            "id: 0x00E15324, index: 4, tx: 4, seed: 0x0000",
+            "light_1: ['effect'] / {'sub_type': 'rgb', 'effect': 'rgb'}",
+        ),
+        # Second Light RGBK Button
+        (
+            "zhijia_v2",
+            "02.01.1A.1B.FF.22.9D.B5.D0.41.D1.33.E2.EA.41.4E.EE.53.9B.1E.72.87.9B.EC.4A.5F.85.F6.9C.A9.19",
+            "cmd: 0xBE, param: 0x00, args: [0,0,0]",
+            "id: 0x00E15324, index: 4, tx: 5, seed: 0x0000",
+            "light_1: ['effect'] / {'sub_type': 'rgb', 'effect': 'rgbk'}",
+        ),
     ],
 )
 class TestEncoderZhijiaFull(_TestEncoderFull):

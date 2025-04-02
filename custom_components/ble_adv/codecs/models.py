@@ -80,7 +80,7 @@ class BleAdvEncCmd:
         return f"cmd: 0x{self.cmd:02X}, param: 0x{self.param:02X}, args: [{self.arg0},{self.arg1},{self.arg2}]"
 
 
-type AttrType = str | bool | int | float
+type AttrType = str | bool | int | float | None
 
 
 @dataclass
@@ -128,23 +128,23 @@ class CommonMatcher:
     """Matcher Base."""
 
     def __init__(self) -> None:
-        self._eqs: dict[str, Any] = {}
-        self._mins: dict[str, float] = {}
-        self._maxs: dict[str, float] = {}
+        self.eqs: dict[str, Any] = {}
+        self.mins: dict[str, float] = {}
+        self.maxs: dict[str, float] = {}
 
     def eq(self, attr: str, attr_val: AttrType) -> Self:
         """Force Entity to have attribute equal to this value."""
-        self._eqs[attr] = attr_val
+        self.eqs[attr] = attr_val
         return self
 
     def min(self, attr: str, attr_val: float) -> Self:
         """Force Entity to have attribute of maximum this value."""
-        self._mins[attr] = attr_val
+        self.mins[attr] = attr_val
         return self
 
     def max(self, attr: str, attr_val: float) -> Self:
         """Force Entity to have attribute of minimum this value."""
-        self._maxs[attr] = attr_val
+        self.maxs[attr] = attr_val
         return self
 
 
@@ -158,7 +158,7 @@ class EntityMatcher(CommonMatcher):
         self._index: int = index
         self._actions: list[str] = []
         if (sub_type is not None) and enforced_sub_type:
-            self._eqs[ATTR_SUB_TYPE] = sub_type
+            self.eqs[ATTR_SUB_TYPE] = sub_type
 
     def __repr__(self) -> str:
         return f"{self._base_type}_{self._index} / {self._actions}"
@@ -174,14 +174,14 @@ class EntityMatcher(CommonMatcher):
             (self._base_type == ent_attr.base_type)
             and (self._index == ent_attr.index)
             and any(attr in ent_attr.chg_attrs for attr in self._actions)
-            and all(ent_attr.attrs.get(attr) == val for attr, val in self._eqs.items())
-            and all(ent_attr.attrs.get(attr) >= val for attr, val in self._mins.items())  # type: ignore[none]
-            and all(ent_attr.attrs.get(attr) <= val for attr, val in self._maxs.items())  # type: ignore[none]
+            and all(ent_attr.attrs.get(attr) == val for attr, val in self.eqs.items())
+            and all(ent_attr.attrs.get(attr) >= val for attr, val in self.mins.items())  # type: ignore[none]
+            and all(ent_attr.attrs.get(attr) <= val for attr, val in self.maxs.items())  # type: ignore[none]
         )
 
     def create(self) -> BleAdvEntAttr:
         """Create Ble Adv Entity Features from self."""
-        ent_attr: BleAdvEntAttr = BleAdvEntAttr(self._actions.copy(), self._eqs.copy(), self._base_type, self._index)
+        ent_attr: BleAdvEntAttr = BleAdvEntAttr(self._actions.copy(), self.eqs.copy(), self._base_type, self._index)
         return ent_attr
 
     def get_features(self) -> tuple[str, int, str | None]:
@@ -252,15 +252,15 @@ class EncoderMatcher(CommonMatcher):
         """Match with Encoder Attributes."""
         return (
             (enc_cmd.cmd == self._cmd)
-            and all(getattr(enc_cmd, attr) == val for attr, val in self._eqs.items())
-            and all(getattr(enc_cmd, attr) >= val for attr, val in self._mins.items())
-            and all(getattr(enc_cmd, attr) <= val for attr, val in self._maxs.items())
+            and all(getattr(enc_cmd, attr) == val for attr, val in self.eqs.items())
+            and all(getattr(enc_cmd, attr) >= val for attr, val in self.mins.items())
+            and all(getattr(enc_cmd, attr) <= val for attr, val in self.maxs.items())
         )
 
     def create(self) -> BleAdvEncCmd:
         """Create a Ble Adv Encoder Cmd from self."""
         enc_cmd: BleAdvEncCmd = BleAdvEncCmd(self._cmd)
-        for eq_attr, eq_val in self._eqs.items():
+        for eq_attr, eq_val in self.eqs.items():
             setattr(enc_cmd, eq_attr, eq_val)
         return enc_cmd
 
@@ -401,6 +401,14 @@ class BleAdvCodec(ABC):
                 elif st not in capa[ind]:
                     capa[ind].append(st)
         return capa
+
+    def get_supported_attr_values(self, attr_name: str) -> set[Any]:
+        """Get all the values defined by the translators for the given attribute."""
+        presets: set[Any] = set()
+        for trans in self._translators:
+            if attr_name in trans.ent.eqs:
+                presets.add(trans.ent.eqs[attr_name])
+        return presets
 
     def ent_to_enc(self, ent_attr: BleAdvEntAttr) -> list[BleAdvEncCmd]:
         """Convert Entity Attributes to list of Encoder Attributes."""

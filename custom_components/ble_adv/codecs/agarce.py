@@ -1,7 +1,7 @@
 """Smart Light (Agarce) codecs."""
 
 from random import randint
-from typing import ClassVar
+from typing import Any, ClassVar
 
 from .const import (
     ATTR_BR,
@@ -12,8 +12,11 @@ from .const import (
     ATTR_DIR,
     ATTR_ON,
     ATTR_OSC,
+    ATTR_PRESET,
+    ATTR_PRESET_BREEZE,
     ATTR_SPEED,
     FAN_TYPE,
+    FAN_TYPE_6SPEED,
 )
 from .models import (
     BleAdvCodec,
@@ -47,9 +50,11 @@ class AgarceEncoder(BleAdvCodec):
             enc_cmd.arg0 = 0x80 if ent_attr.attrs[ATTR_ON] else 0x00
             enc_cmd.arg0 |= ent_attr.attrs[ATTR_SPEED]
             enc_cmd.arg0 |= 0x00 if ent_attr.attrs[ATTR_DIR] else 0x10
-            enc_cmd.arg1 = ent_attr.attrs[ATTR_OSC]
+            enc_cmd.arg0 |= 0x20 if ent_attr.attrs[ATTR_PRESET] == ATTR_PRESET_BREEZE else 0x00
+            enc_cmd.arg1 = int(ent_attr.attrs[ATTR_OSC])
             enc_cmd.arg2 = 0x01 if ATTR_SPEED in ent_attr.chg_attrs else 0x00
             enc_cmd.arg2 |= 0x02 if ATTR_DIR in ent_attr.chg_attrs else 0x00
+            enc_cmd.arg2 |= 0x04 if ATTR_PRESET in ent_attr.chg_attrs else 0x00
             enc_cmd.arg2 |= 0x08 if ATTR_ON in ent_attr.chg_attrs else 0x00
             enc_cmd.arg2 |= 0x10 if ATTR_OSC in ent_attr.chg_attrs else 0x00
             return [enc_cmd]
@@ -63,6 +68,8 @@ class AgarceEncoder(BleAdvCodec):
                 attr_chg.append(ATTR_SPEED)
             if enc_cmd.arg2 & 0x02:
                 attr_chg.append(ATTR_DIR)
+            if enc_cmd.arg2 & 0x04:
+                attr_chg.append(ATTR_PRESET)
             if enc_cmd.arg2 & 0x08:
                 attr_chg.append(ATTR_ON)
             if enc_cmd.arg2 & 0x10:
@@ -72,6 +79,7 @@ class AgarceEncoder(BleAdvCodec):
                 ATTR_ON: (enc_cmd.arg0 & 0x80) != 0,
                 ATTR_DIR: (enc_cmd.arg0 & 0x10) == 0,
                 ATTR_OSC: enc_cmd.arg1 != 0,
+                ATTR_PRESET: ATTR_PRESET_BREEZE if (enc_cmd.arg0 & 0x20) else None,
             }
             return [BleAdvEntAttr(attr_chg, attrs, FAN_TYPE, 0)]
         return super().enc_to_ent(enc_cmd)
@@ -148,6 +156,22 @@ class AgarceEncoder(BleAdvCodec):
                 conf.index,
             ]
         )
+
+    def get_features(self, base_type: str) -> list[Any]:
+        """Get the featues supported by the translators."""
+        if base_type == FAN_TYPE:
+            return [[FAN_TYPE_6SPEED], None, None]
+        return super().get_features(base_type)
+
+    def get_supported_attr_values(self, attr_name: str) -> set[Any]:
+        """Get all the values defined by the translators for the given attribute."""
+        if attr_name == ATTR_PRESET:
+            return {ATTR_PRESET_BREEZE}
+        if attr_name == ATTR_SPEED:
+            return set(range(6))
+        if attr_name in [ATTR_ON, ATTR_DIR, ATTR_OSC]:
+            return {True, False}
+        return super().get_supported_attr_values(attr_name)
 
 
 TRANS = [

@@ -351,6 +351,28 @@ class TestEncoderFanlampDupe(_TestEncoderBase):
             "id: 0xD2135C22, index: 2, tx: 140, seed: 0x2B53",
             "fan_0: ['osc'] / {'osc': False}",
         ),
+        # Fan Natural Wind mode
+        (
+            "fanlamp_pro_v1",
+            "02.01.19.1B.03.77.F8.B6.5F.2B.5E.00.FC.31.51.14.FE.D2.48.24.0A.63.FC.C9.A7.F4.51.FF.F3.EA.45",
+            "cmd: 0x33, param: 0x00, args: [2,0,0]",
+            "id: 0x003D5022, index: 2, tx: 26, seed: 0x0020",
+            "fan_0: ['preset'] / {'preset': 'breeze'}",
+        ),
+        (
+            "fanlamp_pro_v2",
+            "02.01.19.1B.03.F0.08.10.80.B8.5D.E1.22.C6.F2.D3.A7.67.5F.A4.9F.65.F6.B6.A2.22.8B.53.2B.06.9C",
+            "cmd: 0x33, param: 0x00, args: [2,0,0]",
+            "id: 0xD2135C22, index: 2, tx: 41, seed: 0x2B53",
+            "fan_0: ['preset'] / {'preset': 'breeze'}",
+        ),
+        (
+            "fanlamp_pro_v3",
+            "02.01.1A.1B.03.F0.08.20.80.B8.5D.E1.22.C6.F2.D3.A7.67.5F.A4.9F.65.F6.B6.5E.1D.8B.53.2B.97.07",
+            "cmd: 0x33, param: 0x00, args: [2,0,0]",
+            "id: 0xD2135C22, index: 2, tx: 41, seed: 0x2B53",
+            "fan_0: ['preset'] / {'preset': 'breeze'}",
+        ),
         # Second Light OFF
         (
             "fanlamp_pro_v3",
@@ -416,6 +438,50 @@ class TestEncoderFanlampDupe(_TestEncoderBase):
             "cmd: 0x22, param: 0x00, args: [255,0,0]",
             "id: 0xD2135C22, index: 2, tx: 125, seed: 0x2B53",
             "light_1: ['rf', 'gf', 'bf'] / {'sub_type': 'rgb', 'rf': 1.0, 'gf': 0.0, 'bf': 0.0}",
+        ),
+        # Second Light Effect RGB On
+        (
+            "fanlamp_pro_v1",
+            "02.01.19.1B.03.77.F8.B6.5F.2B.5E.00.FC.31.51.A0.FE.D2.08.24.CB.8B.FC.26.48.F4.BE.F3.06.92.60",
+            "cmd: 0x1E, param: 0x00, args: [0,0,0]",
+            "id: 0x003D5022, index: 2, tx: 13, seed: 0x00D7",
+            "light_1: ['effect'] / {'sub_type': 'rgb', 'effect': 'rgb'}",
+        ),
+        (
+            "fanlamp_pro_v2",
+            "02.01.19.1B.03.F0.08.10.80.B8.68.E1.22.C6.F2.D3.A7.67.72.A4.9F.67.F6.B6.A2.22.8B.53.2B.BD.54",
+            "cmd: 0x1E, param: 0x00, args: [0,0,0]",
+            "id: 0xD2135C22, index: 2, tx: 28, seed: 0x2B53",
+            "light_1: ['effect'] / {'sub_type': 'rgb', 'effect': 'rgb'}",
+        ),
+        (
+            "fanlamp_pro_v3",
+            "02.01.19.1B.03.F0.08.20.80.B8.68.E1.22.C6.F2.D3.A7.67.72.A4.9F.67.F6.B6.4E.F5.8B.53.2B.5F.CA",
+            "cmd: 0x1E, param: 0x00, args: [0,0,0]",
+            "id: 0xD2135C22, index: 2, tx: 28, seed: 0x2B53",
+            "light_1: ['effect'] / {'sub_type': 'rgb', 'effect': 'rgb'}",
+        ),
+        # Second Light Effect RGB Off
+        (
+            "fanlamp_pro_v1",
+            "02.01.19.1B.03.77.F8.B6.5F.2B.5E.00.FC.31.51.20.FE.D2.08.24.CB.4B.FC.60.0E.F4.F8.82.3D.2D.1E",
+            "cmd: 0x1F, param: 0x00, args: [0,0,0]",
+            "id: 0x003D5022, index: 2, tx: 14, seed: 0x00B5",
+            "light_1: ['effect'] / {'sub_type': 'rgb', 'effect': None}",
+        ),
+        (
+            "fanlamp_pro_v2",
+            "02.01.19.1B.03.F0.08.10.80.B8.69.E1.22.C6.F2.D3.A7.67.73.A4.9F.67.F6.B6.A2.22.8B.53.2B.EB.52",
+            "cmd: 0x1F, param: 0x00, args: [0,0,0]",
+            "id: 0xD2135C22, index: 2, tx: 29, seed: 0x2B53",
+            "light_1: ['effect'] / {'sub_type': 'rgb', 'effect': None}",
+        ),
+        (
+            "fanlamp_pro_v3",
+            "02.01.19.1B.03.F0.08.20.80.B8.69.E1.22.C6.F2.D3.A7.67.73.A4.9F.67.F6.B6.85.2B.8B.53.2B.17.19",
+            "cmd: 0x1F, param: 0x00, args: [0,0,0]",
+            "id: 0xD2135C22, index: 2, tx: 29, seed: 0x2B53",
+            "light_1: ['effect'] / {'sub_type': 'rgb', 'effect': None}",
         ),
     ],
 )
