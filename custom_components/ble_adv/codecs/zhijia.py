@@ -12,6 +12,9 @@ from .const import (
     ATTR_COLD,
     ATTR_CT,
     ATTR_DIR,
+    ATTR_EFFECT,
+    ATTR_EFFECT_RGB,
+    ATTR_EFFECT_RGBK,
     ATTR_GREEN,
     ATTR_ON,
     ATTR_RED,
@@ -344,26 +347,27 @@ TRANS_V1 = [
     Trans(CTLightCmd().act(ATTR_CT), EncCmd(0xAE)).copy(ATTR_CT, "arg0", 250),
 ]
 
-TRANS_V2 = [
-    *TRANS_COMMON_V1_V2,
-    Trans(CTLightCmd().act(ATTR_BR), EncCmd(0xAD)).copy(ATTR_BR, "arg0", 250),
-    Trans(CTLightCmd().act(ATTR_CT), EncCmd(0xAE)).copy(ATTR_CT, "arg0", 250),
+TRANS_V2_COMMON = [
     Trans(RGBLightCmd(1).act(ATTR_BR), EncCmd(0xC8)).copy(ATTR_BR, "arg0", 250),
     Trans(RGBLightCmd(1).act(ATTR_RED).act(ATTR_GREEN).act(ATTR_BLUE), EncCmd(0xCA))
     .copy(ATTR_RED, "arg0", 250)
     .copy(ATTR_GREEN, "arg1", 250)
     .copy(ATTR_BLUE, "arg2", 250),
+    Trans(RGBLightCmd(1).act(ATTR_EFFECT, ATTR_EFFECT_RGB), EncCmd(0xBC)),
+    Trans(RGBLightCmd(1).act(ATTR_EFFECT, ATTR_EFFECT_RGBK), EncCmd(0xBE)),
+]
+TRANS_V2 = [
+    *TRANS_COMMON_V1_V2,
+    *TRANS_V2_COMMON,
+    Trans(CTLightCmd().act(ATTR_BR), EncCmd(0xAD)).copy(ATTR_BR, "arg0", 250),
+    Trans(CTLightCmd().act(ATTR_CT), EncCmd(0xAE)).copy(ATTR_CT, "arg0", 250),
 ]
 
 
 TRANS_V2_FL = [
     *TRANS_COMMON_V1_V2,
+    *TRANS_V2_COMMON,
     Trans(CTLightCmd().act(ATTR_COLD).act(ATTR_WARM), EncCmd(0xA8)).copy(ATTR_COLD, "arg0", 250).copy(ATTR_WARM, "arg1", 250),
-    Trans(RGBLightCmd(1).act(ATTR_BR), EncCmd(0xC8)).copy(ATTR_BR, "arg0", 250),
-    Trans(RGBLightCmd(1).act(ATTR_RED).act(ATTR_GREEN).act(ATTR_BLUE), EncCmd(0xCA))
-    .copy(ATTR_RED, "arg0", 250)
-    .copy(ATTR_GREEN, "arg1", 250)
-    .copy(ATTR_BLUE, "arg2", 250),
     # req from app, only reverse, replaced by CT.LIGHT_CWW_COLD_WARM on direct to get ride of flickering
     Trans(CTLightCmd().act(ATTR_BR), EncCmd(0xAD)).copy(ATTR_BR, "arg0", 250).no_direct(),
     Trans(CTLightCmd().act(ATTR_CT), EncCmd(0xAE)).copy(ATTR_CT, "arg0", 250).no_direct(),

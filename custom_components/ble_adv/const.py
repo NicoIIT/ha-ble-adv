@@ -3,11 +3,7 @@
 from homeassistant.const import Platform
 
 DOMAIN = "ble_adv"
-PLATFORMS = [
-    Platform.FAN,
-    Platform.LIGHT,
-]
-
+PLATFORMS = [Platform.FAN, Platform.LIGHT]
 
 CONF_COORDINATOR_ID = "coordinator_unique_id"
 
@@ -24,6 +20,8 @@ CONF_DURATION = "duration"
 CONF_MIN_BRIGHTNESS = "min_brightness"
 CONF_USE_DIR = "direction"
 CONF_USE_OSC = "oscillating"
+CONF_PRESETS = "presets"
+CONF_EFFECTS = "effects"
 CONF_REFRESH_ON_START = "refresh_on_start"
 CONF_REVERSED = "reversed"
 CONF_LIGHTS = "lights"

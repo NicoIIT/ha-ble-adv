@@ -16,6 +16,8 @@ from .const import (
     ATTR_GREEN_F,
     ATTR_ON,
     ATTR_OSC,
+    ATTR_PRESET,
+    ATTR_PRESET_BREEZE,
     ATTR_RED_F,
     ATTR_SPEED,
     ATTR_TIME,
@@ -247,7 +249,7 @@ TRANS_V2 = [
     Trans(DeviceCmd().act(ATTR_CMD, ATTR_CMD_PAIR), EncCmd(0xB4)),
 ]
 
-TRANS_FAN = [
+TRANS_FAN_COMMON = [
     Trans(DeviceCmd().act(ATTR_CMD, ATTR_CMD_PAIR), EncCmd(0xB4).eq("arg0", 0xAA).eq("arg1", 0x66).eq("arg2", 0x55)),
     Trans(DeviceCmd().act(ATTR_CMD, ATTR_CMD_UNPAIR), EncCmd(0xB0)),
     Trans(DeviceCmd().act(ATTR_CMD, ATTR_CMD_TIMER), EncCmd(0xD4)).split_copy(ATTR_TIME, ["arg0"], 1.0 / 60.0),
@@ -262,6 +264,7 @@ TRANS_FAN = [
     Trans(FanCmd().act(ATTR_OSC, True), EncCmd(0xDE).eq("arg0", 1)),
     Trans(FanCmd().act(ATTR_OSC, False), EncCmd(0xDE).eq("arg0", 2)),
     Trans(FanCmd().act(ATTR_ON, False), EncCmd(0xD1)),
+    Trans(FanCmd().act(ATTR_PRESET, ATTR_PRESET_BREEZE), EncCmd(0xDB)),
     # Fan speed_count 6, direct and reverse
     Trans(Fan6SpeedCmd().act(ATTR_ON, True).act(ATTR_SPEED), EncCmd(0xD3)).copy(ATTR_SPEED, "arg0"),
     # Fan speed_count 3, direct only
@@ -273,11 +276,19 @@ TRANS_FAN = [
     Trans(CTLightCmd().eq(ATTR_COLD, 1).eq(ATTR_WARM, 1), EncCmd(0xA7).eq("arg0", 3)).no_direct(),
 ]
 
+TRANS_FAN_V1 = [
+    *TRANS_FAN_COMMON,
+    Trans(RGBLightCmd(1).act(ATTR_RED_F).act(ATTR_GREEN_F).act(ATTR_BLUE_F), EncCmd(0xCA))
+    .copy(ATTR_RED_F, "arg0", 255)
+    .copy(ATTR_GREEN_F, "arg1", 255)
+    .copy(ATTR_BLUE_F, "arg2", 255),
+]
+
 CODECS = [
     # Zhi Mei standard Android App
-    ZhimeiEncoderV0().id("zhimei_fan_v0").header([0x55]).ble(0x19, 0x03).add_translators(TRANS_FAN),
-    ZhimeiEncoderV1().id("zhimei_fan_v1").header([0x48, 0x46, 0x4B, 0x4A]).ble(0x1A, 0x03).add_translators(TRANS_FAN),
-    ZhimeiEncoderV1().id("zhimei_fan_vr1").header([0x1F, 0x61, 0x3E, 0x48, 0x46, 0x4B, 0x4A]).ble(0x1A, 0xFF).add_translators(TRANS_FAN),
+    ZhimeiEncoderV0().id("zhimei_fan_v0").header([0x55]).ble(0x19, 0x03).add_translators(TRANS_FAN_COMMON),
+    ZhimeiEncoderV1().id("zhimei_fan_v1").header([0x48, 0x46, 0x4B, 0x4A]).ble(0x1A, 0x03).add_translators(TRANS_FAN_V1),
+    ZhimeiEncoderV1().id("zhimei_fan_vr1").header([0x1F, 0x61, 0x3E, 0x48, 0x46, 0x4B, 0x4A]).ble(0x1A, 0xFF).add_translators(TRANS_FAN_V1),
     ZhimeiEncoderV1().id("zhimei_v1").header([0x48, 0x46, 0x4B, 0x4A]).ble(0x1A, 0x03).add_translators(TRANS_V1),
     ZhimeiEncoderV1().id("zhimei_v1b").header([0x58, 0x55, 0x18, 0x48, 0x46, 0x4B, 0x4A]).ble(0x1A, 0xFF).add_translators(TRANS_V1),
     ZhimeiEncoderV2().id("zhimei_v2").header([0xF9, 0x08, 0x49]).ble(0x1A, 0x03).prefix([0x33, 0xAA, 0x55]).add_translators(TRANS_V2),

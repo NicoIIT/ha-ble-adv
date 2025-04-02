@@ -19,9 +19,14 @@ from .const import (
     ATTR_CMD_UNPAIR,
     ATTR_COLD,
     ATTR_DIR,
+    ATTR_EFFECT,
+    ATTR_EFFECT_RGB,
     ATTR_GREEN_F,
     ATTR_ON,
     ATTR_OSC,
+    ATTR_PRESET,
+    ATTR_PRESET_BREEZE,
+    ATTR_PRESET_SLEEP,
     ATTR_RED_F,
     ATTR_SPEED,
     ATTR_STEP,
@@ -75,7 +80,7 @@ class FanLampEncoderV1(FanLampEncoder):
         return self._forced_crc2 if self._forced_crc2 != 0 else self._crc16(buffer, self._crc2_seed)
 
     def _get_arg2(self, cmd: int, arg2: int) -> int:
-        return arg2 if cmd == 0x22 else self._arg2 if (cmd == 0x28 or (not self._arg2_only_on_pair and cmd not in [0x12, 0x13])) else 0
+        return arg2 if cmd == 0x22 else self._arg2 if (cmd == 0x28 or (not self._arg2_only_on_pair and cmd not in [0x12, 0x13, 0x1E, 0x1F])) else 0
 
     def decrypt(self, buffer: bytes) -> bytes | None:
         """Decrypt / unwhiten an incoming raw buffer into a readable buffer."""
@@ -237,7 +242,8 @@ def _get_fan_translators(speed_attr: str, speed_count_attr: str) -> list[Trans]:
         Trans(FanCmd().act(ATTR_DIR, False), EncCmd(0x15).eq("arg0", 1)),  # Reverse
         Trans(FanCmd().act(ATTR_OSC, True), EncCmd(0x16).eq("arg0", 1)),
         Trans(FanCmd().act(ATTR_OSC, False), EncCmd(0x16).eq("arg0", 0)),
-        Trans(FanCmd().act(ATTR_CMD, ATTR_CMD_TOGGLE), EncCmd(0x33)).no_direct(),
+        Trans(FanCmd().act(ATTR_PRESET, ATTR_PRESET_SLEEP), EncCmd(0x33).eq("arg0", 1)),
+        Trans(FanCmd().act(ATTR_PRESET, ATTR_PRESET_BREEZE), EncCmd(0x33).eq("arg0", 2)),
     ]
 
 
@@ -279,6 +285,8 @@ def _get_rgb_translators() -> list[Trans]:
         .copy(ATTR_BLUE_F, "arg2", 255),
         Trans(RGBLightCmd(1).act(ATTR_CMD, ATTR_CMD_BR_UP).eq(ATTR_STEP, 0.1), EncCmd(0x22).eq("arg0", 0x14)).no_direct(),  # NOT TESTED
         Trans(RGBLightCmd(1).act(ATTR_CMD, ATTR_CMD_BR_DOWN).eq(ATTR_STEP, 0.1), EncCmd(0x22).eq("arg0", 0x28)).no_direct(),  # NOT TESTED
+        Trans(RGBLightCmd(1).act(ATTR_EFFECT, ATTR_EFFECT_RGB), EncCmd(0x1E)),
+        Trans(RGBLightCmd(1).act(ATTR_EFFECT).eq(ATTR_EFFECT, None), EncCmd(0x1F)),
     ]
 
 

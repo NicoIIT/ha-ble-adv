@@ -17,12 +17,13 @@ from homeassistant.helpers import selector
 
 from . import get_coordinator
 from .codecs import PHONE_APPS
-from .codecs.const import ATTR_ON, FAN_TYPE, LIGHT_TYPE
+from .codecs.const import ATTR_EFFECT, ATTR_ON, ATTR_PRESET, FAN_TYPE, LIGHT_TYPE
 from .codecs.models import BleAdvCodec, BleAdvConfig, BleAdvEntAttr
 from .const import (
     CONF_ADAPTER_ID,
     CONF_CODEC_ID,
     CONF_DURATION,
+    CONF_EFFECTS,
     CONF_FANS,
     CONF_FORCED_ID,
     CONF_INDEX,
@@ -31,6 +32,7 @@ from .const import (
     CONF_MAX_ENTITY_NB,
     CONF_MIN_BRIGHTNESS,
     CONF_PHONE_APP,
+    CONF_PRESETS,
     CONF_REFRESH_ON_START,
     CONF_REMOTE,
     CONF_REPEAT,
@@ -354,6 +356,8 @@ class BleAdvConfigFlow(ConfigFlow, domain=DOMAIN):
             errors["base"] = "missing_entity"
 
         codec: BleAdvCodec = self._coordinator.codecs[self._data[CONF_DEVICE][CONF_CODEC_ID]]
+        def_fan_presets = list(codec.get_supported_attr_values(ATTR_PRESET))
+        def_light_presets = list(codec.get_supported_attr_values(ATTR_EFFECT))
         def_lights = self._get_default_data(codec.get_features(LIGHT_TYPE), self._data[CONF_LIGHTS])
         def_fans = self._get_default_data(codec.get_features(FAN_TYPE), self._data[CONF_FANS])
         data_schema = vol.Schema(
@@ -368,6 +372,9 @@ class BleAdvConfigFlow(ConfigFlow, domain=DOMAIN):
                                 ),
                                 vol.Required(CONF_REFRESH_ON_START, default=opts.get(CONF_REFRESH_ON_START, False)): bool,
                                 vol.Required(CONF_REVERSED, default=opts.get(CONF_REVERSED, False)): bool,
+                                vol.Required(CONF_EFFECTS, default=opts.get(CONF_EFFECTS, def_light_presets)): self._get_multi_selector(
+                                    CONF_EFFECTS, def_light_presets
+                                ),
                             }
                         ),
                         {"collapsed": (CONF_TYPE not in opts) and (i > 0)},
@@ -379,9 +386,12 @@ class BleAdvConfigFlow(ConfigFlow, domain=DOMAIN):
                         vol.Schema(
                             {
                                 vol.Required(CONF_TYPE, default=opts.get(CONF_TYPE, CONF_TYPE_NONE)): self._get_selector(FAN_TYPE, types),
-                                vol.Required(CONF_USE_DIR, default=opts.get(CONF_USE_DIR, False)): bool,
-                                vol.Required(CONF_USE_OSC, default=opts.get(CONF_USE_OSC, False)): bool,
+                                vol.Required(CONF_USE_DIR, default=opts.get(CONF_USE_DIR, True)): bool,
+                                vol.Required(CONF_USE_OSC, default=opts.get(CONF_USE_OSC, True)): bool,
                                 vol.Required(CONF_REFRESH_ON_START, default=opts.get(CONF_REFRESH_ON_START, False)): bool,
+                                vol.Required(CONF_PRESETS, default=opts.get(CONF_PRESETS, def_fan_presets)): self._get_multi_selector(
+                                    CONF_PRESETS, def_fan_presets
+                                ),
                             }
                         ),
                         {"collapsed": (CONF_TYPE not in opts) and (i > 0)},
@@ -506,5 +516,15 @@ class BleAdvConfigFlow(ConfigFlow, domain=DOMAIN):
                 translation_key=key,
                 mode=selector.SelectSelectorMode.DROPDOWN,
                 options=types,
+            )
+        )
+
+    def _get_multi_selector(self, key: str, types: list[str]) -> selector.SelectSelector:
+        return selector.SelectSelector(
+            selector.SelectSelectorConfig(
+                translation_key=key,
+                mode=selector.SelectSelectorMode.LIST,
+                options=types,
+                multiple=True,
             )
         )

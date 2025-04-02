@@ -3,19 +3,10 @@
 from __future__ import annotations
 
 import logging
-from typing import Any
+from typing import Any, Self
 
-from homeassistant.components.light import (
-    ATTR_BRIGHTNESS,
-    ATTR_COLOR_TEMP_KELVIN,
-    ATTR_RGB_COLOR,
-    LightEntity,
-)
-from homeassistant.components.light.const import (
-    DEFAULT_MAX_KELVIN,
-    DEFAULT_MIN_KELVIN,
-    ColorMode,
-)
+from homeassistant.components.light import ATTR_BRIGHTNESS, ATTR_COLOR_TEMP_KELVIN, ATTR_EFFECT, ATTR_RGB_COLOR, LightEntity
+from homeassistant.components.light.const import DEFAULT_MAX_KELVIN, DEFAULT_MIN_KELVIN, ColorMode, LightEntityFeature
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_TYPE
 from homeassistant.core import HomeAssistant
@@ -44,7 +35,7 @@ from .codecs.const import (
     LIGHT_TYPE_ONOFF,
     LIGHT_TYPE_RGB,
 )
-from .const import CONF_LIGHTS, CONF_MIN_BRIGHTNESS, CONF_REFRESH_ON_START, CONF_REVERSED, DOMAIN
+from .const import CONF_EFFECTS, CONF_LIGHTS, CONF_MIN_BRIGHTNESS, CONF_REFRESH_ON_START, CONF_REVERSED, DOMAIN
 from .device import BleAdvDevice, BleAdvEntAttr, BleAdvEntity
 
 _LOGGER = logging.getLogger(__name__)
@@ -58,13 +49,11 @@ def create_entity(options: dict[str, str | float], device: BleAdvDevice, index: 
     """Create a Light Entity from the entry."""
     light_type: str = str(options[CONF_TYPE])
     min_br: int = int(options.get(CONF_MIN_BRIGHTNESS, 3))
+    refresh_on_start = bool(options.get(CONF_REFRESH_ON_START, False))
     if light_type == LIGHT_TYPE_RGB:
-        refresh_on_start = bool(options.get(CONF_REFRESH_ON_START, False))
-        return BleAdvLightRGB(light_type, device, index, min_br, refresh_on_start)
+        return BleAdvLightRGB(light_type, device, index, min_br, refresh_on_start).set_effects(options.get(CONF_EFFECTS, []))  # type: ignore[none]
     if light_type == LIGHT_TYPE_CWW:
-        refresh_on_start = bool(options.get(CONF_REFRESH_ON_START, False))
-        reverse_cw = bool(options.get(CONF_REVERSED, False))
-        return BleAdvLightCWW(light_type, device, index, min_br, refresh_on_start, reverse_cw)
+        return BleAdvLightCWW(light_type, device, index, min_br, refresh_on_start).set_reverse_cw(bool(options.get(CONF_REVERSED, False)))
     if light_type == LIGHT_TYPE_ONOFF:
         return BleAdvLightBinary(light_type, device, index)
     raise BleAdvLightError("Invalid Type")
@@ -94,11 +83,10 @@ class BleAdvLightBinary(BleAdvLightBase):
 class BleAdvLightWithBrightness(BleAdvLightBase):
     """Base Light with Brightness."""
 
-    def __init__(self, sub_type: str, device: BleAdvDevice, index: int, min_br: float, refresh_on_start: bool, reverse_cw: bool = False) -> None:
+    def __init__(self, sub_type: str, device: BleAdvDevice, index: int, min_br: float, refresh_on_start: bool) -> None:
         super().__init__(sub_type, device, index)
         self._min_brighntess = float(min_br / 100.0)
         self._refresh_on_start = refresh_on_start
-        self._reverse_cw = reverse_cw
 
     def _pct(self, val: float, min_val: float = 0.0, max_val: float = 1.0) -> float:
         return min(max_val, max(min_val, val))
@@ -137,7 +125,18 @@ class BleAdvLightRGB(BleAdvLightWithBrightness):
 
     _attr_supported_color_modes = {ColorMode.RGB}
     _attr_color_mode = ColorMode.RGB
-    _state_attributes = frozenset([(ATTR_BRIGHTNESS, 255), (ATTR_RGB_COLOR, (255, 255, 255))])
+    _state_attributes = frozenset([(ATTR_BRIGHTNESS, 255), (ATTR_RGB_COLOR, (255, 255, 255)), (ATTR_EFFECT, None)])
+
+    def set_effects(self, effects: list[Any]) -> Self:
+        """Set Effects."""
+        self._attr_effect_list = effects
+        self._attr_supported_features |= LightEntityFeature.EFFECT if len(effects) > 0 else 0
+        return self
+
+    async def async_turn_on(self, *args, **kwargs) -> None:  # noqa: ANN002, ANN003
+        """Override base turn_on to reset effect."""
+        self._attr_effect = None
+        await super().async_turn_on(self, *args, **kwargs)
 
     def _get_rgb(self) -> tuple[float, float, float]:
         """Get RGB tuple."""
@@ -152,7 +151,16 @@ class BleAdvLightRGB(BleAdvLightWithBrightness):
         """Get the attrs."""
         br = self._get_br()
         r, g, b = self._get_rgb()
-        return {**super().get_attrs(), ATTR_RED: r, ATTR_GREEN: g, ATTR_BLUE: b, ATTR_RED_F: r * br, ATTR_GREEN_F: g * br, ATTR_BLUE_F: b * br}
+        return {
+            **super().get_attrs(),
+            ATTR_RED: r,
+            ATTR_GREEN: g,
+            ATTR_BLUE: b,
+            ATTR_RED_F: r * br,
+            ATTR_GREEN_F: g * br,
+            ATTR_BLUE_F: b * br,
+            ATTR_EFFECT: self._attr_effect,
+        }
 
     def forced_changed_attr_on_start(self) -> list[str]:
         """List Forced changed attributes on start."""
@@ -181,6 +189,11 @@ class BleAdvLightCWW(BleAdvLightWithBrightness):
     _attr_supported_color_modes = {ColorMode.COLOR_TEMP}
     _attr_color_mode = ColorMode.COLOR_TEMP
     _state_attributes = frozenset([(ATTR_BRIGHTNESS, 255), (ATTR_COLOR_TEMP_KELVIN, DEFAULT_MAX_KELVIN)])
+
+    def set_reverse_cw(self, reverse_cw: bool) -> Self:
+        """Reverse Cold / Warm."""
+        self._reverse_cw = reverse_cw
+        return self
 
     def _set_ct(self, ct_percent: float) -> None:
         """Set Color Temperature from float [0.0 -> 1.0].
