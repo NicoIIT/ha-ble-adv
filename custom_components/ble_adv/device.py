@@ -171,7 +171,7 @@ class MatchingDeviceCallback(MatchingCallback):
         """Handle the callback."""
         if (
             (codec_id != self.device.codec_id)
-            or (adapter_id != self.device.adapter_id)
+            or (self.device.adapter_id is not None and (adapter_id != self.device.adapter_id))
             or (config.id != self.device.config.id)
             or (config.index != self.device.config.index)
         ):
@@ -191,12 +191,12 @@ class BleAdvMatchingDevice(ABC):
         reg_name: str,
         coordinator: BleAdvCoordinator,
         codec_id: str,
-        adapter_id: str,
+        adapter_id: str | None,
         config: BleAdvConfig,
     ) -> None:
         self.coordinator: BleAdvCoordinator = coordinator
         self.codec_id: str = codec_id
-        self.adapter_id: str = adapter_id
+        self.adapter_id: str | None = adapter_id
         self.config: BleAdvConfig = config
         self.reg_name: str = reg_name
 
@@ -221,8 +221,8 @@ class BleAdvMatchingDevice(ABC):
 class BleAdvRemote(BleAdvMatchingDevice):
     """Class representing a remote."""
 
-    def __init__(self, name: str, codec_id: str, adapter_id: str, config: BleAdvConfig, coordinator: BleAdvCoordinator) -> None:
-        super().__init__(name, coordinator, codec_id, adapter_id, config)
+    def __init__(self, name: str, codec_id: str, config: BleAdvConfig, coordinator: BleAdvCoordinator) -> None:
+        super().__init__(name, coordinator, codec_id, None, config)
         self.device: BleAdvDevice | None = None
 
     async def async_on_command(self, ent_attrs: list[BleAdvEntAttr]) -> None:
@@ -241,7 +241,7 @@ class BleAdvDevice(BleAdvMatchingDevice):
         unique_id: str,
         name: str,
         codec_id: str,
-        adapter_id: str,
+        adapter_id: str | None,
         repeat: int,
         interval: int,
         duration: int,

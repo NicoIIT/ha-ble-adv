@@ -140,7 +140,7 @@ class BleAdvCoordinator:
         self._callbacks.pop(callback_id)
         self.logger.info(f"Unregistered callback with id '{callback_id}'")
 
-    async def advertise(self, adapter_id: str, queue_id: str, qi: BleAdvQueueItem) -> None:
+    async def advertise(self, adapter_id: str | None, queue_id: str, qi: BleAdvQueueItem) -> None:
         """Advertise."""
         for last_advs in self._last_advs.values():
             last_advs[bytes(qi.data)] = datetime.now()  # do not re process in case re listen by another adapter

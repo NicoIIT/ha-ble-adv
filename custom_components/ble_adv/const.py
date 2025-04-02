@@ -29,3 +29,4 @@ CONF_REVERSED = "reversed"
 CONF_LIGHTS = "lights"
 CONF_FANS = "fans"
 CONF_REMOTE = "remote"
+CONF_MAX_ENTITY_NB = 3  # The max nb of entity that the config can handle in translations json files

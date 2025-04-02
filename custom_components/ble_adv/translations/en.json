@@ -51,11 +51,13 @@
       },
       "confirm": {
         "title": "Validation",
-        "description": "Testing configuration {nb}/{tot}:\n\n    Bluetooth Adapter: {adapter}\n    Codec: {codec}\n    Id: {id}\n    Index: {index}\n\nDid the light blink?",
+        "description": "Testing configuration {nb}/{tot}:\n\n    Codec: {codec}\n    Id: {id}\n    Index: {index}\n\nDid the light blink?",
         "menu_options": {
           "confirm_yes": "Yes!",
-          "confirm_no": "No, try another.",
-          "confirm_retry": "Retry the same."
+          "confirm_no_another": "No, try another.",
+          "confirm_no_abort": "No, abort.",
+          "confirm_retry_last": "Retry the same.",
+          "confirm_retry_all": "Retry ALL."
         }
       },
       "configure": {
@@ -130,7 +132,7 @@
       },
       "config_remote": {
         "title": "Configure Physical Remote",
-        "description": "Linked Controller:\n\n    Bluetooth Adapter: {adapter}\n    Codec: {codec}\n    Id: {id}\n    Index: {index}",
+        "description": "Linked Controller:\n\n    Codec: {codec}\n    Id: {id}\n    Index: {index}",
         "menu_options": {
           "config_remote_delete": "Delete the linked controller",
           "config_remote_update": "Modify the linked controller Options",
@@ -143,12 +145,13 @@
       },
       "config_remote_update": {
         "title": "Configure Linked Controller Options",
-        "description": "Linked Controller:\n\n    Bluetooth Adapter: {adapter}\n    Codec: {codec}\n    Id: {id}\n    Index: {index}"
+        "description": "Linked Controller:\n\n    Codec: {codec}\n    Id: {id}\n    Index: {index}"
       },
       "config_technical": {
         "title": "Configure Technical Options",
-        "description": "Each command is advertised (3 * 'Repetitions') times, at given 'Interval' (ms), and respecting a delay of 'Minimum Duration' in between 2 distinct commands",
+        "description": "Each command is advertised to the given adapter (3 * 'Repetitions') times, at given 'Interval' (ms), and respecting a delay of 'Minimum Duration' in between 2 distinct commands.\n\nModify only if you know what you are doing!",
         "data": {
+          "adapter_id": "BLE ADV Adapter",
           "interval": "Interval",
           "repeat": "Repetitions",
           "duration": "Minimum Duration"
@@ -165,7 +168,7 @@
     "progress": {
       "wait_config": "Please press any button (preferably Pair) on the phone app controlling your device within {max_seconds}s.",
       "agg_config": "Aggregating configuration data.",
-      "blink": "Making the light blink with configuration {nb}/{tot}:\n\n    Bluetooth Adapter: {adapter}\n    Codec: {codec}\n    Id: {id}\n    Index: {index}",
+      "blink": "Making the light blink with configuration {nb}/{tot}:\n\n    Codec: {codec}\n    Id: {id}\n    Index: {index}",
       "wait_config_remote": "Please press any button (preferably Pair) on the controller within {max_seconds}s."
     },
     "abort": {

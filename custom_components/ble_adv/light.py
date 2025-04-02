@@ -73,7 +73,7 @@ def create_entity(options: dict[str, str | float], device: BleAdvDevice, index: 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback) -> None:
     """Entr setup."""
     device: BleAdvDevice = hass.data[DOMAIN][entry.entry_id]
-    entities = [create_entity(options, device, i) for i, options in enumerate(entry.data[CONF_LIGHTS])]
+    entities = [create_entity(options, device, i) for i, options in enumerate(entry.data[CONF_LIGHTS]) if CONF_TYPE in options]
     async_add_entities(entities, True)
 
 
