@@ -6,6 +6,7 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_DEVICE, CONF_NAME
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.singleton import singleton
+from homeassistant.helpers.typing import ConfigType
 
 from .codecs import get_codecs
 from .codecs.models import BleAdvConfig
@@ -38,6 +39,12 @@ async def get_coordinator(hass: HomeAssistant) -> BleAdvCoordinator:
     coordinator = BleAdvCoordinator(hass, _LOGGER, get_codecs())
     await coordinator.async_init()
     return coordinator
+
+
+async def async_setup(hass: HomeAssistant, _: ConfigType) -> bool:
+    """Initialize the integration."""
+    await get_coordinator(hass)
+    return True
 
 
 async def async_migrate_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> bool:

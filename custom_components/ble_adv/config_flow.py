@@ -356,8 +356,8 @@ class BleAdvConfigFlow(ConfigFlow, domain=DOMAIN):
             errors["base"] = "missing_entity"
 
         codec: BleAdvCodec = self._coordinator.codecs[self._data[CONF_DEVICE][CONF_CODEC_ID]]
-        def_fan_presets = list(codec.get_supported_attr_values(ATTR_PRESET))
-        def_light_presets = list(codec.get_supported_attr_values(ATTR_EFFECT))
+        def_fan_presets = [x for x in codec.get_supported_attr_values(ATTR_PRESET) if x is not None]
+        def_light_presets = [x for x in codec.get_supported_attr_values(ATTR_EFFECT) if x is not None]
         def_lights = self._get_default_data(codec.get_features(LIGHT_TYPE), self._data[CONF_LIGHTS])
         def_fans = self._get_default_data(codec.get_features(FAN_TYPE), self._data[CONF_FANS])
         data_schema = vol.Schema(

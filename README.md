@@ -90,3 +90,11 @@ The issue is not understood, but there is an option to fix it: modify the entity
 ### When I switch OFF my entity, the device fully resets its state to the default and is then not aligned with HA state when I switch it back ON (color, brightness, fan direction, ...)
 You can force the re send of the HA state when the entity is switched ON: modify the entity parameters (see first question) and check the box "Force (...) refresh when switched ON"
 Please note this will send several distinct commands very fast when the entity is switched ON: depending on your device it may be too fast, see second question
+
+### When I try to add an integration for the first time my ble_adv_proxy is not detected
+Home assistant does not automatically loads components if they have no integration, and then the ble_adv_proxy cannot be detected by the unloaded component, so you have to force the component to be loaded at start by adding the line in the `configuration.yaml`:
+```yaml
+ble_adv:
+
+```
+Alternatively, the first time you start a config flow the component is loaded, so you just have to wait for up to 1 minute after that to have the `ble_adv_proxy` detected and available.

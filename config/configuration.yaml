@@ -10,3 +10,5 @@ logger:
   default: info
   logs:
     custom_components.ble_adv: debug
+
+ble_adv:
