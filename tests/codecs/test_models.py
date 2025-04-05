@@ -113,7 +113,7 @@ def test_entity_matcher() -> None:
     matcher.act(ATTR_ON, True)
     assert repr(matcher) == "light_0 / ['on']"
     assert matcher.create() == BleAdvEntAttr([ATTR_ON], {ATTR_ON: True}, LIGHT_TYPE, 0)
-    assert matcher.get_features() == (LIGHT_TYPE, 0, LIGHT_TYPE_CWW)
+    assert matcher.get_supported_features() == (LIGHT_TYPE, 0, {ATTR_ON: True, ATTR_SUB_TYPE: LIGHT_TYPE_CWW})
     assert matcher.matches(BleAdvEntAttr([ATTR_ON], {ATTR_ON: True, ATTR_CT: 0.8, ATTR_BR: 0.2}, LIGHT_TYPE, 0))
     assert not matcher.matches(BleAdvEntAttr([ATTR_ON], {ATTR_ON: True, ATTR_CT: 0.2, ATTR_BR: 0.2}, LIGHT_TYPE, 0))
     assert not matcher.matches(BleAdvEntAttr([ATTR_ON], {ATTR_ON: True, ATTR_CT: 0.8, ATTR_BR: 0.2}, LIGHT_TYPE, 1))
@@ -245,8 +245,8 @@ def test_codec() -> None:
     codec = _TestCodec().id("test_codec").ble(0x19, 0x16).header([0x55, 0x56])
     codec.add_translators(
         [
-            Trans(LightCmd().act(ATTR_ON, True), EncCmd(0x10)),
-            Trans(LightCmd().act(ATTR_ON, False), EncCmd(0x11)),
+            Trans(LightCmd(1).act(ATTR_ON, True), EncCmd(0x12)),
+            Trans(LightCmd(1).act(ATTR_ON, False), EncCmd(0x13)),
             Trans(FanCmd().act(ATTR_PRESET, ATTR_PRESET_BREEZE), EncCmd(0x33).eq("arg0", 2)),
             Trans(FanCmd().act(ATTR_PRESET, ATTR_PRESET_SLEEP), EncCmd(0x33).eq("arg0", 1)),
         ]
@@ -254,17 +254,18 @@ def test_codec() -> None:
     assert codec.codec_id == "test_codec"
     assert codec._ble_type == 0x16  # noqa: SLF001
     assert codec._header == bytearray([0x55, 0x56])  # noqa: SLF001
-    assert codec.get_features(LIGHT_TYPE) == [["onoff"], None, None]
-    assert codec.get_features(FAN_TYPE) == [None, None, None]
-    assert codec.get_supported_attr_values(ATTR_PRESET) == {ATTR_PRESET_BREEZE, ATTR_PRESET_SLEEP}
-    assert codec.get_supported_attr_values(ATTR_CMD) == set()
+    assert codec.get_supported_features(LIGHT_TYPE) == [{}, {ATTR_ON: {False, True}, ATTR_SUB_TYPE: {LIGHT_TYPE_ONOFF}}]
+    assert codec.get_supported_features(FAN_TYPE) == [{ATTR_PRESET: {ATTR_PRESET_BREEZE, ATTR_PRESET_SLEEP}}]
     codec.add_translators(
         [
-            Trans(LightCmd(1).act(ATTR_ON, True), EncCmd(0x12)),
-            Trans(LightCmd(1).act(ATTR_ON, False), EncCmd(0x13)),
+            Trans(LightCmd().act(ATTR_ON, True), EncCmd(0x10)),
+            Trans(LightCmd().act(ATTR_ON, False), EncCmd(0x11)),
         ]
     )
-    assert codec.get_features(LIGHT_TYPE) == [["onoff"], ["onoff"], None]
+    assert codec.get_supported_features(LIGHT_TYPE) == [
+        {ATTR_ON: {False, True}, ATTR_SUB_TYPE: {LIGHT_TYPE_ONOFF}},
+        {ATTR_ON: {False, True}, ATTR_SUB_TYPE: {LIGHT_TYPE_ONOFF}},
+    ]
     codec.add_translators(
         [
             Trans(CTLightCmd().act(ATTR_COLD).act(ATTR_WARM), EncCmd(0x21).eq("param", 0)).copy(ATTR_COLD, "arg0", 255).copy(ATTR_WARM, "arg1", 255),
@@ -274,7 +275,10 @@ def test_codec() -> None:
             .copy(ATTR_BLUE_F, "arg2", 255),
         ]
     )
-    assert codec.get_features(LIGHT_TYPE) == [["onoff", "cww", "rgb"], ["onoff"], None]
+    assert codec.get_supported_features(LIGHT_TYPE) == [
+        {ATTR_ON: {False, True}, ATTR_SUB_TYPE: {LIGHT_TYPE_ONOFF, LIGHT_TYPE_CWW, LIGHT_TYPE_RGB}},
+        {ATTR_ON: {False, True}, ATTR_SUB_TYPE: {LIGHT_TYPE_ONOFF}},
+    ]
     assert repr(codec.encode_adv(BleAdvEncCmd(0x10), BleAdvConfig())) == "Type: 0x16, raw: 55.56.74.65.73.74"
     assert codec.decode_adv(BleAdvAdvertisement(0x16, _from_dotted("55.56.74.65.73.74"))) == (BleAdvEncCmd(0x10), BleAdvConfig())
     assert codec.decode_adv(BleAdvAdvertisement(0x16, _from_dotted("00.00.74.65.73.74"))) == (None, None)

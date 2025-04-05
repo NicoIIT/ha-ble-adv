@@ -15,6 +15,7 @@ from .const import (
     ATTR_PRESET,
     ATTR_PRESET_BREEZE,
     ATTR_SPEED,
+    ATTR_SUB_TYPE,
     FAN_TYPE,
     FAN_TYPE_6SPEED,
 )
@@ -157,21 +158,20 @@ class AgarceEncoder(BleAdvCodec):
             ]
         )
 
-    def get_features(self, base_type: str) -> list[Any]:
+    def get_supported_features(self, base_type: str) -> list[dict[str, set[Any]]]:
         """Get the featues supported by the translators."""
         if base_type == FAN_TYPE:
-            return [[FAN_TYPE_6SPEED], None, None]
-        return super().get_features(base_type)
-
-    def get_supported_attr_values(self, attr_name: str) -> set[Any]:
-        """Get all the values defined by the translators for the given attribute."""
-        if attr_name == ATTR_PRESET:
-            return {ATTR_PRESET_BREEZE}
-        if attr_name == ATTR_SPEED:
-            return set(range(6))
-        if attr_name in [ATTR_ON, ATTR_DIR, ATTR_OSC]:
-            return {True, False}
-        return super().get_supported_attr_values(attr_name)
+            return [
+                {
+                    ATTR_SUB_TYPE: {FAN_TYPE_6SPEED},
+                    ATTR_PRESET: {ATTR_PRESET_BREEZE},
+                    ATTR_SPEED: set(range(6)),
+                    ATTR_ON: {True, False},
+                    ATTR_DIR: {True, False},
+                    ATTR_OSC: {True, False},
+                }
+            ]
+        return super().get_supported_features(base_type)
 
 
 TRANS = [

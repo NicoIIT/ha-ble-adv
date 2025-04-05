@@ -17,7 +17,7 @@ from homeassistant.helpers import selector
 
 from . import get_coordinator
 from .codecs import PHONE_APPS
-from .codecs.const import ATTR_EFFECT, ATTR_ON, ATTR_PRESET, FAN_TYPE, LIGHT_TYPE
+from .codecs.const import ATTR_DIR, ATTR_EFFECT, ATTR_ON, ATTR_OSC, ATTR_PRESET, ATTR_SUB_TYPE, FAN_TYPE, LIGHT_TYPE, LIGHT_TYPE_CWW, LIGHT_TYPE_RGB
 from .codecs.models import BleAdvCodec, BleAdvConfig, BleAdvEntAttr
 from .const import (
     CONF_ADAPTER_ID,
@@ -49,7 +49,6 @@ from .device import BleAdvDevice
 _LOGGER = logging.getLogger(__name__)
 
 type CodecFoundCallback = Callable[[str, str, BleAdvConfig], Awaitable[None]]
-type EntDefault = tuple[dict[str, Any], list[str]]
 
 WAIT_MAX_SECONDS = 10
 
@@ -356,49 +355,49 @@ class BleAdvConfigFlow(ConfigFlow, domain=DOMAIN):
             errors["base"] = "missing_entity"
 
         codec: BleAdvCodec = self._coordinator.codecs[self._data[CONF_DEVICE][CONF_CODEC_ID]]
-        def_fan_presets = [x for x in codec.get_supported_attr_values(ATTR_PRESET) if x is not None]
-        def_light_presets = [x for x in codec.get_supported_attr_values(ATTR_EFFECT) if x is not None]
-        def_lights = self._get_default_data(codec.get_features(LIGHT_TYPE), self._data[CONF_LIGHTS])
-        def_fans = self._get_default_data(codec.get_features(FAN_TYPE), self._data[CONF_FANS])
+        sections: dict[str, tuple[dict[vol.Schemable, Any], bool]] = {}
+
+        # Build one section for each Light supported by the codec
+        for i, feats in enumerate(codec.get_supported_features(LIGHT_TYPE)):
+            if ATTR_SUB_TYPE in feats:
+                opts = self._data[CONF_LIGHTS][i]
+                types = [*feats[ATTR_SUB_TYPE], CONF_TYPE_NONE]
+                schema_opts: dict[vol.Schemable, Any] = {
+                    vol.Required(CONF_TYPE, default=opts.get(CONF_TYPE, CONF_TYPE_NONE)): self._get_selector(LIGHT_TYPE, types),
+                }
+                if LIGHT_TYPE_CWW in types or LIGHT_TYPE_RGB in types:
+                    schema_opts[vol.Required(CONF_MIN_BRIGHTNESS, default=opts.get(CONF_MIN_BRIGHTNESS, 3))] = selector.NumberSelector(
+                        selector.NumberSelectorConfig(step=1, min=1, max=15, mode=selector.NumberSelectorMode.BOX)
+                    )
+                    schema_opts[vol.Required(CONF_REFRESH_ON_START, default=opts.get(CONF_REFRESH_ON_START, False))] = bool
+                if LIGHT_TYPE_CWW in types:
+                    schema_opts[vol.Required(CONF_REVERSED, default=opts.get(CONF_REVERSED, False))] = bool
+                if ATTR_EFFECT in feats:
+                    effects = list(feats[ATTR_EFFECT])
+                    schema_opts[vol.Required(CONF_EFFECTS, default=opts.get(CONF_EFFECTS, effects))] = self._get_multi_selector(CONF_EFFECTS, effects)
+                sections[f"{LIGHT_TYPE}_{i}"] = (schema_opts, (i > 0) and CONF_TYPE in opts)
+
+        # Build one section for each Fan supported by the codec
+        for i, feats in enumerate(codec.get_supported_features(FAN_TYPE)):
+            if ATTR_SUB_TYPE in feats:
+                opts = self._data[CONF_FANS][i]
+                types = [*feats[ATTR_SUB_TYPE], CONF_TYPE_NONE]
+                schema_opts: dict[vol.Schemable, Any] = {
+                    vol.Required(CONF_TYPE, default=opts.get(CONF_TYPE, CONF_TYPE_NONE)): self._get_selector(FAN_TYPE, types),
+                    vol.Required(CONF_REFRESH_ON_START, default=opts.get(CONF_REFRESH_ON_START, False)): bool,
+                }
+                if ATTR_DIR in feats:
+                    schema_opts[vol.Required(CONF_USE_DIR, default=opts.get(CONF_USE_DIR, True))] = bool
+                if ATTR_OSC in feats:
+                    schema_opts[vol.Required(CONF_USE_OSC, default=opts.get(CONF_USE_OSC, True))] = bool
+                if ATTR_PRESET in feats:
+                    presets = list(feats[ATTR_PRESET])
+                    schema_opts[vol.Required(CONF_PRESETS, default=opts.get(CONF_PRESETS, presets))] = self._get_multi_selector(CONF_PRESETS, presets)
+                sections[f"{FAN_TYPE}_{i}"] = (schema_opts, (i > 0) and CONF_TYPE in opts)
+
+        # Finalize schema with all sections
         data_schema = vol.Schema(
-            {
-                **{
-                    vol.Required(f"{LIGHT_TYPE}_{i}"): section(
-                        vol.Schema(
-                            {
-                                vol.Required(CONF_TYPE, default=opts.get(CONF_TYPE, CONF_TYPE_NONE)): self._get_selector(LIGHT_TYPE, types),
-                                vol.Optional(CONF_MIN_BRIGHTNESS, default=opts.get(CONF_MIN_BRIGHTNESS, 3)): selector.NumberSelector(
-                                    selector.NumberSelectorConfig(step=1, min=1, max=15, mode=selector.NumberSelectorMode.BOX)
-                                ),
-                                vol.Required(CONF_REFRESH_ON_START, default=opts.get(CONF_REFRESH_ON_START, False)): bool,
-                                vol.Required(CONF_REVERSED, default=opts.get(CONF_REVERSED, False)): bool,
-                                vol.Required(CONF_EFFECTS, default=opts.get(CONF_EFFECTS, def_light_presets)): self._get_multi_selector(
-                                    CONF_EFFECTS, def_light_presets
-                                ),
-                            }
-                        ),
-                        {"collapsed": (CONF_TYPE not in opts) and (i > 0)},
-                    )
-                    for i, (opts, types) in enumerate(def_lights)
-                },
-                **{
-                    vol.Required(f"{FAN_TYPE}_{i}"): section(
-                        vol.Schema(
-                            {
-                                vol.Required(CONF_TYPE, default=opts.get(CONF_TYPE, CONF_TYPE_NONE)): self._get_selector(FAN_TYPE, types),
-                                vol.Required(CONF_USE_DIR, default=opts.get(CONF_USE_DIR, True)): bool,
-                                vol.Required(CONF_USE_OSC, default=opts.get(CONF_USE_OSC, True)): bool,
-                                vol.Required(CONF_REFRESH_ON_START, default=opts.get(CONF_REFRESH_ON_START, False)): bool,
-                                vol.Required(CONF_PRESETS, default=opts.get(CONF_PRESETS, def_fan_presets)): self._get_multi_selector(
-                                    CONF_PRESETS, def_fan_presets
-                                ),
-                            }
-                        ),
-                        {"collapsed": (CONF_TYPE not in opts) and (i > 0)},
-                    )
-                    for i, (opts, types) in enumerate(def_fans)
-                },
-            }
+            {vol.Required(name): section(vol.Schema(sect), {"collapsed": collapsed}) for name, (sect, collapsed) in sections.items()}
         )
 
         return self.async_show_form(step_id="config_entities", data_schema=data_schema, errors=errors)
@@ -506,9 +505,6 @@ class BleAdvConfigFlow(ConfigFlow, domain=DOMAIN):
             x if x is not None and x.get(CONF_TYPE) != CONF_TYPE_NONE else {}
             for x in [user_input.get(f"{ent_type}_{i}") for i in range(CONF_MAX_ENTITY_NB)]
         ]
-
-    def _get_default_data(self, types: list[Any], options: list[dict[str, Any]]) -> list[EntDefault]:
-        return [(options[i], [*feature, CONF_TYPE_NONE]) for i, feature in enumerate(types) if feature is not None]
 
     def _get_selector(self, key: str, types: list[str]) -> selector.SelectSelector:
         return selector.SelectSelector(

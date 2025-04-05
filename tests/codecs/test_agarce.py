@@ -1,6 +1,22 @@
 """Agarce Unit Tests."""
 
+# ruff: noqa: S101
 import pytest
+from ble_adv.codecs.agarce import TRANS, AgarceEncoder
+from ble_adv.codecs.const import (
+    ATTR_DIR,
+    ATTR_ON,
+    ATTR_OSC,
+    ATTR_PRESET,
+    ATTR_PRESET_BREEZE,
+    ATTR_SPEED,
+    ATTR_SUB_TYPE,
+    FAN_TYPE,
+    FAN_TYPE_6SPEED,
+    LIGHT_TYPE,
+    LIGHT_TYPE_CWW,
+    LIGHT_TYPE_ONOFF,
+)
 
 from . import _TestEncoderBase, _TestEncoderFull
 
@@ -168,3 +184,19 @@ class TestEncoderAgarceNoReverse(_TestEncoderFull):
     """Agarce Encoder / Decoder No Reverse tests."""
 
     _with_reverse = False
+
+
+def test_supported_features() -> None:
+    """Test the specific supported features."""
+    codec = AgarceEncoder().add_translators(TRANS)
+    assert codec.get_supported_features(LIGHT_TYPE) == [{ATTR_ON: {False, True}, ATTR_SUB_TYPE: {LIGHT_TYPE_ONOFF, LIGHT_TYPE_CWW}}]
+    assert codec.get_supported_features(FAN_TYPE) == [
+        {
+            ATTR_SUB_TYPE: {FAN_TYPE_6SPEED},
+            ATTR_PRESET: {ATTR_PRESET_BREEZE},
+            ATTR_SPEED: {0, 1, 2, 3, 4, 5},
+            ATTR_ON: {False, True},
+            ATTR_DIR: {False, True},
+            ATTR_OSC: {False, True},
+        }
+    ]

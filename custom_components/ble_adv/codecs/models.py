@@ -184,9 +184,11 @@ class EntityMatcher(CommonMatcher):
         ent_attr: BleAdvEntAttr = BleAdvEntAttr(self._actions.copy(), self.eqs.copy(), self._base_type, self._index)
         return ent_attr
 
-    def get_features(self) -> tuple[str, int, str | None]:
+    def get_supported_features(self) -> tuple[str, int, dict[str, Any]]:
         """Get Features."""
-        return (self._base_type, self._index, self._sub_type)
+        feats: dict[str, Any] = {**self.eqs}
+        feats[ATTR_SUB_TYPE] = self._sub_type
+        return (self._base_type, self._index, feats)
 
 
 class FanCmd(EntityMatcher):
@@ -311,7 +313,7 @@ class Trans:
         """Apply transformations to Encoder Attributes: direct."""
         enc_cmd = self.enc.create()
         for attr_ent, attr_enc, factor in self._copies:
-            setattr(enc_cmd, attr_enc, int(factor * ent_attr.attrs.get(attr_ent)))
+            setattr(enc_cmd, attr_enc, int(factor * ent_attr.attrs.get(attr_ent, 0)))
         if self._scopy is not None:
             attr_ent, dests, factor, modulo = self._scopy
             val = int(factor * ent_attr.attrs[attr_ent])
@@ -390,25 +392,26 @@ class BleAdvCodec(ABC):
         self._translators.extend(translators)
         return self
 
-    def get_features(self, base_type: str) -> list[Any]:
-        """Get the featues supported by the translators."""
-        capa: list[Any] = [None] * 3
-        for trans in self._translators:
-            (bt, ind, st) = trans.ent.get_features()
-            if bt == base_type and st is not None:
-                if capa[ind] is None:
-                    capa[ind] = [st]
-                elif st not in capa[ind]:
-                    capa[ind].append(st)
-        return capa
+    def get_supported_features(self, base_type: str) -> list[dict[str, set[Any]]]:
+        """Get the features supported by the translators.
 
-    def get_supported_attr_values(self, attr_name: str) -> set[Any]:
-        """Get all the values defined by the translators for the given attribute."""
-        presets: set[Any] = set()
+        Builds a list of all potential attribute values if fixed (not floats / int / None):
+           [
+                {attr_name1: set(value011 value012, ...), attr_name2: set(value021 value022, ...),}, # For entity 0 of type base_type
+                {attr_name1: set(value111 value112, ...), attr_name2: set(value121 value122, ...),}, # For entity 1 of type base_type
+           ]
+        """
+        capa: list[dict[str, set[Any]]] = []
         for trans in self._translators:
-            if attr_name in trans.ent.eqs:
-                presets.add(trans.ent.eqs[attr_name])
-        return presets
+            (bt, ind, feats) = trans.ent.get_supported_features()
+            if bt == base_type:
+                missing = ind - len(capa) + 1
+                if missing > 0:
+                    capa = capa + [{} for i in range(missing)]
+                for feat, val in feats.items():
+                    if val is not None:
+                        capa[ind].setdefault(feat, set()).add(val)
+        return capa
 
     def ent_to_enc(self, ent_attr: BleAdvEntAttr) -> list[BleAdvEncCmd]:
         """Convert Entity Attributes to list of Encoder Attributes."""
