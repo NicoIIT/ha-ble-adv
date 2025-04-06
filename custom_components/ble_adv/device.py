@@ -178,12 +178,12 @@ class BleAdvMatchingDevice(MatchingCallback, ABC):
         reg_name: str,
         coordinator: BleAdvCoordinator,
         codec_id: str,
-        adapter_id: str | None,
+        adapter_id: str,
         config: BleAdvConfig,
     ) -> None:
         self.coordinator: BleAdvCoordinator = coordinator
         self.codec_id: str = codec_id
-        self.adapter_id: str | None = adapter_id
+        self.adapter_id: str = adapter_id
         self.config: BleAdvConfig = config
         self.reg_name: str = reg_name
 
@@ -202,12 +202,7 @@ class BleAdvMatchingDevice(MatchingCallback, ABC):
 
     async def handle(self, codec_id: str, adapter_id: str, config: BleAdvConfig, ent_attrs: list[BleAdvEntAttr]) -> bool:
         """Handle the callback."""
-        if (
-            (codec_id != self.codec_id)
-            or (self.adapter_id is not None and (adapter_id != self.adapter_id))
-            or (config.id != self.config.id)
-            or (config.index != self.config.index)
-        ):
+        if (codec_id != self.codec_id) or (adapter_id != self.adapter_id) or (config.id != self.config.id) or (config.index != self.config.index):
             return False
         await self.async_on_command(ent_attrs)
         return True
@@ -220,8 +215,8 @@ class BleAdvMatchingDevice(MatchingCallback, ABC):
 class BleAdvRemote(BleAdvMatchingDevice):
     """Class representing a remote."""
 
-    def __init__(self, name: str, codec_id: str, config: BleAdvConfig, coordinator: BleAdvCoordinator) -> None:
-        super().__init__(name, coordinator, codec_id, None, config)
+    def __init__(self, name: str, codec_id: str, adapter_id: str, config: BleAdvConfig, coordinator: BleAdvCoordinator) -> None:
+        super().__init__(name, coordinator, codec_id, adapter_id, config)
         self.device: BleAdvDevice | None = None
 
     async def async_on_command(self, ent_attrs: list[BleAdvEntAttr]) -> None:
@@ -239,7 +234,7 @@ class BleAdvDevice(BleAdvMatchingDevice):
         unique_id: str,
         name: str,
         codec_id: str,
-        adapter_id: str | None,
+        adapter_id: str,
         repeat: int,
         interval: int,
         duration: int,

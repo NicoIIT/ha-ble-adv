@@ -163,7 +163,7 @@ class EntityMatcher(CommonMatcher):
     def __repr__(self) -> str:
         return f"{self._base_type}_{self._index} / {self._actions}"
 
-    def act(self, action: str, action_value: AttrType | None = None) -> Self:
+    def act(self, action: str, action_value: AttrType = None) -> Self:
         """Match Activity on given attribute, with value."""
         self._actions.append(action)
         return self.eq(action, action_value) if action_value is not None else self

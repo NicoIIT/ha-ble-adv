@@ -77,6 +77,7 @@ Future developments are tracked in [github feature requests](https://github.com/
 Yes, you can use the HA 'Reconfigure' option:
 * Find the 'Modifying the integration' in this [page](https://www.home-assistant.io/getting-started/integration/)
 * Apply the same procedure (1) but click on 'Reconfigure' instead of 'Rename'
+What you cannot change still is the dicovered config (codec, id, index) that identifies your device in a unique way and are used as key.
 
 ### When I perform changes very fast on the light or fan, sometimes the command is not taken into account
 Some devices are not available to receive commands while they are still processing one. You can increase the 'Minimum Duration' in between 2 commands in the 'Technical' part of the configuration to be sure we will wait this delay before sending new commands to the Device.
@@ -98,3 +99,13 @@ ble_adv:
 
 ```
 Alternatively, the first time you start a config flow the component is loaded, so you just have to wait for up to 1 minute after that to have the `ble_adv_proxy` detected and available.
+
+### Why should I choose / test different configs while the Phone Application does not need to do so but manages to make it work?
+We could indeed broadcast ALL possible messages from all configs as what is done by Phone applications, but it is useless as only ONE effectively controls the device. The goal here is to be smarter than Phone apps and:
+* avoid polluting the bluetooth network with hundreds of useless messages
+* improve the response time by emitting immediately the message that will work instead of emitting 3 or 4 useless ones before
+
+### I have several ble_adv_proxy / bluetooth adapters but I am forced to choose one and only one for my device, why I cannot use ALL?
+First of all it is only a matter of choosing the best adapter at config time, so not a big deal. This is done for those reasons:
+* Same as previous answer: we optimize a maximum the bluetooth network and we try to avoid polluting it with useless messages.
+* The synchronization in between the Phone App / Physical remote and the HA State is done by listening to the messages emitted, so to keep them in sync we have to be sure those messages are listened by BOTH the bluetooth adapter and the device, and this is most ensured when only one bluetooth adapter is considered, and if possible when it is near the device (in the same room).

@@ -118,6 +118,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         remote = BleAdvRemote(
             f"{entry.unique_id}_remote",
             remote_conf[CONF_CODEC_ID],
+            tech_conf[CONF_ADAPTER_ID],
             BleAdvConfig(remote_conf[CONF_FORCED_ID], remote_conf[CONF_INDEX]),
             coordinator,
         )
