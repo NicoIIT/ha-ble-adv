@@ -7,7 +7,8 @@ import socket
 import struct
 from abc import ABC, abstractmethod
 from binascii import hexlify
-from collections.abc import Awaitable, Callable, Coroutine
+from collections.abc import Awaitable, Callable, Coroutine, MutableMapping
+from typing import Any
 
 from btsocket.btmgmt_protocol import reader as btmgmt_reader
 
@@ -37,6 +38,11 @@ type AdapterErrorCallback = SocketErrorCallback
 type MgmtSendCallback = Callable[[int, int, bytes], Coroutine]
 
 
+class _AdapterLoggingAdapter(logging.LoggerAdapter):
+    def process(self, msg: str, kwargs: MutableMapping[str, Any]) -> tuple[str, MutableMapping[str, Any]]:
+        return (f"[{self.extra['name']}] {msg}", kwargs) if self.extra is not None else (msg, kwargs)
+
+
 class BleAdvAdapter(ABC):
     """Base BLE ADV Adapter including multi Advertising sequencing queues."""
 
@@ -61,12 +67,7 @@ class BleAdvAdapter(ABC):
         self._dequeue_task: asyncio.Task | None = None
         self._opened: bool = False
         self._advertise_on_going: bool = False
-
-    def _log(self, message: str) -> None:
-        _LOGGER.info("[%s] %s.", self.name, message)
-
-    def _log_dbg(self, message: str) -> None:
-        _LOGGER.debug("[%s] %s.", self.name, message)
+        self.logger = _AdapterLoggingAdapter(_LOGGER, {"name": self.name})
 
     @property
     def available(self) -> bool:
@@ -156,13 +157,13 @@ class BleAdvAdapter(ABC):
                             break
                     self._add_event.clear()
                 if item is not None:
-                    self._log_dbg(f"Advertising {hexlify(item.data, '.').upper()}")
+                    self.logger.debug(f"Advertising {hexlify(item.data, '.').upper()}")
                     await asyncio.wait_for(self._advertise(item.interval, item.data), self.MAX_ADV_WAIT)
-                    self._log_dbg(f"End Advertising {hexlify(item.data, '.').upper()}")
+                    self.logger.debug(f"End Advertising {hexlify(item.data, '.').upper()}")
                     await self._lock_queue_for(self._cur_ind, lock_delay)
                     self._add_event.set()
             except Exception:
-                _LOGGER.exception("BleAdvAdapter - Exception in dequeue")
+                self.logger.exception("Exception in dequeue")
                 await self._on_error("Exception in Adapter Dequeue")
 
 
@@ -245,21 +246,21 @@ class BluetoothHCIAdapter(BleAdvAdapter):
         await self._async_socket.async_setsockopt(SOCK_SOL_HCI, SOCK_HCI_FILTER, self.ADV_FILTER)
         await self._async_socket.async_start_recv()
         self._opened = True
-        self._log(f"Connected - fileno: {fileno}")
+        self.logger.info(f"Connected - fileno: {fileno}")
 
         # Get LE Features to check if extended advertising is supported / needed
         ret_code, data = await self._send_hci_cmd(self.OCF_LE_READ_LOCAL_SUPPORTED_FEATURES)
         if ret_code == self.HCI_SUCCESS and data is not None:
             features = int.from_bytes(data, "little")
             self._use_ext_adv = bool(features & (1 << 12))
-            _LOGGER.debug(f"Extended Adv Available: {self._use_ext_adv}")
+            self.logger.debug(f"Extended Adv Available: {self._use_ext_adv}")
 
         if not self._use_ext_adv:
             # Check if the HCI Raw advertising is possible or if we need to use mgmt:
             ret_enable = await self._set_advertise_enable(enabled=True)
             ret_disable = await self._set_advertise_enable(enabled=False)
             self._use_mgmt_adv = (ret_enable == self.HCI_DISALLOWED) and (ret_disable == self.HCI_DISALLOWED)
-            _LOGGER.debug(f"Forced MGMT for ADV: {self._use_mgmt_adv}")
+            self.logger.debug(f"Forced MGMT for ADV: {self._use_mgmt_adv}")
 
         # Start Scan
         await self._start_scan()
@@ -433,7 +434,7 @@ class BleAdvBtManager:
         """Init the handler: init the MGMT Socket and the discovered adapters."""
         fileno = await self._mgmt_sock.async_init("mgmt", self._mgmt_recv, self._mgmt_close, True)
         await self._mgmt_sock.async_start_recv()
-        _LOGGER.debug(f"MGMT Connected - fileno: {fileno}")
+        _LOGGER.info(f"MGMT Connected - fileno: {fileno}")
         self._mgmt_opened = True
         # Controller Index List
         _, index_resp = await self.send_mgmt_cmd(0xFFFF, 0x03, b"")
@@ -461,7 +462,6 @@ class BleAdvBtManager:
         self._hci_adapter_names.clear()
 
     async def _mgmt_recv(self, data: bytes) -> None:
-        # //_LOGGER.debug(f"mgmt recv: {data}")
         cmd_type = lb(data[0:2])
         dev_id = lb(data[2:4])
         if cmd_type == 0x0001 and dev_id == self._og_mgmt_dev_id and lb(data[6:8]) == self._og_cmd:
@@ -514,7 +514,6 @@ class BleAdvBtManager:
             raise AdapterError("Adapter not available")
         data_len = len(cmd_data)
         cmd = struct.pack(f"<HHH{data_len}B", cmd_type, device_id, data_len, *cmd_data)
-        # //_LOGGER.debug(f"mgmt cmd: {cmd}")
         async with self._mgmt_cmd_lock:
             self._mgmt_cmd_event.clear()
             self._og_cmd = cmd_type

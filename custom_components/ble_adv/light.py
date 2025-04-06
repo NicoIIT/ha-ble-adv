@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import logging
 from typing import Any, Self
 
 from homeassistant.components.light import ATTR_BRIGHTNESS, ATTR_COLOR_TEMP_KELVIN, ATTR_EFFECT, ATTR_RGB_COLOR, LightEntity
@@ -37,8 +36,6 @@ from .codecs.const import (
 )
 from .const import CONF_EFFECTS, CONF_LIGHTS, CONF_MIN_BRIGHTNESS, CONF_REFRESH_ON_START, CONF_REVERSED, DOMAIN
 from .device import BleAdvDevice, BleAdvEntAttr, BleAdvEntity
-
-_LOGGER = logging.getLogger(__name__)
 
 
 class BleAdvLightError(Exception):

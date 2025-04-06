@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import logging
 from math import ceil
 from typing import Any
 
@@ -32,8 +31,6 @@ from .const import (
     DOMAIN,
 )
 from .device import BleAdvDevice, BleAdvEntAttr, BleAdvEntity, handle_change
-
-_LOGGER = logging.getLogger(__name__)
 
 
 def create_entity(options: dict[str, Any], device: BleAdvDevice, index: int) -> BleAdvFan:

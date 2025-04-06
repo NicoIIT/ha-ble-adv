@@ -36,7 +36,7 @@ _LOGGER = logging.getLogger(__name__)
 @singleton(f"{DOMAIN}/{CONF_COORDINATOR_ID}")
 async def get_coordinator(hass: HomeAssistant) -> BleAdvCoordinator:
     """Get and initiate a coordinator."""
-    coordinator = BleAdvCoordinator(hass, _LOGGER, get_codecs())
+    coordinator = BleAdvCoordinator(hass, get_codecs())
     await coordinator.async_init()
     return coordinator
 
@@ -91,7 +91,7 @@ async def async_migrate_entry(hass: HomeAssistant, config_entry: ConfigEntry) ->
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up BLE ADV from a config entry."""
-    _LOGGER.info(f"BLE ADV: Setting up entry {entry.unique_id} / {entry.data}")
+    _LOGGER.debug(f"BLE ADV: Setting up entry {entry.unique_id} / {entry.data}")
 
     if entry.unique_id is None:
         _LOGGER.warning("entry ignored as unique_id is None.")
@@ -103,7 +103,6 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     coordinator = await get_coordinator(hass)
     device = BleAdvDevice(
         hass,
-        _LOGGER,
         entry.unique_id,
         entry.title,
         device_conf[CONF_CODEC_ID],
@@ -133,7 +132,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Unload a config entry."""
-    _LOGGER.info(f"Unloading entry {entry.unique_id}")
+    _LOGGER.debug(f"Unloading entry {entry.unique_id}")
     await hass.data[DOMAIN][entry.entry_id].async_stop()
     unload_ok = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
     if unload_ok:

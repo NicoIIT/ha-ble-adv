@@ -55,18 +55,18 @@ class BleAdvEsphomeAdapter(BleAdvAdapter):
     async def open(self) -> None:
         """Open adapter."""
         self._unreg_listen = self.hass.bus.async_listen(self._conf[CONF_ATTR_RECV_EVENT_NAME], self._on_adv_recv_event)
-        _LOGGER.info(f"ESPHome ble_adv_proxy connected: {self.name}")
+        self.logger.info(f"ESPHome ble_adv_proxy connected: {self.name}")
 
     def close(self) -> None:
         """Close the adapter, nothing to do."""
         self._unreg_listen()
 
     async def _on_error(self, message: str) -> None:
-        _LOGGER.warning(f"Unhandled error: {message}")
+        self.logger.warning(f"Unhandled error: {message}")
 
     async def _on_adv_recv_event(self, event: Event) -> None:
         """Act on Adv Received event."""
-        _LOGGER.debug(f"ESPHome ADV recv Event: {event.data}")
+        self.logger.debug(f"ESPHome ADV recv Event: {event.data}")
         await self._on_adv_recv(self.name, bytes.fromhex(event.data[CONF_ATTR_RAW]))
 
     async def _advertise(self, interval: int, data: bytes) -> None:
@@ -82,12 +82,10 @@ class BleAdvCoordinator:
     def __init__(
         self,
         hass: HomeAssistant,
-        logger: logging.Logger,
         codecs: dict[str, BleAdvCodec],
     ) -> None:
         """Init."""
         self.hass: HomeAssistant = hass
-        self.logger: logging.Logger = logger
         self.codecs: dict[str, BleAdvCodec] = codecs
         self._last_advs: dict[str, dict[bytes, datetime]] = {}
         self._callbacks: dict[str, MatchingCallback] = {}
@@ -133,12 +131,12 @@ class BleAdvCoordinator:
     async def register_callback(self, callback_id: str, callback: MatchingCallback) -> None:
         """Register a matching callback by its id."""
         self._callbacks[callback_id] = callback
-        self.logger.info(f"Registered callback with id '{callback_id}': {callback}")
+        _LOGGER.debug(f"Registered callback with id '{callback_id}': {callback}")
 
     async def unregister_callback(self, callback_id: str) -> None:
         """Unregister a callback by its id."""
         self._callbacks.pop(callback_id)
-        self.logger.info(f"Unregistered callback with id '{callback_id}'")
+        _LOGGER.debug(f"Unregistered callback with id '{callback_id}'")
 
     async def advertise(self, adapter_id: str | None, queue_id: str, qi: BleAdvQueueItem) -> None:
         """Advertise."""
@@ -166,7 +164,7 @@ class BleAdvCoordinator:
             # Parse the raw data and find the relevant info
             adv = BleAdvAdvertisement.FromRaw(raw_adv)
             if adv is None:
-                _LOGGER.debug(f"Not compatible raw data {as_hex(raw_adv)}, ignored")
+                _LOGGER.debug(f"[{adapter_id}] Not compatible raw data {as_hex(raw_adv)}, ignored")
                 return
 
             # also add the decoded data to the ignore list
@@ -174,14 +172,14 @@ class BleAdvCoordinator:
                 return
             self._last_advs[adapter_id][adv.raw] = datetime.now()
 
-            _LOGGER.debug(f"BLE ADV received - {adv}")
+            _LOGGER.debug(f"[{adapter_id}] BLE ADV received - {adv}")
             for codec_id, acodec in self.codecs.items():
                 enc_cmd, conf = acodec.decode_adv(adv)
                 if conf is not None and enc_cmd is not None:
                     ent_attrs = acodec.enc_to_ent(enc_cmd)
-                    _LOGGER.debug(f"[{codec_id}] {conf} / {enc_cmd} / {ent_attrs}")
+                    _LOGGER.debug(f"[{adapter_id}][{codec_id}] {conf} / {enc_cmd} / {ent_attrs}")
                     for device_callback in self._callbacks.values():
                         await device_callback.handle(codec_id, adapter_id, conf, ent_attrs)
 
         except Exception:
-            _LOGGER.exception("Exception handling raw adv message")
+            _LOGGER.exception(f"[{adapter_id}] Exception handling raw adv message")

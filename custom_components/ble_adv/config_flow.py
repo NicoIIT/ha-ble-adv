@@ -146,7 +146,7 @@ class BleAdvConfigFlow(ConfigFlow, domain=DOMAIN):
         await self._async_stop_listen_to_config()
 
     def _get_device(self, name: str, config: _CodecConfig) -> BleAdvDevice:
-        return BleAdvDevice(self.hass, _LOGGER, name, name, config.codec_id, self.selected_adapter_id, 3, 20, 850, config, self._coordinator)
+        return BleAdvDevice(self.hass, name, name, config.codec_id, self.selected_adapter_id, 3, 20, 850, config, self._coordinator)
 
     async def _async_blink_light(self) -> None:
         config = self._selected_conf()

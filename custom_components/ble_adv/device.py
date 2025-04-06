@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import logging
 from abc import ABC, abstractmethod
+from collections.abc import MutableMapping
 from datetime import datetime, timedelta
 from functools import wraps
 from typing import Any
@@ -40,6 +41,11 @@ from .coordinator import BleAdvCoordinator, MatchingCallback
 _LOGGER = logging.getLogger(__name__)
 
 
+class _DeviceLoggingAdapter(logging.LoggerAdapter):
+    def process(self, msg: str, kwargs: MutableMapping[str, Any]) -> tuple[str, MutableMapping[str, Any]]:
+        return (f"[{self.extra['name']}] {msg}", kwargs) if self.extra is not None else (msg, kwargs)
+
+
 def handle_change(method):  # noqa: ANN001, ANN201
     """Decorate entity methods applying changes.
 
@@ -73,6 +79,7 @@ class BleAdvEntity(RestoreEntity):
         self._attr_unique_id: str = f"{device.unique_id}_{base_type}_{index}"
         self._attr_translation_key: str = f"{base_type}_{index}"
         self._device.add_entity(self)
+        self.logger = _DeviceLoggingAdapter(_LOGGER, {"name": f"{base_type}_{index}_{sub_type}"})
 
     @property
     def available(self) -> bool:
@@ -150,40 +157,20 @@ class BleAdvEntity(RestoreEntity):
         await super().async_added_to_hass()
 
         if last_state := await self.async_get_last_state():
+            self.logger.debug(f"Restoring state from last_state: {last_state.state} / {last_state.attributes}")
             is_on: bool = last_state.state == STATE_ON
             for attr_name, default_value in self._state_attributes:
                 val = last_state.attributes.get(attr_name if is_on else f"last_{attr_name}")
                 self.set_state_attribute(attr_name, val if val is not None else default_value)
             self._attr_is_on = is_on
         else:
+            self.logger.debug(f"Initialize state from default: off / {self._state_attributes}")
             for attr_name, default_value in self._state_attributes:
                 self.set_state_attribute(attr_name, default_value)
             self._attr_is_on = False
 
 
-class MatchingDeviceCallback(MatchingCallback):
-    """Callback checking if callback is matching the device."""
-
-    def __init__(self, device: BleAdvMatchingDevice) -> None:
-        self.device: BleAdvMatchingDevice = device
-
-    async def handle(self, codec_id: str, adapter_id: str, config: BleAdvConfig, ent_attrs: list[BleAdvEntAttr]) -> bool:
-        """Handle the callback."""
-        if (
-            (codec_id != self.device.codec_id)
-            or (self.device.adapter_id is not None and (adapter_id != self.device.adapter_id))
-            or (config.id != self.device.config.id)
-            or (config.index != self.device.config.index)
-        ):
-            return False
-        await self.device.async_on_command(ent_attrs)
-        return True
-
-    def __repr__(self) -> str:
-        return f"adapter_id: {self.device.adapter_id}, codec_id: {self.device.codec_id}, config: {self.device.config}"
-
-
-class BleAdvMatchingDevice(ABC):
+class BleAdvMatchingDevice(MatchingCallback, ABC):
     """Base Matching Device."""
 
     def __init__(
@@ -207,11 +194,23 @@ class BleAdvMatchingDevice(ABC):
 
     async def register(self) -> None:
         """Register to coordinator."""
-        await self.coordinator.register_callback(self.reg_name, MatchingDeviceCallback(self))
+        await self.coordinator.register_callback(self.reg_name, self)
 
     async def unregister(self) -> None:
         """Unregister."""
         await self.coordinator.unregister_callback(self.reg_name)
+
+    async def handle(self, codec_id: str, adapter_id: str, config: BleAdvConfig, ent_attrs: list[BleAdvEntAttr]) -> bool:
+        """Handle the callback."""
+        if (
+            (codec_id != self.codec_id)
+            or (self.adapter_id is not None and (adapter_id != self.adapter_id))
+            or (config.id != self.config.id)
+            or (config.index != self.config.index)
+        ):
+            return False
+        await self.async_on_command(ent_attrs)
+        return True
 
     @abstractmethod
     async def async_on_command(self, ent_attrs: list[BleAdvEntAttr]) -> None:
@@ -237,7 +236,6 @@ class BleAdvDevice(BleAdvMatchingDevice):
     def __init__(
         self,
         hass: HomeAssistant,
-        logger: logging.Logger,
         unique_id: str,
         name: str,
         codec_id: str,
@@ -250,7 +248,6 @@ class BleAdvDevice(BleAdvMatchingDevice):
     ) -> None:
         super().__init__(unique_id, coordinator, codec_id, adapter_id, config)
         self.hass: HomeAssistant = hass
-        self.logger: logging.Logger = logger
         self.unique_id: str = unique_id
         self.name: str = name
         self.repeat: int = int(repeat)
@@ -259,6 +256,7 @@ class BleAdvDevice(BleAdvMatchingDevice):
         self.entities: dict[Any, BleAdvEntity] = {}
         self._timer_cancel: CALLBACK_TYPE | None = None
         self.remotes: list[BleAdvRemote] = []
+        self.logger = _DeviceLoggingAdapter(_LOGGER, {"name": self.name})
 
     @property
     def device_info(self) -> DeviceInfo:
@@ -294,22 +292,23 @@ class BleAdvDevice(BleAdvMatchingDevice):
 
     async def apply_change(self, ent_attr: BleAdvEntAttr) -> None:
         """Apply changes."""
-        self.logger.info(f"Tx: {self.config.tx_count}, Changes {ent_attr}")
+        self.logger.info(f"Applying Changes: {ent_attr}")
         await self._async_cancel_timer()
         try:
             acodec: BleAdvCodec = self.coordinator.codecs[self.codec_id]
             enc_cmds = acodec.ent_to_enc(ent_attr)
             for enc_cmd in enc_cmds:
-                self.logger.info(f"Cmd: {enc_cmd}")
+                self.logger.debug(f"Cmd: {enc_cmd}")
                 self.config.tx_count = (self.config.tx_count + 1) % 125
                 adv: BleAdvAdvertisement = acodec.encode_adv(enc_cmd, self.config)
                 qi: BleAdvQueueItem = BleAdvQueueItem(enc_cmd.cmd, self.repeat, self.duration, self.interval, adv.to_raw())
                 await self.coordinator.advertise(self.adapter_id, self.unique_id, qi)
         except Exception:
-            _LOGGER.exception("Exception applying changes")
+            self.logger.exception("Exception applying changes")
 
     async def async_on_command(self, ent_attrs: list[BleAdvEntAttr]) -> None:
         """Process commands received."""
+        self.logger.info(f"Receiving Changes: {ent_attrs}")
         for ent_attr in ent_attrs:
             if ent_attr.base_type == DEVICE_TYPE:
                 await self._async_on_device_command(ent_attr)
@@ -320,7 +319,7 @@ class BleAdvDevice(BleAdvMatchingDevice):
                     ent.async_write_ha_state()
 
     async def _async_on_device_command(self, ent_attr: BleAdvEntAttr) -> None:
-        self.logger.info(f"Device Command received: {ent_attr}")
+        self.logger.debug(f"Device Command received: {ent_attr}")
         if ATTR_CMD in ent_attr.chg_attrs:
             cmd = ent_attr.attrs.get(ATTR_CMD)
             if cmd == ATTR_CMD_TIMER:
@@ -339,7 +338,7 @@ class BleAdvDevice(BleAdvMatchingDevice):
         if self._timer_cancel:
             self._timer_cancel()
             self._timer_cancel = None
-            self.logger.info("Timer cancelled.")
+            self.logger.info("Existing Timer cancelled.")
 
     async def _async_timeout(self, _: datetime) -> None:
         self.logger.info("Timer expired: switch all entities OFF.")
