@@ -95,7 +95,10 @@ class BleAdvCoordinator:
 
     async def async_init(self) -> None:
         """Async Init."""
-        await self._bt_manager.async_init()
+        try:
+            await self._bt_manager.async_init()
+        except BaseException as exc:
+            _LOGGER.info(f"Host BT Stack cannot be used: {exc}. If on Linux configure the Bluetooth Host Adapter, else use an ESPHome ble_adv_proxy.")
         self._cnl_clbck.append(self.hass.bus.async_listen(ESPHOME_BLE_ADV_DISCOVERY_EVENT, self.on_discovery_event))
         self.hass.bus.async_listen_once(EVENT_HOMEASSISTANT_STOP, self.on_stop_event)
 
