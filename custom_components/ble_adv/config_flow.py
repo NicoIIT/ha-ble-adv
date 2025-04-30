@@ -33,7 +33,9 @@ from .const import (
     CONF_MIN_BRIGHTNESS,
     CONF_PHONE_APP,
     CONF_PRESETS,
+    CONF_REFRESH_DIR_ON_START,
     CONF_REFRESH_ON_START,
+    CONF_REFRESH_OSC_ON_START,
     CONF_REMOTE,
     CONF_REPEAT,
     CONF_REVERSED,
@@ -78,7 +80,7 @@ class _CodecConfig(BleAdvConfig):
 class BleAdvConfigFlow(ConfigFlow, domain=DOMAIN):
     """Handle a config flow for BLE ADV."""
 
-    VERSION = 3
+    VERSION = 4
 
     def __init__(self) -> None:
         """Initialize the config flow."""
@@ -384,12 +386,13 @@ class BleAdvConfigFlow(ConfigFlow, domain=DOMAIN):
                 types = [*feats[ATTR_SUB_TYPE], CONF_TYPE_NONE]
                 schema_opts: dict[vol.Schemable, Any] = {
                     vol.Required(CONF_TYPE, default=opts.get(CONF_TYPE, CONF_TYPE_NONE)): self._get_selector(FAN_TYPE, types),
-                    vol.Required(CONF_REFRESH_ON_START, default=opts.get(CONF_REFRESH_ON_START, False)): bool,
                 }
                 if ATTR_DIR in feats:
                     schema_opts[vol.Required(CONF_USE_DIR, default=opts.get(CONF_USE_DIR, True))] = bool
+                    schema_opts[vol.Required(CONF_REFRESH_DIR_ON_START, default=opts.get(CONF_REFRESH_DIR_ON_START, False))] = bool
                 if ATTR_OSC in feats:
                     schema_opts[vol.Required(CONF_USE_OSC, default=opts.get(CONF_USE_OSC, True))] = bool
+                    schema_opts[vol.Required(CONF_REFRESH_OSC_ON_START, default=opts.get(CONF_REFRESH_OSC_ON_START, False))] = bool
                 if ATTR_PRESET in feats:
                     presets = list(feats[ATTR_PRESET])
                     schema_opts[vol.Required(CONF_PRESETS, default=opts.get(CONF_PRESETS, presets))] = self._get_multi_selector(CONF_PRESETS, presets)

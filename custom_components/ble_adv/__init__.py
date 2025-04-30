@@ -21,9 +21,14 @@ from .const import (
     CONF_INTERVAL,
     CONF_LIGHTS,
     CONF_MAX_ENTITY_NB,
+    CONF_REFRESH_DIR_ON_START,
+    CONF_REFRESH_ON_START,
+    CONF_REFRESH_OSC_ON_START,
     CONF_REMOTE,
     CONF_REPEAT,
     CONF_TECHNICAL,
+    CONF_USE_DIR,
+    CONF_USE_OSC,
     DOMAIN,
     PLATFORMS,
 )
@@ -67,6 +72,12 @@ async def async_migrate_entry(hass: HomeAssistant, config_entry: ConfigEntry) ->
     if len(new_data[CONF_LIGHTS]) < CONF_MAX_ENTITY_NB:
         new_data[CONF_LIGHTS] += [{}] * (CONF_MAX_ENTITY_NB - len(new_data[CONF_LIGHTS]))
         update_needed = True
+    for fan in new_data[CONF_FANS]:
+        if CONF_REFRESH_ON_START in fan:
+            refresh_on_start = fan.pop(CONF_REFRESH_ON_START)
+            fan[CONF_REFRESH_DIR_ON_START] = refresh_on_start and fan.get(CONF_USE_DIR, False)
+            fan[CONF_REFRESH_OSC_ON_START] = refresh_on_start and fan.get(CONF_USE_OSC, False)
+            update_needed = True
 
     if config_entry.version < 2:
         coordinator = await get_coordinator(hass)
@@ -78,12 +89,12 @@ async def async_migrate_entry(hass: HomeAssistant, config_entry: ConfigEntry) ->
                 _LOGGER.error(f"No adapters detected while migrating entry: adapter {new_data[CONF_TECHNICAL][CONF_ADAPTER_ID]} kept.")
             else:
                 new_data[CONF_TECHNICAL][CONF_ADAPTER_ID] = adapt_ids[0]
-                if nb_adapt == 1:
+                if nb_adapt > 1:
                     _LOGGER.warning("Several adapters detected, using the first one.")
             update_needed = True
 
     if update_needed:
-        hass.config_entries.async_update_entry(config_entry, data=new_data, version=3)
+        hass.config_entries.async_update_entry(config_entry, data=new_data, version=4)
         _LOGGER.info(f"Migration of entry {config_entry.unique_id} to configuration version {config_entry.version} successful")
 
     return True

@@ -89,8 +89,11 @@ Those settings cannot be changed while the Fan is OFF, and they are not changed 
 The issue is not understood, but there is an option to fix it: modify the entity parameters (see first question) and check the box "Reverse Cold / Warm"
 
 ### When I switch OFF my entity, the device fully resets its state to the default and is then not aligned with HA state when I switch it back ON (color, brightness, fan direction, ...)
-You can force the re send of the HA state when the entity is switched ON: modify the entity parameters (see first question) and check the box "Force (...) refresh when switched ON"
-Please note this will send several distinct commands very fast when the entity is switched ON: depending on your device it may be too fast, see second question
+You can force the re send of the HA state when the entity is switched ON: modify the entity parameters (see first question) and check the box "Force (...) refresh when switched ON".
+
+Please note this will send several distinct commands very fast when the entity is switched ON: depending on your device it may be too fast, see second question.
+
+Please also note some Fan does not support the re send of the same state for oscillation or direction (act as _toggle_) resulting in direction / oscillation changed on each 'switch ON' if those options are activated: this is the main reason why those options are not activated by default. If your Fan does not support it there is nothing I can do for you, simply do not use it.
 
 ### When I try to add an integration for the first time my ble_adv_proxy is not detected
 Home assistant does not automatically loads components if they have no integration, and then the ble_adv_proxy cannot be detected by the unloaded component, so you have to force the component to be loaded at start by adding the line in the `configuration.yaml`:
