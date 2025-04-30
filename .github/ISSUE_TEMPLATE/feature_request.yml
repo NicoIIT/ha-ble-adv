@@ -1,6 +1,6 @@
 ---
 name: "Feature request"
-description: "Suggest an idea for this project"
+description: "Request the addition of a new feature or the improvment of an existing feature of this Project"
 labels: ["enhancement"]
 body:
 - type: markdown

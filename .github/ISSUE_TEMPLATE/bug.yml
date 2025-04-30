@@ -1,6 +1,6 @@
 ---
 name: "Bug report"
-description: "Report a bug with the integration"
+description: "Report a bug on an existing feature of the integration."
 labels: ["bug"]
 body:
 - type: markdown
@@ -12,7 +12,7 @@ body:
     options:
       - label: I have enabled debug logging for my installation.
         required: true
-      - label: I have filled out the issue template to the best of my ability. In particular if I did not provide any of the mandatory info I must have VERY GOOD REASONS.
+      - label: I have filled out the issue template to the best of my ability, providing ALL mandatory info. If some of the mandatory info is not provided then the issue will be rejected.
         required: true
       - label: This issue only contains 1 issue (if you have multiple issues, open one issue for each issue).
         required: true
@@ -27,9 +27,9 @@ body:
 - type: textarea
   attributes:
     label: Reproduction steps
-    description: "Without steps to reproduce, it will be hard to fix. It is very important that you fill out this part. Issues without it will be closed. Please specify the EXACT time (with 'second' precision) at which you performed a specific action so that we can correlate with the time in the logs. The description of the action must also be very clear as in the example below, in particulear on which device / controller you perform which action."
+    description: "Without steps to reproduce, it will be hard to fix: if not fully provided **as expected**, the issue will be Closed immediately. Please specify the EXACT time (with 'second' precision) at which you performed a specific action so that we can correlate with the time in the debug logs. The description of the action must also be very clear as in the example below, in particular on which device / controller you perform which action."
     value: |
-      1. At 15:32:51 I pressed on the "Light On" button of my Physical Remote defined as ble_adv integration 'My Controller name'
+      1. At 15:32:51 I pressed on the "Light On" button of my Physical Remote linked to ble_adv integration 'My Controller name'
       2. At 15:33:10 I changed the light from Cold to Warm using HA UI but the device went from Warm to Cold instead
       3.
       ...
@@ -38,7 +38,21 @@ body:
 - type: textarea
   attributes:
     label: "Debug logs"
-    description: "To enable debug logs check this https://www.home-assistant.io/integrations/logger/, this **needs** to include _everything_ from startup of Home Assistant to the point where you encounter the issue."
+    description: |
+      To enable debug logs add this to your [configuration.yaml](https://www.home-assistant.io/docs/configuration/), and restart your HA:
+      ```
+      ble_adv:
+
+      logger:
+        default: info
+        logs:
+          custom_components.ble_adv: debug
+      ```
+      More details in [logger](https://www.home-assistant.io/integrations/logger/) component.
+
+      This **needs** to include _everything_ from startup of Home Assistant to the point where you encounter the issue.
+
+      If not provided, the issue will be Closed immediately.
     render: text
   validations:
     required: true
@@ -46,4 +60,4 @@ body:
 - type: textarea
   attributes:
     label: "Diagnostics dump"
-    description: "Drag the diagnostics dump file here. (see https://www.home-assistant.io/integrations/diagnostics/ for info)"
+    description: "If your integration was successfully created, drag the [diagnostics dump](https://www.home-assistant.io/integrations/diagnostics/) file here."
