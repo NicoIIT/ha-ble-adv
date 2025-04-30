@@ -110,7 +110,8 @@
               "type": "Type",
               "direction": "Supports Direction",
               "oscillating": "Supports Oscillation",
-              "refresh_on_start": "Force direction / oscillation refresh when switched ON",
+              "refresh_dir_on_start": "Force direction refresh when switched ON",
+              "refresh_osc_on_start": "Force oscillation refresh when switched ON",
               "presets": "Fan modes"
             }
           },
@@ -120,7 +121,8 @@
               "type": "Type",
               "direction": "Supports Direction",
               "oscillating": "Supports Oscillation",
-              "refresh_on_start": "Force direction / oscillation refresh when switched ON",
+              "refresh_dir_on_start": "Force direction refresh when switched ON",
+              "refresh_osc_on_start": "Force oscillation refresh when switched ON",
               "presets": "Fan modes"
             }
           },
@@ -130,7 +132,8 @@
               "type": "Type",
               "direction": "Supports Direction",
               "oscillating": "Supports Oscillation",
-              "refresh_on_start": "Force direction / oscillation refresh when switched ON",
+              "refresh_dir_on_start": "Force direction refresh when switched ON",
+              "refresh_osc_on_start": "Force oscillation refresh when switched ON",
               "presets": "Fan modes"
             }
           }

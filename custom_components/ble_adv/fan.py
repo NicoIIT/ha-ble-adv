@@ -25,7 +25,8 @@ from .codecs.const import ATTR_DIR, ATTR_OSC, ATTR_PRESET, ATTR_SPEED, ATTR_SUB_
 from .const import (
     CONF_FANS,
     CONF_PRESETS,
-    CONF_REFRESH_ON_START,
+    CONF_REFRESH_DIR_ON_START,
+    CONF_REFRESH_OSC_ON_START,
     CONF_USE_DIR,
     CONF_USE_OSC,
     DOMAIN,
@@ -43,8 +44,9 @@ def create_entity(options: dict[str, Any], device: BleAdvDevice, index: int) -> 
         features |= FanEntityFeature.DIRECTION
     if len(presets) > 0:
         features |= FanEntityFeature.PRESET_MODE
-    refresh_on_start = options.get(CONF_REFRESH_ON_START, False)
-    return BleAdvFan(device, options[CONF_TYPE], index, features, refresh_on_start, presets)
+    refresh_dir_on_start = options.get(CONF_REFRESH_DIR_ON_START, False)
+    refresh_osc_on_start = options.get(CONF_REFRESH_OSC_ON_START, False)
+    return BleAdvFan(device, options[CONF_TYPE], index, features, refresh_dir_on_start, refresh_osc_on_start, presets)
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback) -> None:
@@ -62,12 +64,20 @@ class BleAdvFan(BleAdvEntity, FanEntity):
     _attr_preset_mode = None
 
     def __init__(
-        self, device: BleAdvDevice, sub_type: str, index: int, features: FanEntityFeature, refresh_on_start: bool, presets: list[str]
+        self,
+        device: BleAdvDevice,
+        sub_type: str,
+        index: int,
+        features: FanEntityFeature,
+        refresh_dir_on_start: bool,
+        refresh_osc_on_start: bool,
+        presets: list[str],
     ) -> None:
         super().__init__(FAN_TYPE, sub_type, device, index)
         self._attr_supported_features: FanEntityFeature = features
         self._attr_speed_count: int = self._get_speed_count_from_type(sub_type)
-        self._refresh_on_start: bool = refresh_on_start
+        self._refresh_dir_on_start: bool = refresh_dir_on_start
+        self._refresh_osc_on_start: bool = refresh_osc_on_start
         self._attr_preset_modes = presets
 
     # redefining 'current_direction' as the attribute name is messy, and not the one defined in the last_state
@@ -95,11 +105,10 @@ class BleAdvFan(BleAdvEntity, FanEntity):
     def forced_changed_attr_on_start(self) -> list[str]:
         """List Forced changed attributes on start."""
         forced_attrs = []
-        if self._refresh_on_start:
-            if self._attr_supported_features & FanEntityFeature.OSCILLATE:
-                forced_attrs.append(ATTR_OSC)
-            if self._attr_supported_features & FanEntityFeature.DIRECTION:
-                forced_attrs.append(ATTR_DIR)
+        if self._refresh_osc_on_start and self._attr_supported_features & FanEntityFeature.OSCILLATE:
+            forced_attrs.append(ATTR_OSC)
+        if self._refresh_dir_on_start and self._attr_supported_features & FanEntityFeature.DIRECTION:
+            forced_attrs.append(ATTR_DIR)
         return forced_attrs
 
     def apply_attrs(self, ent_attr: BleAdvEntAttr) -> None:
