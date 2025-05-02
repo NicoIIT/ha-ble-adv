@@ -294,7 +294,6 @@ class BleAdvDevice(BleAdvMatchingDevice):
             enc_cmds = acodec.ent_to_enc(ent_attr)
             for enc_cmd in enc_cmds:
                 self.logger.debug(f"Cmd: {enc_cmd}")
-                self.config.tx_count = (self.config.tx_count + 1) % 125
                 adv: BleAdvAdvertisement = acodec.encode_adv(enc_cmd, self.config)
                 qi: BleAdvQueueItem = BleAdvQueueItem(enc_cmd.cmd, self.repeat, self.duration, self.interval, adv.to_raw())
                 await self.coordinator.advertise(self.adapter_id, self.unique_id, qi)

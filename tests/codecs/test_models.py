@@ -99,6 +99,8 @@ def test_ent_attr() -> None:
 def test_config() -> None:
     """Test BleAdvConfig."""
     conf = BleAdvConfig(12, 1)
+    assert conf.tx_count == 0
+    assert conf.seed == 0
     conf.seed = 0x12
     conf.tx_count = 2
     assert repr(conf) == "id: 0x0000000C, index: 1, tx: 2, seed: 0x0012"
@@ -279,7 +281,9 @@ def test_codec() -> None:
         {ATTR_ON: {False, True}, ATTR_SUB_TYPE: {LIGHT_TYPE_ONOFF, LIGHT_TYPE_CWW, LIGHT_TYPE_RGB}},
         {ATTR_ON: {False, True}, ATTR_SUB_TYPE: {LIGHT_TYPE_ONOFF}},
     ]
-    assert repr(codec.encode_adv(BleAdvEncCmd(0x10), BleAdvConfig())) == "Type: 0x16, raw: 55.56.74.65.73.74"
+    conf = BleAdvConfig()
+    assert repr(codec.encode_adv(BleAdvEncCmd(0x10), conf)) == "Type: 0x16, raw: 55.56.74.65.73.74"
+    assert conf.tx_count == 1
     assert codec.decode_adv(BleAdvAdvertisement(0x16, _from_dotted("55.56.74.65.73.74"))) == (BleAdvEncCmd(0x10), BleAdvConfig())
     assert codec.decode_adv(BleAdvAdvertisement(0x16, _from_dotted("00.00.74.65.73.74"))) == (None, None)
     assert codec.decode_adv(BleAdvAdvertisement(0x00, _from_dotted("55.56.74.65.73.74"))) == (None, None)
