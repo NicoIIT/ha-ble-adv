@@ -112,6 +112,7 @@ class ZhijiaEncoderV1(ZhijiaEncoder):
 
     _pivot_index: frozenset[int] = frozenset({2, 4, 9, 12, 13, 15})
     _len = 23
+    _tx_step = 2
     _pivot_xor = True
 
     def __init__(self, mac: list[int]) -> None:
@@ -379,7 +380,7 @@ TRANS_VR1 = [
     Trans(LightCmd().act(ATTR_ON, True), EncCmd(0xA5)),
     Trans(LightCmd().act(ATTR_ON, False), EncCmd(0xA6)),
     Trans(CTLightCmd().act(ATTR_COLD).act(ATTR_WARM), EncCmd(0xA8)).copy(ATTR_COLD, "arg0", 250).copy(ATTR_WARM, "arg1", 250),
-    #  Missing: AF / A7 / A9 / AC / AB / AA
+    # //  Missing: AF / A7 / A9 / AC / AB / AA
 ]
 
 CODECS = [
@@ -395,16 +396,3 @@ CODECS = [
     # Zhi Jia Remote
     ZhijiaEncoderRemote([0x20, 0x03, 0x05]).id("zhijia_vr1").header([0xF0, 0xFF]).ble(0x1A, 0xFF).add_translators(TRANS_VR1),
 ]  # fmt: skip
-
-# ruff: noqa: ERA001
-# "zhijia": {
-#     "variants": {
-#         "v2_fl": {  # to resolve flickering issues
-#             "class": "ZhijiaEncoderV2",
-#             "translator": "default_translator_zjv2fl",
-#             "args": [[0x19, 0x01, 0x10]],
-#             "max_forced_id": 0xFFFFFF,
-#             "ble_param": [0x1A, 0xFF],
-#             "header": [0x22, 0x9D],
-#         },
-#     },

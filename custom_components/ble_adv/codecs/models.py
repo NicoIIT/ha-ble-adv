@@ -340,6 +340,8 @@ class BleAdvCodec(ABC):
     """Class representing a base encoder / decoder."""
 
     _len: int = 0
+    _tx_step: int = 1
+    _tx_max: int = 125
 
     def __init__(self) -> None:
         self.codec_id: str | None = None
@@ -439,6 +441,7 @@ class BleAdvCodec(ABC):
 
     def encode_adv(self, enc_cmd: BleAdvEncCmd, conf: BleAdvConfig) -> BleAdvAdvertisement:
         """Encode an Encoder Command with Config into an Adv."""
+        conf.tx_count = (conf.tx_count + self._tx_step) % self._tx_max
         read_buffer = self.convert_from_enc(enc_cmd, conf)
         self.log_buffer(read_buffer, "Encode/Decrypted")
         encrypted = self._header + self.encrypt(self._prefix + read_buffer)
