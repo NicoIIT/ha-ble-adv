@@ -308,7 +308,11 @@ class BleAdvDevice(BleAdvMatchingDevice):
                 await self._async_on_device_command(ent_attr)
             else:
                 ent = self.entities.get(ent_attr.id)
-                if ent is not None and (ent.is_on or (ATTR_ON in ent_attr.chg_attrs and ent_attr.attrs[ATTR_ON])):
+                if ent is not None and (
+                    ent.is_on
+                    or (ATTR_ON in ent_attr.chg_attrs and ent_attr.attrs[ATTR_ON])
+                    or (ATTR_CMD in ent_attr.chg_attrs and ent_attr.attrs[ATTR_CMD] == ATTR_CMD_TOGGLE)
+                ):
                     ent.apply_attrs(ent_attr)
                     ent.async_write_ha_state()
 
