@@ -270,8 +270,8 @@ def _get_light_translators(param_attr: str, cold_attr: str, warm_attr: str) -> l
         .copy(ATTR_COLD, cold_attr, 255)
         .copy(ATTR_WARM, warm_attr, 255)
         .no_direct(),
-        Trans(CTLightCmd().act(ATTR_CMD, ATTR_CMD_CT_UP).eq(ATTR_STEP, 0.1), EncCmd(0x21).eq(param_attr, 0x24)).no_direct(),
-        Trans(CTLightCmd().act(ATTR_CMD, ATTR_CMD_CT_DOWN).eq(ATTR_STEP, 0.1), EncCmd(0x21).eq(param_attr, 0x18)).no_direct(),
+        Trans(CTLightCmd().act(ATTR_CMD, ATTR_CMD_CT_UP).eq(ATTR_STEP, 0.1), EncCmd(0x21).eq(param_attr, 0x18)).no_direct(),
+        Trans(CTLightCmd().act(ATTR_CMD, ATTR_CMD_CT_DOWN).eq(ATTR_STEP, 0.1), EncCmd(0x21).eq(param_attr, 0x24)).no_direct(),
         Trans(CTLightCmd().act(ATTR_CMD, ATTR_CMD_BR_UP).eq(ATTR_STEP, 0.1), EncCmd(0x21).eq(param_attr, 0x14)).no_direct(),
         Trans(CTLightCmd().act(ATTR_CMD, ATTR_CMD_BR_DOWN).eq(ATTR_STEP, 0.1), EncCmd(0x21).eq(param_attr, 0x28)).no_direct(),
     ]
