@@ -7,6 +7,8 @@ PLATFORMS = [Platform.FAN, Platform.LIGHT]
 
 CONF_COORDINATOR_ID = "coordinator_unique_id"
 
+CONF_LAST_VERSION = 4
+
 CONF_INDEX = "index"
 CONF_CODEC_ID = "codec_id"
 CONF_ADAPTER_ID = "adapter_id"

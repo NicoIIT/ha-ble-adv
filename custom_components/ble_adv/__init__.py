@@ -19,6 +19,7 @@ from .const import (
     CONF_FORCED_ID,
     CONF_INDEX,
     CONF_INTERVAL,
+    CONF_LAST_VERSION,
     CONF_LIGHTS,
     CONF_MAX_ENTITY_NB,
     CONF_REFRESH_DIR_ON_START,
@@ -94,7 +95,7 @@ async def async_migrate_entry(hass: HomeAssistant, config_entry: ConfigEntry) ->
             update_needed = True
 
     if update_needed:
-        hass.config_entries.async_update_entry(config_entry, data=new_data, version=4)
+        hass.config_entries.async_update_entry(config_entry, data=new_data, version=CONF_LAST_VERSION)
         _LOGGER.info(f"Migration of entry {config_entry.unique_id} to configuration version {config_entry.version} successful")
 
     return True
