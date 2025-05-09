@@ -28,6 +28,7 @@ from .const import (
     CONF_FORCED_ID,
     CONF_INDEX,
     CONF_INTERVAL,
+    CONF_LAST_VERSION,
     CONF_LIGHTS,
     CONF_MAX_ENTITY_NB,
     CONF_MIN_BRIGHTNESS,
@@ -80,7 +81,7 @@ class _CodecConfig(BleAdvConfig):
 class BleAdvConfigFlow(ConfigFlow, domain=DOMAIN):
     """Handle a config flow for BLE ADV."""
 
-    VERSION = 4
+    VERSION = CONF_LAST_VERSION
 
     def __init__(self) -> None:
         """Initialize the config flow."""
