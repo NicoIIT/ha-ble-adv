@@ -82,9 +82,6 @@ What you cannot change still is the dicovered config (codec, id, index) that ide
 ### When I perform changes very fast on the light or fan, sometimes the command is not taken into account
 Some devices are not available to receive commands while they are still processing one. You can increase the 'Minimum Duration' in between 2 commands in the 'Technical' part of the configuration to be sure we will wait this delay before sending new commands to the Device.
 
-### When I change the Oscillation / Direction / Preset of the Fan when it is OFF, nothing happens despite the change is taken into account in the UI
-Those settings cannot be changed while the Fan is OFF, and they are not changed on the HA Entity side. Still there is a UI bug: the change should be reverted by the UI immediately to reflect the effective state of the Entity (that has not changed) but it is not, feel free to open 'home assistant frontend' an issue.
-
 ### When I change the color of my Cold / Warm White light from COLD to WARM in HA, it results in the reversed action on the device
 The issue is not understood, but there is an option to fix it: modify the entity parameters (see first question) and check the box "Reverse Cold / Warm"
 

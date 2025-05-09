@@ -6,10 +6,8 @@ import logging
 from abc import ABC, abstractmethod
 from collections.abc import MutableMapping
 from datetime import datetime, timedelta
-from functools import wraps
 from typing import Any
 
-from homeassistant.const import STATE_ON
 from homeassistant.core import CALLBACK_TYPE, HomeAssistant
 from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.event import async_track_point_in_utc_time
@@ -29,7 +27,6 @@ from .codecs.const import (
     DEVICE_TYPE,
 )
 from .codecs.models import (
-    AttrType,
     BleAdvAdvertisement,
     BleAdvCodec,
     BleAdvConfig,
@@ -40,34 +37,28 @@ from .coordinator import BleAdvCoordinator, MatchingCallback
 
 _LOGGER = logging.getLogger(__name__)
 
+ATTR_IS_ON = "is_on"
+
 
 class _DeviceLoggingAdapter(logging.LoggerAdapter):
     def process(self, msg: str, kwargs: MutableMapping[str, Any]) -> tuple[str, MutableMapping[str, Any]]:
         return (f"[{self.extra['name']}] {msg}", kwargs) if self.extra is not None else (msg, kwargs)
 
 
-def handle_change(method):  # noqa: ANN001, ANN201
-    """Decorate entity methods applying changes.
+class BleAdvStateAttribute:
+    """State Attribute properties."""
 
-    The state attributes are saved before the change
-    and given to method 'async_after_change' that compares them to current
-    and calls the relevant device method to process the change
-    """
-
-    @wraps(method)
-    async def _impl(self: BleAdvEntity, *method_args, **method_kwargs):  # noqa: ANN002, ANN003, ANN202
-        before_attrs = self.get_attrs()
-        method_output = await method(self, *method_args, **method_kwargs)
-        await self.async_after_change(before_attrs)
-        return method_output
-
-    return _impl
+    def __init__(self, name: str, default: bool | int | str | tuple | None, chg_attrs: list[str], resets: list[str] | None = None) -> None:
+        self.name: str = name
+        self.default: bool | int | str | tuple | None = default
+        self.chg_attrs: list[str] = chg_attrs
+        self.resets: list[str] = resets if resets is not None else []
 
 
 class BleAdvEntity(RestoreEntity):
     """Base Ble Adv Entity class."""
 
-    _state_attributes: frozenset[tuple[str, Any]] = frozenset()
+    _state_attributes: frozenset[BleAdvStateAttribute] = frozenset()
     _attr_has_entity_name = True
 
     def __init__(self, base_type: str, sub_type: str, device: BleAdvDevice, index: int = 0) -> None:
@@ -97,35 +88,48 @@ class BleAdvEntity(RestoreEntity):
         """Return True if entity is on."""
         return self._attr_is_on
 
-    def set_state_attribute(self, attr_name: str, attr_value: Any) -> None:  # noqa: ANN401
-        """Set a state attribute, potentially using overriden '_set_state_<attr_name>' function."""
-        set_fct_name = f"_set_state_{attr_name}"
-        if hasattr(self, set_fct_name):
-            getattr(self, set_fct_name)(attr_value)
-        else:
-            setattr(self, f"_attr_{attr_name}", attr_value)
+    def get_state_attribute(self, attr_name: str) -> Any:  # noqa: ANN401
+        """Get a state attribute value."""
+        return getattr(self, f"_attr_{attr_name}")
 
-    @handle_change
+    def set_state_attribute(self, attr_name: str, attr_value: Any) -> bool:  # noqa: ANN401
+        """Set a state attribute."""
+        prev_value = self.get_state_attribute(attr_name)
+        setattr(self, f"_attr_{attr_name}", attr_value)
+        return attr_value != prev_value
+
+    async def _handle_state_change(self, chg_map: dict[str, Any]) -> None:
+        chg_attrs = []
+        forced_chg_attrs = []
+        for state_attr in self._state_attributes:
+            if state_attr.name in chg_map:
+                if self.set_state_attribute(state_attr.name, chg_map.get(state_attr.name)):
+                    chg_attrs += state_attr.chg_attrs
+                    for attr_reset in state_attr.resets:
+                        self.set_state_attribute(attr_reset, None)
+                forced_chg_attrs += state_attr.chg_attrs
+        if chg_attrs:
+            attrs = self.get_attrs()
+            if ATTR_ON in chg_attrs and attrs[ATTR_ON]:
+                chg_attrs += self.forced_changed_attr_on_start()
+            await self._device.apply_change(BleAdvEntAttr(list(set(chg_attrs)), attrs, self._base_type, self._index))
+
     async def async_turn_off(self, **_) -> None:  # noqa: ANN003
         """Turn off the Entity."""
-        self._attr_is_on = False
+        await self._handle_state_change({ATTR_IS_ON: False})
 
-    @handle_change
     async def async_turn_on(self, *_, **kwargs) -> None:  # noqa: ANN002, ANN003
-        """Turn Entity on."""
-        for attr_name, _ in self._state_attributes:
-            if (val := kwargs.get(attr_name)) is not None:
-                self.set_state_attribute(attr_name, val)
-        self._attr_is_on = True
+        """Turn on the Entity."""
+        await self._handle_state_change({ATTR_IS_ON: True, **kwargs})
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
-        """Return extra attributes: saved attributes when the light is Off."""
-        data: dict[str, Any] = {}
+        """Return extra attributes: saved attributes when the entity is Off."""
         if self._attr_is_on:
-            return data
-        for attribute, _ in self._state_attributes:
-            data[f"last_{attribute}"] = getattr(self, f"_attr_{attribute}")
+            return {ATTR_IS_ON: True}
+        data: dict[str, Any] = {}
+        for state_attr in self._state_attributes:
+            data[f"last_{state_attr.name}"] = self.get_state_attribute(state_attr.name)
         return data
 
     def get_attrs(self) -> dict[str, Any]:
@@ -143,31 +147,19 @@ class BleAdvEntity(RestoreEntity):
         """List Forced changed attributes on start."""
         return []
 
-    async def async_after_change(self, before_attrs: dict[str, AttrType]) -> None:
-        """Process to be done after change is detected on Entity."""
-        attrs = self.get_attrs()
-        changed_attrs = [x for x, y in attrs.items() if y != before_attrs.get(x)]
-        if ATTR_ON in changed_attrs and attrs[ATTR_ON]:
-            changed_attrs += self.forced_changed_attr_on_start()
-        if changed_attrs:
-            await self._device.apply_change(BleAdvEntAttr(changed_attrs, attrs, self._base_type, self._index))
-
     async def async_added_to_hass(self) -> None:
         """Restore state and state attributes."""
         await super().async_added_to_hass()
 
         if last_state := await self.async_get_last_state():
-            self.logger.debug(f"Restoring state from last_state: {last_state.state} / {last_state.attributes}")
-            is_on: bool = last_state.state == STATE_ON
-            for attr_name, default_value in self._state_attributes:
-                val = last_state.attributes.get(attr_name if is_on else f"last_{attr_name}")
-                self.set_state_attribute(attr_name, val if val is not None else default_value)
-            self._attr_is_on = is_on
+            self.logger.debug(f"Restoring state from last_state: {last_state.attributes}")
+            for state_attr in self._state_attributes:
+                val = last_state.attributes.get(f"last_{state_attr.name}", last_state.attributes.get(state_attr.name, state_attr.default))
+                self.set_state_attribute(state_attr.name, val)
         else:
-            self.logger.debug(f"Initialize state from default: off / {self._state_attributes}")
-            for attr_name, default_value in self._state_attributes:
-                self.set_state_attribute(attr_name, default_value)
-            self._attr_is_on = False
+            self.logger.debug(f"Initialize state from default: { {x.name: x.default for x in self._state_attributes} }")
+            for state_attr in self._state_attributes:
+                self.set_state_attribute(state_attr.name, state_attr.default)
 
 
 class BleAdvMatchingDevice(MatchingCallback, ABC):
@@ -282,7 +274,7 @@ class BleAdvDevice(BleAdvMatchingDevice):
     async def async_stop(self) -> None:
         """Stop the device: unregister."""
         for remote in self.remotes:
-            await remote.register()
+            await remote.unregister()
         await self.unregister()
 
     async def apply_change(self, ent_attr: BleAdvEntAttr) -> None:
@@ -303,6 +295,7 @@ class BleAdvDevice(BleAdvMatchingDevice):
     async def async_on_command(self, ent_attrs: list[BleAdvEntAttr]) -> None:
         """Process commands received."""
         self.logger.info(f"Receiving Changes: {ent_attrs}")
+        await self._async_cancel_timer()
         for ent_attr in ent_attrs:
             if ent_attr.base_type == DEVICE_TYPE:
                 await self._async_on_device_command(ent_attr)
@@ -323,7 +316,6 @@ class BleAdvDevice(BleAdvMatchingDevice):
             if cmd == ATTR_CMD_TIMER:
                 expire = dt_util.utcnow() + timedelta(seconds=ent_attr.attrs[ATTR_TIME])  # type: ignore[none]
                 self.logger.info(f"Set Timer to expire at: {expire}")
-                await self._async_cancel_timer()
                 self._timer_cancel = async_track_point_in_utc_time(self.hass, self._async_timeout, expire)
             elif cmd in (ATTR_CMD_PAIR, ATTR_CMD_UNPAIR):
                 pass

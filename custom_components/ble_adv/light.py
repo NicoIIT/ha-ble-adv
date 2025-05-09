@@ -25,6 +25,7 @@ from .codecs.const import (
     ATTR_CT_REV,
     ATTR_GREEN,
     ATTR_GREEN_F,
+    ATTR_ON,
     ATTR_RED,
     ATTR_RED_F,
     ATTR_STEP,
@@ -35,20 +36,20 @@ from .codecs.const import (
     LIGHT_TYPE_RGB,
 )
 from .const import CONF_EFFECTS, CONF_LIGHTS, CONF_MIN_BRIGHTNESS, CONF_REFRESH_ON_START, CONF_REVERSED, DOMAIN
-from .device import BleAdvDevice, BleAdvEntAttr, BleAdvEntity
+from .device import ATTR_IS_ON, BleAdvDevice, BleAdvEntAttr, BleAdvEntity, BleAdvStateAttribute
 
 
 class BleAdvLightError(Exception):
     """Light Error."""
 
 
-def create_entity(options: dict[str, str | float], device: BleAdvDevice, index: int) -> BleAdvLightBase:
+def create_entity(options: dict[str, Any], device: BleAdvDevice, index: int) -> BleAdvLightBase:
     """Create a Light Entity from the entry."""
     light_type: str = str(options[CONF_TYPE])
     min_br: int = int(options.get(CONF_MIN_BRIGHTNESS, 3))
     refresh_on_start = bool(options.get(CONF_REFRESH_ON_START, False))
     if light_type == LIGHT_TYPE_RGB:
-        return BleAdvLightRGB(light_type, device, index, min_br, refresh_on_start).set_effects(options.get(CONF_EFFECTS, []))  # type: ignore[none]
+        return BleAdvLightRGB(light_type, device, index, min_br, refresh_on_start).setup_effects(options.get(CONF_EFFECTS, []))
     if light_type == LIGHT_TYPE_CWW:
         return BleAdvLightCWW(light_type, device, index, min_br, refresh_on_start).set_reverse_cw(bool(options.get(CONF_REVERSED, False)))
     if light_type == LIGHT_TYPE_ONOFF:
@@ -75,6 +76,7 @@ class BleAdvLightBinary(BleAdvLightBase):
 
     _attr_supported_color_modes = {ColorMode.ONOFF}
     _attr_color_mode = ColorMode.ONOFF
+    _state_attributes = frozenset([BleAdvStateAttribute(ATTR_IS_ON, False, [ATTR_ON])])
 
 
 class BleAdvLightWithBrightness(BleAdvLightBase):
@@ -88,14 +90,24 @@ class BleAdvLightWithBrightness(BleAdvLightBase):
     def _pct(self, val: float, min_val: float = 0.0, max_val: float = 1.0) -> float:
         return min(max_val, max(min_val, val))
 
-    def _set_state_brightness(self, brightness: int) -> None:
-        self._set_br(brightness / 255.0)
-
     def _set_br(self, br: float) -> None:
+        self._attr_effect = None
         self._attr_brightness = int(255.0 * self._pct(br, self._min_brighntess))
 
     def _get_br(self) -> float:
         return self._attr_brightness / 255.0 if self._attr_brightness is not None else 0
+
+    def setup_effects(self, effects: list[Any]) -> Self:
+        """Set Effects."""
+        self._attr_effect_list = effects
+        self._attr_supported_features |= LightEntityFeature.EFFECT if len(effects) > 0 else 0
+        return self
+
+    async def async_turn_on(self, *_, **kwargs) -> None:  # noqa: ANN002, ANN003
+        """Turn on the Entity, overriding min br and resetting effect."""
+        if ATTR_BRIGHTNESS in kwargs:
+            kwargs[ATTR_BRIGHTNESS] = max(255.0 * self._min_brighntess, kwargs[ATTR_BRIGHTNESS])
+        await self._handle_state_change({ATTR_IS_ON: True, **kwargs})
 
     def get_attrs(self) -> dict[str, Any]:
         """Get the attrs."""
@@ -103,13 +115,20 @@ class BleAdvLightWithBrightness(BleAdvLightBase):
 
     def forced_changed_attr_on_start(self) -> list[str]:
         """List Forced changed attributes on start."""
-        return [ATTR_BR] if self._refresh_on_start else []
+        forced_attrs = []
+        if self._attr_supported_features & LightEntityFeature.EFFECT:
+            forced_attrs.append(ATTR_EFFECT)
+        if self._refresh_on_start:
+            forced_attrs.append(ATTR_BR)
+        return forced_attrs
 
     def apply_attrs(self, ent_attr: BleAdvEntAttr) -> None:
         """Apply attributes to entity."""
         super().apply_attrs(ent_attr)
         if ATTR_BR in ent_attr.chg_attrs:
             self._set_br(ent_attr.get_attr_as_float(ATTR_BR))
+        elif ATTR_EFFECT in ent_attr.chg_attrs:
+            self._attr_effect = ent_attr.attrs.get(ATTR_EFFECT)
         elif ATTR_CMD in ent_attr.chg_attrs:
             if ent_attr.attrs.get(ATTR_CMD) == ATTR_CMD_BR_UP:
                 self._set_br(self._get_br() + ent_attr.get_attr_as_float(ATTR_STEP))
@@ -120,20 +139,19 @@ class BleAdvLightWithBrightness(BleAdvLightBase):
 class BleAdvLightRGB(BleAdvLightWithBrightness):
     """RGB Light."""
 
+    ATTRS_RGB = frozenset([ATTR_RED, ATTR_GREEN, ATTR_BLUE])
+    ATTRS_RGB_F = frozenset([ATTR_RED_F, ATTR_GREEN_F, ATTR_BLUE_F])
+
     _attr_supported_color_modes = {ColorMode.RGB}
     _attr_color_mode = ColorMode.RGB
-    _state_attributes = frozenset([(ATTR_BRIGHTNESS, 255), (ATTR_RGB_COLOR, (255, 255, 255)), (ATTR_EFFECT, None)])
-
-    def set_effects(self, effects: list[Any]) -> Self:
-        """Set Effects."""
-        self._attr_effect_list = effects
-        self._attr_supported_features |= LightEntityFeature.EFFECT if len(effects) > 0 else 0
-        return self
-
-    async def async_turn_on(self, *args, **kwargs) -> None:  # noqa: ANN002, ANN003
-        """Override base turn_on to reset effect."""
-        self._attr_effect = None
-        await super().async_turn_on(self, *args, **kwargs)
+    _state_attributes = frozenset(
+        [
+            BleAdvStateAttribute(ATTR_IS_ON, False, [ATTR_ON]),
+            BleAdvStateAttribute(ATTR_BRIGHTNESS, 255, [ATTR_BR, *ATTRS_RGB_F], [ATTR_EFFECT]),
+            BleAdvStateAttribute(ATTR_RGB_COLOR, (255, 255, 255), [*ATTRS_RGB, *ATTRS_RGB_F], [ATTR_EFFECT]),
+            BleAdvStateAttribute(ATTR_EFFECT, None, [ATTR_EFFECT]),
+        ]
+    )
 
     def _get_rgb(self) -> tuple[float, float, float]:
         """Get RGB tuple."""
@@ -142,6 +160,7 @@ class BleAdvLightRGB(BleAdvLightWithBrightness):
         return (0, 0, 0)
 
     def _set_rgb(self, r: float, g: float, b: float) -> None:
+        self._attr_effect = None
         self._attr_rgb_color = (int(self._pct(r) * 255), int(self._pct(g) * 255), int(self._pct(b) * 255))
 
     def get_attrs(self) -> dict[str, Any]:
@@ -162,14 +181,14 @@ class BleAdvLightRGB(BleAdvLightWithBrightness):
     def forced_changed_attr_on_start(self) -> list[str]:
         """List Forced changed attributes on start."""
         forced_attrs = super().forced_changed_attr_on_start()
-        return [*forced_attrs, ATTR_RED, ATTR_RED_F, ATTR_GREEN, ATTR_GREEN_F, ATTR_BLUE, ATTR_BLUE_F] if forced_attrs else []
+        return [*forced_attrs, *self.ATTRS_RGB, *self.ATTRS_RGB_F] if self._refresh_on_start else forced_attrs
 
     def apply_attrs(self, ent_attr: BleAdvEntAttr) -> None:
         """Apply attributes to entity."""
         super().apply_attrs(ent_attr)
-        if ATTR_RED in ent_attr.chg_attrs or ATTR_GREEN in ent_attr.chg_attrs or ATTR_BLUE in ent_attr.chg_attrs:
+        if any(attr in self.ATTRS_RGB for attr in ent_attr.chg_attrs):
             self._set_rgb(ent_attr.get_attr_as_float(ATTR_RED), ent_attr.get_attr_as_float(ATTR_GREEN), ent_attr.get_attr_as_float(ATTR_BLUE))
-        elif ATTR_RED_F in ent_attr.chg_attrs or ATTR_GREEN_F in ent_attr.chg_attrs or ATTR_BLUE_F in ent_attr.chg_attrs:
+        elif any(attr in self.ATTRS_RGB_F for attr in ent_attr.chg_attrs):
             r = ent_attr.get_attr_as_float(ATTR_RED_F)
             g = ent_attr.get_attr_as_float(ATTR_GREEN_F)
             b = ent_attr.get_attr_as_float(ATTR_BLUE_F)
@@ -185,7 +204,14 @@ class BleAdvLightCWW(BleAdvLightWithBrightness):
     _attr_max_color_temp_kelvin = DEFAULT_MAX_KELVIN  # 6535K => Full COLD
     _attr_supported_color_modes = {ColorMode.COLOR_TEMP}
     _attr_color_mode = ColorMode.COLOR_TEMP
-    _state_attributes = frozenset([(ATTR_BRIGHTNESS, 255), (ATTR_COLOR_TEMP_KELVIN, DEFAULT_MAX_KELVIN)])
+    _state_attributes = frozenset(
+        [
+            BleAdvStateAttribute(ATTR_IS_ON, False, [ATTR_ON]),
+            BleAdvStateAttribute(ATTR_BRIGHTNESS, 255, [ATTR_BR, ATTR_WARM, ATTR_COLD], [ATTR_EFFECT]),
+            BleAdvStateAttribute(ATTR_COLOR_TEMP_KELVIN, DEFAULT_MAX_KELVIN, [ATTR_CT, ATTR_CT_REV, ATTR_WARM, ATTR_COLD], [ATTR_EFFECT]),
+            BleAdvStateAttribute(ATTR_EFFECT, None, [ATTR_EFFECT]),
+        ]
+    )
 
     def set_reverse_cw(self, reverse_cw: bool) -> Self:
         """Reverse Cold / Warm."""
@@ -202,6 +228,7 @@ class BleAdvLightCWW(BleAdvLightWithBrightness):
             Input 1.0 for COLD / DEFAULT_MAX_KELVIN
             Input 0.0 for WARM / DEFAULT_MIN_KELVIN
         """
+        self._attr_effect = None
         ctr = ct_percent if self._reverse_cw else 1.0 - ct_percent
         self._attr_color_temp_kelvin = int(DEFAULT_MIN_KELVIN + (DEFAULT_MAX_KELVIN - DEFAULT_MIN_KELVIN) * self._pct(ctr))
 
@@ -243,7 +270,7 @@ class BleAdvLightCWW(BleAdvLightWithBrightness):
     def forced_changed_attr_on_start(self) -> list[str]:
         """List Forced changed attributes on start."""
         forced_attrs = super().forced_changed_attr_on_start()
-        return [*forced_attrs, ATTR_CT, ATTR_CT_REV, ATTR_COLD, ATTR_WARM] if forced_attrs else []
+        return [*forced_attrs, ATTR_CT, ATTR_CT_REV, ATTR_COLD, ATTR_WARM] if self._refresh_on_start else forced_attrs
 
     def apply_attrs(self, ent_attr: BleAdvEntAttr) -> None:
         """Apply attributes to entity."""
@@ -255,10 +282,6 @@ class BleAdvLightCWW(BleAdvLightWithBrightness):
             self._set_ct(1.0 - ((cold / warm) / 2.0) if (cold < warm) else ((warm / cold) / 2.0))
             # // For constant brightness:
             # // self._set_ct(warm / (cold + warm))
-        elif ATTR_COLD in ent_attr.chg_attrs:
-            self._set_ct(ent_attr.get_attr_as_float(ATTR_COLD))
-        elif ATTR_WARM in ent_attr.chg_attrs:
-            self._set_ct(1.0 - ent_attr.get_attr_as_float(ATTR_WARM))
         elif ATTR_CT in ent_attr.chg_attrs:
             self._set_ct(ent_attr.get_attr_as_float(ATTR_CT))
         elif ATTR_CT_REV in ent_attr.chg_attrs:

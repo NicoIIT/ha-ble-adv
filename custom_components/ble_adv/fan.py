@@ -21,7 +21,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.util.percentage import percentage_to_ranged_value, ranged_value_to_percentage
 
-from .codecs.const import ATTR_DIR, ATTR_OSC, ATTR_PRESET, ATTR_SPEED, ATTR_SUB_TYPE, FAN_TYPE, FAN_TYPE_3SPEED
+from .codecs.const import ATTR_DIR, ATTR_ON, ATTR_OSC, ATTR_PRESET, ATTR_SPEED, ATTR_SUB_TYPE, FAN_TYPE, FAN_TYPE_3SPEED
 from .const import (
     CONF_FANS,
     CONF_PRESETS,
@@ -31,7 +31,7 @@ from .const import (
     CONF_USE_OSC,
     DOMAIN,
 )
-from .device import BleAdvDevice, BleAdvEntAttr, BleAdvEntity, handle_change
+from .device import ATTR_IS_ON, BleAdvDevice, BleAdvEntAttr, BleAdvEntity, BleAdvStateAttribute
 
 
 def create_entity(options: dict[str, Any], device: BleAdvDevice, index: int) -> BleAdvFan:
@@ -59,9 +59,16 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
 class BleAdvFan(BleAdvEntity, FanEntity):
     """Ble Adv Fan Entity."""
 
-    _state_attributes = frozenset([(ATTR_PERCENTAGE, 100), (ATTR_DIRECTION, DIRECTION_FORWARD), (ATTR_OSCILLATING, False), (ATTR_PRESET_MODE, None)])
+    _state_attributes = frozenset(
+        [
+            BleAdvStateAttribute(ATTR_IS_ON, False, [ATTR_ON]),
+            BleAdvStateAttribute(ATTR_PERCENTAGE, 100, [ATTR_SPEED], [ATTR_PRESET_MODE]),
+            BleAdvStateAttribute(ATTR_DIRECTION, DIRECTION_FORWARD, [ATTR_DIR]),
+            BleAdvStateAttribute(ATTR_OSCILLATING, False, [ATTR_OSC]),
+            BleAdvStateAttribute(ATTR_PRESET_MODE, None, [ATTR_PRESET], [ATTR_PERCENTAGE]),
+        ]
+    )
     _attr_direction = None
-    _attr_preset_mode = None
 
     def __init__(
         self,
@@ -92,19 +99,20 @@ class BleAdvFan(BleAdvEntity, FanEntity):
 
     def get_attrs(self) -> dict[str, Any]:
         """Get the attrs."""
+        eff_percentage = self._attr_percentage if self._attr_percentage is not None else 0
         return {
             **super().get_attrs(),
             ATTR_DIR: self._attr_direction == DIRECTION_FORWARD,
             ATTR_OSC: self._attr_oscillating,
             ATTR_PRESET: self._attr_preset_mode,
-            ATTR_SPEED: ceil(
-                percentage_to_ranged_value((1, self._attr_speed_count), self._attr_percentage if self._attr_percentage is not None else 0)
-            ),
+            ATTR_SPEED: ceil(percentage_to_ranged_value((1, self._attr_speed_count), eff_percentage)),
         }
 
     def forced_changed_attr_on_start(self) -> list[str]:
         """List Forced changed attributes on start."""
         forced_attrs = []
+        if self._attr_supported_features & FanEntityFeature.PRESET_MODE:
+            forced_attrs.append(ATTR_PRESET)
         if self._refresh_osc_on_start and self._attr_supported_features & FanEntityFeature.OSCILLATE:
             forced_attrs.append(ATTR_OSC)
         if self._refresh_dir_on_start and self._attr_supported_features & FanEntityFeature.DIRECTION:
@@ -119,37 +127,37 @@ class BleAdvFan(BleAdvEntity, FanEntity):
         if ATTR_OSC in ent_attr.chg_attrs:
             self._attr_oscillating = ent_attr.attrs[ATTR_OSC]  # type: ignore[none]
         if ATTR_SPEED in ent_attr.chg_attrs:
+            self._attr_preset_mode = None
             recv_speed_count = self._get_speed_count_from_type(ent_attr.attrs[ATTR_SUB_TYPE])
             self._attr_percentage = ranged_value_to_percentage((1, recv_speed_count), ent_attr.attrs[ATTR_SPEED])
+        if ATTR_PRESET in ent_attr.chg_attrs:
+            self._attr_percentage = 0
+            self._attr_preset_mode = ent_attr.attrs[ATTR_PRESET]
 
-    def _set_state_percentage(self, percentage: int | None) -> None:
-        """Set the speed percentage of the fan."""
-        if percentage is not None and percentage > 0:
-            self._attr_percentage = percentage
-            self._attr_is_on = True
+    async def async_turn_on(self, *_, **kwargs) -> None:  # noqa: ANN002, ANN003
+        """Turn Entity on / set percentage / preset mode. Percentage is taking precedence over preset_mode."""
+        if ATTR_PERCENTAGE in kwargs and (percentage := kwargs.get(ATTR_PERCENTAGE)) is not None:
+            await self.async_set_percentage(percentage)
+        elif ATTR_PRESET_MODE in kwargs and (preset_mode := kwargs.get(ATTR_PRESET_MODE)) is not None:
+            await self.async_set_preset_mode(preset_mode)
         else:
-            self._attr_is_on = False
+            await self._handle_state_change({ATTR_IS_ON: True})
 
-    @handle_change
     async def async_set_percentage(self, percentage: int) -> None:
         """Set the speed percentage of the fan."""
-        self._set_state_percentage(percentage)
-        self._attr_preset_mode = None
+        if percentage == 0:
+            await self._handle_state_change({ATTR_IS_ON: False})
+        else:
+            await self._handle_state_change({ATTR_IS_ON: True, ATTR_PERCENTAGE: percentage})
 
-    @handle_change
     async def async_set_direction(self, direction: str) -> None:
         """Set the direction of the fan."""
-        if self._attr_is_on:
-            self._attr_direction = direction
+        await self._handle_state_change({ATTR_IS_ON: True, ATTR_DIRECTION: direction})
 
-    @handle_change
     async def async_oscillate(self, oscillating: bool) -> None:
         """Oscillate the fan."""
-        if self._attr_is_on:
-            self._attr_oscillating = oscillating
+        await self._handle_state_change({ATTR_IS_ON: True, ATTR_OSCILLATING: oscillating})
 
-    @handle_change
     async def async_set_preset_mode(self, preset_mode: str) -> None:
         """Set the preset mode of the fan."""
-        if self._attr_is_on:
-            self._attr_preset_mode = preset_mode
+        await self._handle_state_change({ATTR_IS_ON: True, ATTR_PRESET_MODE: preset_mode})
