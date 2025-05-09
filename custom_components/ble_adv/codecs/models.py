@@ -83,7 +83,6 @@ class BleAdvEncCmd:
 type AttrType = str | bool | int | float | None
 
 
-@dataclass
 class BleAdvEntAttr:
     """Ble Adv Entity Attributes."""
 
@@ -100,6 +99,14 @@ class BleAdvEntAttr:
 
     def __repr__(self) -> str:
         return f"{self.base_type}_{self.index}: {self.chg_attrs} / {self.attrs}"
+
+    def __eq__(self, comp: Self) -> bool:
+        return (
+            (set(self.chg_attrs) == set(comp.chg_attrs))
+            and (self.attrs == comp.attrs)
+            and (self.base_type == comp.base_type)
+            and (self.index == comp.index)
+        )
 
     def get_attr_as_float(self, attr: str) -> float:
         """Get attr as float."""

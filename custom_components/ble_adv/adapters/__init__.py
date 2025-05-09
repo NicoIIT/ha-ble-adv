@@ -8,7 +8,7 @@ import struct
 from abc import ABC, abstractmethod
 from binascii import hexlify
 from collections.abc import Awaitable, Callable, Coroutine, MutableMapping
-from typing import Any
+from typing import Any, Self
 
 from btsocket.btmgmt_protocol import reader as btmgmt_reader
 
@@ -31,6 +31,16 @@ class BleAdvQueueItem:
         self.delay_after: int = delay
         self.interval: int = interval
         self.data: bytes = data
+
+    def __eq__(self, comp: Self) -> bool:
+        """Equality."""
+        return (
+            (self.key == comp.key)
+            and (self.repeat == comp.repeat)
+            and (self.delay_after == comp.delay_after)
+            and (self.interval == comp.interval)
+            and (self.data == comp.data)
+        )
 
 
 type AdvRecvCallback = Callable[[str, bytes], Awaitable[None]]
