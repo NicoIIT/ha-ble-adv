@@ -448,6 +448,8 @@ class BleAdvCodec(ABC):
 
     def encode_adv(self, enc_cmd: BleAdvEncCmd, conf: BleAdvConfig) -> BleAdvAdvertisement:
         """Encode an Encoder Command with Config into an Adv."""
+        if conf.tx_count == 0:
+            conf.app_restart_count = (conf.app_restart_count + 1) % 255
         conf.tx_count = (conf.tx_count + self._tx_step) % self._tx_max
         read_buffer = self.convert_from_enc(enc_cmd, conf)
         self.log_buffer(read_buffer, "Encode/Decrypted")

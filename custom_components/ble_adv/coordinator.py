@@ -155,14 +155,17 @@ class BleAdvCoordinator:
     async def handle_raw_adv(self, adapter_id: str, raw_adv: bytes) -> None:
         """Handle a raw advertising."""
         try:
-            # clean-up last advs for this adapter and check for dupe
+            # clean-up last advs for this adapter (kept only the ones received less than 10 seconds ago)
             if adapter_id not in self._last_advs:
                 self._last_advs[adapter_id] = {}
-            limit_creation = datetime.now() - timedelta(seconds=35)
+            limit_creation = datetime.now() - timedelta(seconds=10)
+
+            # check if the full raw one received is a dupe of another one received in the last 10s
             self._last_advs[adapter_id] = {x: y for x, y in self._last_advs[adapter_id].items() if (y > limit_creation)}
-            if raw_adv in self._last_advs[adapter_id]:
-                return
+            skip = raw_adv in self._last_advs[adapter_id]
             self._last_advs[adapter_id][raw_adv] = datetime.now()
+            if skip:
+                return
 
             # Parse the raw data and find the relevant info
             adv = BleAdvAdvertisement.FromRaw(raw_adv)
@@ -170,10 +173,11 @@ class BleAdvCoordinator:
                 _LOGGER.debug(f"[{adapter_id}] Not compatible raw data {as_hex(raw_adv)}, ignored")
                 return
 
-            # also add the decoded data to the ignore list
-            if adv.raw in self._last_advs[adapter_id]:
-                return
+            # check if the parsed raw one received is a dupe of another one received in the last 10s
+            skip = adv.raw in self._last_advs[adapter_id]
             self._last_advs[adapter_id][adv.raw] = datetime.now()
+            if skip:
+                return
 
             _LOGGER.debug(f"[{adapter_id}] BLE ADV received - {adv}")
             for codec_id, acodec in self.codecs.items():
