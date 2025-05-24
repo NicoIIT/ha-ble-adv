@@ -12,6 +12,7 @@ from .codecs import get_codecs
 from .codecs.models import BleAdvConfig
 from .const import (
     CONF_ADAPTER_ID,
+    CONF_ADAPTER_IDS,
     CONF_CODEC_ID,
     CONF_COORDINATOR_ID,
     CONF_DURATION,
@@ -79,19 +80,19 @@ async def async_migrate_entry(hass: HomeAssistant, config_entry: ConfigEntry) ->
             fan[CONF_REFRESH_DIR_ON_START] = refresh_on_start and fan.get(CONF_USE_DIR, False)
             fan[CONF_REFRESH_OSC_ON_START] = refresh_on_start and fan.get(CONF_USE_OSC, False)
             update_needed = True
+    if CONF_ADAPTER_ID in new_data[CONF_TECHNICAL]:
+        new_data[CONF_TECHNICAL][CONF_ADAPTER_IDS] = [new_data[CONF_TECHNICAL].pop(CONF_ADAPTER_ID)]
+        update_needed = True
 
     if config_entry.version < 2:
         coordinator = await get_coordinator(hass)
         adapt_ids = coordinator.get_adapter_ids()
-        if new_data[CONF_TECHNICAL][CONF_ADAPTER_ID] not in adapt_ids:
+        if new_data[CONF_TECHNICAL][CONF_ADAPTER_IDS][0] not in adapt_ids:
             _LOGGER.debug(f"Migrating {config_entry.unique_id} configuration from version {config_entry.version}")
-            nb_adapt = len(adapt_ids)
-            if nb_adapt == 0:
-                _LOGGER.error(f"No adapters detected while migrating entry: adapter {new_data[CONF_TECHNICAL][CONF_ADAPTER_ID]} kept.")
+            if len(adapt_ids) == 0:
+                _LOGGER.error(f"No adapters detected while migrating entry: adapter {new_data[CONF_TECHNICAL][CONF_ADAPTER_IDS][0]} kept.")
             else:
-                new_data[CONF_TECHNICAL][CONF_ADAPTER_ID] = adapt_ids[0]
-                if nb_adapt > 1:
-                    _LOGGER.warning("Several adapters detected, using the first one.")
+                new_data[CONF_TECHNICAL][CONF_ADAPTER_IDS] = adapt_ids.copy()
             update_needed = True
 
     if update_needed:
@@ -118,7 +119,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         entry.unique_id,
         entry.title,
         device_conf[CONF_CODEC_ID],
-        tech_conf[CONF_ADAPTER_ID],
+        tech_conf[CONF_ADAPTER_IDS],
         tech_conf[CONF_REPEAT],
         tech_conf[CONF_INTERVAL],
         tech_conf[CONF_DURATION],
@@ -130,7 +131,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         remote = BleAdvRemote(
             f"{entry.unique_id}_remote",
             remote_conf[CONF_CODEC_ID],
-            tech_conf[CONF_ADAPTER_ID],
+            tech_conf[CONF_ADAPTER_IDS],
             BleAdvConfig(remote_conf[CONF_FORCED_ID], remote_conf[CONF_INDEX]),
             coordinator,
         )

@@ -170,19 +170,19 @@ class BleAdvMatchingDevice(MatchingCallback, ABC):
         reg_name: str,
         coordinator: BleAdvCoordinator,
         codec_id: str,
-        adapter_id: str,
+        adapter_ids: list[str],
         config: BleAdvConfig,
     ) -> None:
         self.coordinator: BleAdvCoordinator = coordinator
         self.codec_id: str = codec_id
-        self.adapter_id: str = adapter_id
+        self.adapter_ids: set[str] = set(adapter_ids)
         self.config: BleAdvConfig = config
         self.reg_name: str = reg_name
 
     @property
     def available(self) -> bool:
-        """Return True if the device is available: if the adapter is available."""
-        return self.adapter_id in self.coordinator.get_adapter_ids()
+        """Return True if the device is available: if one of the adapters is available."""
+        return any(adapter_id in self.coordinator.get_adapter_ids() for adapter_id in self.adapter_ids)
 
     async def register(self) -> None:
         """Register to coordinator."""
@@ -194,7 +194,12 @@ class BleAdvMatchingDevice(MatchingCallback, ABC):
 
     async def handle(self, codec_id: str, adapter_id: str, config: BleAdvConfig, ent_attrs: list[BleAdvEntAttr]) -> bool:
         """Handle the callback."""
-        if (codec_id != self.codec_id) or (adapter_id != self.adapter_id) or (config.id != self.config.id) or (config.index != self.config.index):
+        if (
+            (codec_id != self.codec_id)
+            or (adapter_id not in self.adapter_ids)
+            or (config.id != self.config.id)
+            or (config.index != self.config.index)
+        ):
             return False
         await self.async_on_command(ent_attrs)
         return True
@@ -207,8 +212,8 @@ class BleAdvMatchingDevice(MatchingCallback, ABC):
 class BleAdvRemote(BleAdvMatchingDevice):
     """Class representing a remote."""
 
-    def __init__(self, name: str, codec_id: str, adapter_id: str, config: BleAdvConfig, coordinator: BleAdvCoordinator) -> None:
-        super().__init__(name, coordinator, codec_id, adapter_id, config)
+    def __init__(self, name: str, codec_id: str, adapter_ids: list[str], config: BleAdvConfig, coordinator: BleAdvCoordinator) -> None:
+        super().__init__(name, coordinator, codec_id, adapter_ids, config)
         self.device: BleAdvDevice | None = None
 
     async def async_on_command(self, ent_attrs: list[BleAdvEntAttr]) -> None:
@@ -226,14 +231,14 @@ class BleAdvDevice(BleAdvMatchingDevice):
         unique_id: str,
         name: str,
         codec_id: str,
-        adapter_id: str,
+        adapter_ids: list[str],
         repeat: int,
         interval: int,
         duration: int,
         config: BleAdvConfig,
         coordinator: BleAdvCoordinator,
     ) -> None:
-        super().__init__(unique_id, coordinator, codec_id, adapter_id, config)
+        super().__init__(unique_id, coordinator, codec_id, adapter_ids, config)
         self.hass: HomeAssistant = hass
         self.unique_id: str = unique_id
         self.name: str = name
@@ -251,7 +256,7 @@ class BleAdvDevice(BleAdvMatchingDevice):
         return DeviceInfo(
             identifiers={(DOMAIN, self.unique_id)},
             name=self.name,
-            hw_version=self.adapter_id,
+            hw_version=", ".join(self.adapter_ids),
             model=self.codec_id,
             model_id=f"0x{self.config.id:X} / {self.config.index}",
         )
@@ -288,7 +293,8 @@ class BleAdvDevice(BleAdvMatchingDevice):
                 self.logger.debug(f"Cmd: {enc_cmd}")
                 adv: BleAdvAdvertisement = acodec.encode_adv(enc_cmd, self.config)
                 qi: BleAdvQueueItem = BleAdvQueueItem(enc_cmd.cmd, self.repeat, self.duration, self.interval, adv.to_raw())
-                await self.coordinator.advertise(self.adapter_id, self.unique_id, qi)
+                for adapter_id in self.adapter_ids:
+                    await self.coordinator.advertise(adapter_id, self.unique_id, qi)
         except Exception:
             self.logger.exception("Exception applying changes")
 
