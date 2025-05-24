@@ -64,7 +64,7 @@ class _MatchingAllCallback(MatchingCallback):
     def __repr__(self) -> str:
         return "Matching ALL"
 
-    async def handle(self, codec_id: str, adapter_id: str, config: BleAdvConfig, _: list[BleAdvEntAttr]) -> bool:
+    async def handle(self, codec_id: str, _: str, adapter_id: str, config: BleAdvConfig, __: list[BleAdvEntAttr]) -> bool:
         await self.callback(codec_id, adapter_id, config)
         return True
 

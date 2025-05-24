@@ -47,23 +47,25 @@ class _Entity(BleAdvEntity):
 async def test_device(hass: HomeAssistant) -> None:
     """Test device."""
     codec = mock.AsyncMock()
+    codec.codec_id = "my_codec/sub"
+    codec.match_id = "my_codec"
     codec.ent_to_enc = mock.MagicMock(return_value=[BleAdvEncCmd(0x10)])
     adv = BleAdvAdvertisement(0xFF, b"12345")
     codec.encode_adv = mock.MagicMock(return_value=adv)
-    coord = BleAdvCoordinator(hass, {"my_codec": codec})
+    coord = BleAdvCoordinator(hass, {codec.codec_id: codec})
     coord.register_callback = mock.AsyncMock()
     coord.unregister_callback = mock.AsyncMock()
     coord.advertise = mock.AsyncMock()
     conf = BleAdvConfig(0xABCDEF, 1)
-    device = BleAdvDevice(hass, "my_device", "device", "my_codec", ["my_adapter"], 1, 20, 100, conf, coord)
+    device = BleAdvDevice(hass, "my_device", "device", codec.codec_id, ["my_adapter"], 1, 20, 100, conf, coord)
     assert device.device_info == {
         "identifiers": {("ble_adv", "my_device")},
         "name": "device",
         "hw_version": "my_adapter",
-        "model": "my_codec",
+        "model": codec.codec_id,
         "model_id": "0xABCDEF / 1",
     }
-    remote = BleAdvRemote("my_remote", "my_codec", ["my_adapter"], conf, coord)
+    remote = BleAdvRemote("my_remote", codec.codec_id, ["my_adapter"], conf, coord)
     device.link_remote(remote)
     ent0 = _Entity("ent_type", "ent_sub_type", device, 0)
     ent1 = _Entity("ent_type", "ent_sub_type", device, 1)
@@ -101,14 +103,14 @@ async def test_device(hass: HomeAssistant) -> None:
     assert not ent0.is_on
     assert not ent1.is_on
     all_on_cmd = BleAdvEntAttr([ATTR_ON], {ATTR_ON: True}, DEVICE_TYPE, 0)
-    await device.handle("not_my_codec", "my_adapter", conf, [all_on_cmd])
+    await device.handle("not_my_codec", "not_my_codec", "my_adapter", conf, [all_on_cmd])
     assert not ent0.is_on
     assert not ent1.is_on
-    await device.handle("my_codec", "my_adapter", conf, [all_on_cmd])
+    await device.handle(codec.codec_id, "my_codec", "my_adapter", conf, [all_on_cmd])
     assert ent0.is_on
     assert ent1.is_on
     all_off_cmd = BleAdvEntAttr([ATTR_ON], {ATTR_ON: False}, DEVICE_TYPE, 0)
-    await remote.handle("my_codec", "my_adapter", conf, [all_off_cmd])
+    await remote.handle(codec.codec_id, "my_codec", "my_adapter", conf, [all_off_cmd])
     assert not ent0.is_on
     assert not ent1.is_on
 

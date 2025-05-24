@@ -33,7 +33,7 @@ class MatchingCallback(ABC):
     """Base MatchingCallback class."""
 
     @abstractmethod
-    async def handle(self, codec_id: str, adapter_id: str, config: BleAdvConfig, ent_attrs: list[BleAdvEntAttr]) -> None:
+    async def handle(self, codec_id: str, match_id: str, adapter_id: str, config: BleAdvConfig, ent_attrs: list[BleAdvEntAttr]) -> None:
         """Implement Action."""
         raise CoordinatorError("Not Implemented")
 
@@ -186,7 +186,7 @@ class BleAdvCoordinator:
                     ent_attrs = acodec.enc_to_ent(enc_cmd)
                     _LOGGER.debug(f"[{adapter_id}][{codec_id}] {conf} / {enc_cmd} / {ent_attrs}")
                     for device_callback in self._callbacks.values():
-                        await device_callback.handle(codec_id, adapter_id, conf, ent_attrs)
+                        await device_callback.handle(codec_id, acodec.match_id, adapter_id, conf, ent_attrs)
 
         except Exception:
             _LOGGER.exception(f"[{adapter_id}] Exception handling raw adv message")
