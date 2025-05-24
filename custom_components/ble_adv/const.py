@@ -7,11 +7,12 @@ PLATFORMS = [Platform.FAN, Platform.LIGHT]
 
 CONF_COORDINATOR_ID = "coordinator_unique_id"
 
-CONF_LAST_VERSION = 4
+CONF_LAST_VERSION = 5
 
 CONF_INDEX = "index"
 CONF_CODEC_ID = "codec_id"
 CONF_ADAPTER_ID = "adapter_id"
+CONF_ADAPTER_IDS = "adapter_ids"
 CONF_FORCED_ID = "forced_id"
 CONF_PHONE_APP = "phone_app"
 CONF_TYPE_NONE = "none"

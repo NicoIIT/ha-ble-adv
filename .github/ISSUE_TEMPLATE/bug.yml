@@ -5,14 +5,12 @@ labels: ["bug"]
 body:
 - type: markdown
   attributes:
-    value: Before you open a new issue, search through the existing issues to see if others have had the same problem.
+    value: Before you open a new issue, search through the existing issues to see if others have had the same problem. **If some of the mandatory info is not provided (or not provided in the requested format) then the issue will be rejected, and future requests may not even be considered.** - I spent several months working on this component, you can spend several minutes providing the mandatory info I need to investigate your issue.
 - type: checkboxes
   attributes:
     label: Checklist
     options:
-      - label: I have enabled debug logging for my installation.
-        required: true
-      - label: I have filled out the issue template to the best of my ability, providing ALL mandatory info. If some of the mandatory info is not provided then the issue will be rejected.
+      - label: I provided ALL mandatory info and in the requested format.
         required: true
       - label: This issue only contains 1 issue (if you have multiple issues, open one issue for each issue).
         required: true
@@ -27,7 +25,7 @@ body:
 - type: textarea
   attributes:
     label: Reproduction steps
-    description: "Without steps to reproduce, it will be hard to fix: if not fully provided **as expected**, the issue will be Closed immediately. Please specify the EXACT time (with 'second' precision) at which you performed a specific action so that we can correlate with the time in the debug logs. The description of the action must also be very clear as in the example below, in particular on which device / controller you perform which action."
+    description: "Without steps to reproduce, it will be hard to fix. Please specify the EXACT time (with 'second' precision) at which you performed a specific action so that we can correlate with the time in the debug logs. The description of the action must also be very clear as in the example below, in particular on which device / controller you perform which action."
     value: |
       1. At 15:32:51 I pressed on the "Light On" button of my Physical Remote linked to ble_adv integration 'My Controller name'
       2. At 15:33:10 I changed the light from Cold to Warm using HA UI but the device went from Warm to Cold instead
@@ -51,8 +49,6 @@ body:
       More details in [logger](https://www.home-assistant.io/integrations/logger/) component.
 
       This **needs** to include _everything_ from startup of Home Assistant to the point where you encounter the issue.
-
-      If not provided, the issue will be Closed immediately.
     render: text
   validations:
     required: true
@@ -60,4 +56,6 @@ body:
 - type: textarea
   attributes:
     label: "Diagnostics dump"
-    description: "If your integration was successfully created, drag the [diagnostics dump](https://www.home-assistant.io/integrations/diagnostics/) file here."
+    description: "Drag the integration [diagnostics dump](https://www.home-assistant.io/integrations/diagnostics/) file here. If the bug is in config flow phase and no integration was created yet simply write 'No Integration'"
+  validations:
+    required: true

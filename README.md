@@ -73,6 +73,13 @@ Future developments are tracked in [github feature requests](https://github.com/
 
 ## FAQ
 
+### The 'Duplicate config' flow detects some potential configurations but none of them manages to make the light blink
+The fact configurations are detected means your controller(phone app or remote) is recognized and properly handled. Each of the codecs are designed (and validated) such as decoding / re-encoding is done in the exact same way so the commands that are emmitted by HA will be the exact same as the ones emmitted by the duplicated controller.
+
+As a consequence this is probably a Bluetooth range issue: the bluetooth adapter is too far from the device to be controlled. Try to place it next to your device (less than 3 meters, in direct view) and retry.
+
+If it does not solve the issue then open a Bug Report.
+
 ### Can I change the entity parameters / technical parameters / bluetooth adapter / supplementary remote controller after having finished the configuration?
 Yes, you can use the HA 'Reconfigure' option:
 * Find the 'Modifying the integration' in this [page](https://www.home-assistant.io/getting-started/integration/)
@@ -108,4 +115,18 @@ We could indeed broadcast ALL possible messages from all configs as what is done
 ### I have several ble_adv_proxy / bluetooth adapters but I am forced to choose one and only one for my device, why I cannot use ALL?
 First of all it is only a matter of choosing the best adapter at config time, so not a big deal. This is done for those reasons:
 * Same as previous answer: we optimize a maximum the bluetooth network and we try to avoid polluting it with useless messages.
-* The synchronization in between the Phone App / Physical remote and the HA State is done by listening to the messages emitted, so to keep them in sync we have to be sure those messages are listened by BOTH the bluetooth adapter and the device, and this is most ensured when only one bluetooth adapter is considered, and if possible when it is near the device (in the same room).
+* The synchronization in between the Phone App / Physical remote and the HA State is done by listening to the messages emitted, so to keep them in sync we have to be sure those messages are listened by BOTH the bluetooth adapter and the device, and this is most ensured when only one bluetooth adapter is considered, and if possible when it is near the device (in the same room at least).
+* The device may be reached by several commands coming from several adapters and may act in a stupid may, as for instance considering 2 ON commands coming from different places are in fact a first ON/OFF toggle followed by another ON/OFF toggle from another controller (and then accepted) and then resulting in ON then immediate OFF...
+
+### But I am a __smart__ guy with a __smart__ setup and I NEED several adapters for an integration
+First of all, this is a **BAD** idea, there is no point in doing so without drawbacks as highlighted in the previous questions. But if you think it is best for you, who am I to prevent you from doing it... You can select several adapters in the `Technical` part of the setup.
+
+Still in this case:
+* no help will be provided
+* no `Bug Report` will be accepted
+* no `Feature request` such as 'I am still forced to select one adapter at config time, please let me select more' will be accepted
+
+### When I perform a change on HA, it is not taken into account the phone app
+Well the main issue here is that those devices are never sending anything to any controller: they are just listening to commands. The consequence is that each individual controller is controlling the device in a standalone way (the remote does not update the Phone App state for instance, nor HA does).
+
+Still, this HA integration is able to listen to commands sent from the Phone App, or from the Remote if it is linked, and update its state accordingly.

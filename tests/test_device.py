@@ -55,7 +55,7 @@ async def test_device(hass: HomeAssistant) -> None:
     coord.unregister_callback = mock.AsyncMock()
     coord.advertise = mock.AsyncMock()
     conf = BleAdvConfig(0xABCDEF, 1)
-    device = BleAdvDevice(hass, "my_device", "device", "my_codec", "my_adapter", 1, 20, 100, conf, coord)
+    device = BleAdvDevice(hass, "my_device", "device", "my_codec", ["my_adapter"], 1, 20, 100, conf, coord)
     assert device.device_info == {
         "identifiers": {("ble_adv", "my_device")},
         "name": "device",
@@ -63,7 +63,7 @@ async def test_device(hass: HomeAssistant) -> None:
         "model": "my_codec",
         "model_id": "0xABCDEF / 1",
     }
-    remote = BleAdvRemote("my_remote", "my_codec", "my_adapter", conf, coord)
+    remote = BleAdvRemote("my_remote", "my_codec", ["my_adapter"], conf, coord)
     device.link_remote(remote)
     ent0 = _Entity("ent_type", "ent_sub_type", device, 0)
     ent1 = _Entity("ent_type", "ent_sub_type", device, 1)

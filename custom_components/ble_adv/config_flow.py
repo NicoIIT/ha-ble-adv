@@ -21,6 +21,7 @@ from .codecs.const import ATTR_DIR, ATTR_EFFECT, ATTR_ON, ATTR_OSC, ATTR_PRESET,
 from .codecs.models import BleAdvCodec, BleAdvConfig, BleAdvEntAttr
 from .const import (
     CONF_ADAPTER_ID,
+    CONF_ADAPTER_IDS,
     CONF_CODEC_ID,
     CONF_DURATION,
     CONF_EFFECTS,
@@ -149,7 +150,7 @@ class BleAdvConfigFlow(ConfigFlow, domain=DOMAIN):
         await self._async_stop_listen_to_config()
 
     def _get_device(self, name: str, config: _CodecConfig) -> BleAdvDevice:
-        return BleAdvDevice(self.hass, name, name, config.codec_id, self.selected_adapter_id, 3, 20, 850, config, self._coordinator)
+        return BleAdvDevice(self.hass, name, name, config.codec_id, [self.selected_adapter_id], 3, 20, 850, config, self._coordinator)
 
     async def _async_blink_light(self) -> None:
         config = self._selected_conf()
@@ -309,7 +310,7 @@ class BleAdvConfigFlow(ConfigFlow, domain=DOMAIN):
             CONF_DEVICE: {CONF_CODEC_ID: conf.codec_id, CONF_FORCED_ID: conf.id, CONF_INDEX: conf.index},
             CONF_LIGHTS: [{}] * CONF_MAX_ENTITY_NB,
             CONF_FANS: [{}] * CONF_MAX_ENTITY_NB,
-            CONF_TECHNICAL: {CONF_ADAPTER_ID: self.selected_adapter_id, CONF_DURATION: 850, CONF_INTERVAL: 20, CONF_REPEAT: 3},
+            CONF_TECHNICAL: {CONF_ADAPTER_IDS: [self.selected_adapter_id], CONF_DURATION: 850, CONF_INTERVAL: 20, CONF_REPEAT: 3},
         }
         return await self.async_step_configure()
 
@@ -462,14 +463,19 @@ class BleAdvConfigFlow(ConfigFlow, domain=DOMAIN):
 
     async def async_step_config_technical(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         """Configure Technical."""
+        errors = {}
         if user_input is not None:
             self._data[CONF_TECHNICAL] = user_input
-            return await self.async_step_configure()
+            if len(self._data[CONF_TECHNICAL][CONF_ADAPTER_IDS]) > 0:
+                return await self.async_step_configure()
+            errors["base"] = "missing_adapter"
 
         def_tech = self._data[CONF_TECHNICAL]
         data_schema = vol.Schema(
             {
-                vol.Required(CONF_ADAPTER_ID, default=def_tech[CONF_ADAPTER_ID]): vol.In(self._coordinator.get_adapter_ids()),
+                vol.Required(CONF_ADAPTER_IDS, default=def_tech[CONF_ADAPTER_IDS]): self._get_multi_selector(
+                    CONF_ADAPTER_IDS, self._coordinator.get_adapter_ids()
+                ),
                 vol.Optional(CONF_DURATION, default=def_tech[CONF_DURATION]): selector.NumberSelector(
                     selector.NumberSelectorConfig(step=50, min=100, max=1000, mode=selector.NumberSelectorMode.SLIDER)
                 ),
@@ -481,7 +487,7 @@ class BleAdvConfigFlow(ConfigFlow, domain=DOMAIN):
                 ),
             }
         )
-        return self.async_show_form(step_id="config_technical", data_schema=data_schema)
+        return self.async_show_form(step_id="config_technical", data_schema=data_schema, errors=errors)
 
     async def async_step_finalize(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         """Finalize Step."""
