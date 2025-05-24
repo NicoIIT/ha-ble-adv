@@ -120,7 +120,7 @@ class BleAdvConfig:
     id: int = 0
     index: int = 0
     tx_count: int = 0
-    app_restart_count: int = 0
+    app_restart_count: int = 1
     seed: int = 0
 
     def __init__(self, config_id: int = 0, index: int = 0) -> None:
@@ -448,9 +448,9 @@ class BleAdvCodec(ABC):
 
     def encode_adv(self, enc_cmd: BleAdvEncCmd, conf: BleAdvConfig) -> BleAdvAdvertisement:
         """Encode an Encoder Command with Config into an Adv."""
+        conf.tx_count = (conf.tx_count + self._tx_step) % self._tx_max
         if conf.tx_count == 0:
             conf.app_restart_count = (conf.app_restart_count + 1) % 255
-        conf.tx_count = (conf.tx_count + self._tx_step) % self._tx_max
         read_buffer = self.convert_from_enc(enc_cmd, conf)
         self.log_buffer(read_buffer, "Encode/Decrypted")
         encrypted = self._header + self.encrypt(self._prefix + read_buffer)

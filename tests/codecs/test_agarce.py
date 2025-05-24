@@ -105,7 +105,7 @@ class TestEncoderAgarce(_TestEncoderBase):
             "02.01.1A.15.FF.F9.09.84.7A.06.60.B3.CA.B7.E8.C2.A3.30.51.2C.CA.AE.21.80.AB",
             "cmd: 0x80, param: 0x00, args: [145,0,9]",
             "id: 0x100061C8, index: 17, tx: 176, seed: 0x067A",
-            "fan_0: ['speed', 'on'] / {'speed': 1, 'on': True, 'dir': False, 'osc': False, 'preset': None}",
+            "fan_0: ['speed', 'on'] / {'sub_type': '6speed', 'speed': 1, 'on': True, 'dir': False, 'osc': False, 'preset': None}",
         ),
         # FAN OFF
         (
@@ -113,7 +113,7 @@ class TestEncoderAgarce(_TestEncoderBase):
             "02.01.1A.15.FF.F9.09.84.6D.88.76.3D.44.A0.FF.4C.2D.27.46.32.44.B8.36.BE.17",
             "cmd: 0x80, param: 0x00, args: [1,0,8]",
             "id: 0x100061C8, index: 17, tx: 177, seed: 0x886D",
-            "fan_0: ['on'] / {'speed': 1, 'on': False, 'dir': True, 'osc': False, 'preset': None}",
+            "fan_0: ['on'] / {'sub_type': '6speed', 'speed': 1, 'on': False, 'dir': True, 'osc': False, 'preset': None}",
         ),
         # FAN DIR Reverse
         (
@@ -121,7 +121,7 @@ class TestEncoderAgarce(_TestEncoderBase):
             "02.01.1A.15.FF.F9.09.84.C1.1D.D8.A8.D1.0C.53.D9.B8.8B.EA.37.D1.1E.9A.A7.7F",
             "cmd: 0x80, param: 0x00, args: [145,0,2]",
             "id: 0x100061C8, index: 17, tx: 179, seed: 0x1DC1",
-            "fan_0: ['dir'] / {'speed': 1, 'on': True, 'dir': False, 'osc': False, 'preset': None}",
+            "fan_0: ['dir'] / {'sub_type': '6speed', 'speed': 1, 'on': True, 'dir': False, 'osc': False, 'preset': None}",
         ),
         # FAN OSC ON
         (
@@ -129,7 +129,7 @@ class TestEncoderAgarce(_TestEncoderBase):
             "02.01.19.15.FF.F9.09.84.9B.C7.84.72.0B.56.09.03.62.D1.B0.FD.0A.56.C0.42.8B",
             "cmd: 0x80, param: 0x00, args: [129,1,16]",
             "id: 0x100061C8, index: 17, tx: 181, seed: 0xC79B",
-            "fan_0: ['osc'] / {'speed': 1, 'on': True, 'dir': True, 'osc': True, 'preset': None}",
+            "fan_0: ['osc'] / {'sub_type': '6speed', 'speed': 1, 'on': True, 'dir': True, 'osc': True, 'preset': None}",
         ),
         # FAN Natural Wind
         (
@@ -137,7 +137,7 @@ class TestEncoderAgarce(_TestEncoderBase):
             "02.01.1A.15.FF.F9.09.84.F2.16.91.A3.DA.3F.60.D2.B3.B8.D9.0C.DB.2B.A9.FB.05",
             "cmd: 0x80, param: 0x00, args: [161,1,4]",
             "id: 0x100061C8, index: 17, tx: 201, seed: 0x16F2",
-            "fan_0: ['preset'] / {'speed': 1, 'on': True, 'dir': True, 'osc': True, 'preset': 'breeze'}",
+            "fan_0: ['preset'] / {'sub_type': '6speed', 'speed': 1, 'on': True, 'dir': True, 'osc': True, 'preset': 'breeze'}",
         ),
     ],
 )
