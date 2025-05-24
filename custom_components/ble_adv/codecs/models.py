@@ -351,7 +351,8 @@ class BleAdvCodec(ABC):
     _tx_max: int = 125
 
     def __init__(self) -> None:
-        self.codec_id: str | None = None
+        self.codec_id: str = ""
+        self.match_id: str = ""
         self.debug_mode: bool = False
         self._header: bytearray = bytearray()  # header is excluded from the data sent to the child encoder
         self._prefix: bytearray = bytearray()  # prefix is included in the data sent to the child encoder
@@ -375,9 +376,13 @@ class BleAdvCodec(ABC):
     def convert_from_enc(self, enc_cmd: BleAdvEncCmd, conf: BleAdvConfig) -> bytes:
         """Convert an encoder command and a config into a readable buffer."""
 
-    def id(self, codec_id: str) -> Self:
+    def id(self, codec_id: str, sub_id: str | None = None) -> Self:
         """Set id."""
-        self.codec_id = codec_id
+        self.match_id = codec_id
+        if sub_id is not None:
+            self.codec_id = f"{codec_id}/{sub_id}"
+        else:
+            self.codec_id = codec_id
         return self
 
     def header(self, header: list[int]) -> Self:

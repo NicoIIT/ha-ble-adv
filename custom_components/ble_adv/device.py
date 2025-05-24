@@ -174,7 +174,7 @@ class BleAdvMatchingDevice(MatchingCallback, ABC):
         config: BleAdvConfig,
     ) -> None:
         self.coordinator: BleAdvCoordinator = coordinator
-        self.codec_id: str = codec_id
+        self.codec: BleAdvCodec = self.coordinator.codecs[codec_id]
         self.adapter_ids: set[str] = set(adapter_ids)
         self.config: BleAdvConfig = config
         self.reg_name: str = reg_name
@@ -192,10 +192,10 @@ class BleAdvMatchingDevice(MatchingCallback, ABC):
         """Unregister."""
         await self.coordinator.unregister_callback(self.reg_name)
 
-    async def handle(self, codec_id: str, adapter_id: str, config: BleAdvConfig, ent_attrs: list[BleAdvEntAttr]) -> bool:
+    async def handle(self, _: str, match_id: str, adapter_id: str, config: BleAdvConfig, ent_attrs: list[BleAdvEntAttr]) -> bool:
         """Handle the callback."""
         if (
-            (codec_id != self.codec_id)
+            (match_id != self.codec.match_id)
             or (adapter_id not in self.adapter_ids)
             or (config.id != self.config.id)
             or (config.index != self.config.index)
@@ -257,7 +257,7 @@ class BleAdvDevice(BleAdvMatchingDevice):
             identifiers={(DOMAIN, self.unique_id)},
             name=self.name,
             hw_version=", ".join(self.adapter_ids),
-            model=self.codec_id,
+            model=self.codec.codec_id,
             model_id=f"0x{self.config.id:X} / {self.config.index}",
         )
 
@@ -287,11 +287,10 @@ class BleAdvDevice(BleAdvMatchingDevice):
         self.logger.info(f"Applying Changes: {ent_attr}")
         await self._async_cancel_timer()
         try:
-            acodec: BleAdvCodec = self.coordinator.codecs[self.codec_id]
-            enc_cmds = acodec.ent_to_enc(ent_attr)
+            enc_cmds = self.codec.ent_to_enc(ent_attr)
             for enc_cmd in enc_cmds:
                 self.logger.debug(f"Cmd: {enc_cmd}")
-                adv: BleAdvAdvertisement = acodec.encode_adv(enc_cmd, self.config)
+                adv: BleAdvAdvertisement = self.codec.encode_adv(enc_cmd, self.config)
                 qi: BleAdvQueueItem = BleAdvQueueItem(enc_cmd.cmd, self.repeat, self.duration, self.interval, adv.to_raw())
                 for adapter_id in self.adapter_ids:
                     await self.coordinator.advertise(adapter_id, self.unique_id, qi)

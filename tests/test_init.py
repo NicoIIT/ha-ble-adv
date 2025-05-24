@@ -52,9 +52,9 @@ async def create_entry(hass: HomeAssistant, entry_id: str | None, version: int, 
     return conf
 
 
-BASE_DEVICE_CONF = {CONF_CODEC_ID: "codec_id", CONF_FORCED_ID: 0x1010, CONF_INDEX: 0}
+BASE_DEVICE_CONF = {CONF_CODEC_ID: "fanlamp_pro_v1", CONF_FORCED_ID: 0x1010, CONF_INDEX: 0}
 BASE_TECH_CONF = {CONF_REPEAT: 1, CONF_INTERVAL: 20, CONF_DURATION: 100}
-BASE_REMOTE_CONF = {CONF_CODEC_ID: "codec_id", CONF_FORCED_ID: 0x2020, CONF_INDEX: 0}
+BASE_REMOTE_CONF = {CONF_CODEC_ID: "fanlamp_pro_v1", CONF_FORCED_ID: 0x2020, CONF_INDEX: 0}
 
 BASE_CONF_V0 = {
     CONF_DEVICE: {CONF_ADAPTER_ID: "adapter_id", **BASE_DEVICE_CONF},
