@@ -17,7 +17,21 @@ from homeassistant.helpers import selector
 
 from . import get_coordinator
 from .codecs import PHONE_APPS
-from .codecs.const import ATTR_DIR, ATTR_EFFECT, ATTR_ON, ATTR_OSC, ATTR_PRESET, ATTR_SUB_TYPE, FAN_TYPE, LIGHT_TYPE, LIGHT_TYPE_CWW, LIGHT_TYPE_RGB
+from .codecs.const import (
+    ATTR_CMD,
+    ATTR_CMD_PAIR,
+    ATTR_DIR,
+    ATTR_EFFECT,
+    ATTR_ON,
+    ATTR_OSC,
+    ATTR_PRESET,
+    ATTR_SUB_TYPE,
+    DEVICE_TYPE,
+    FAN_TYPE,
+    LIGHT_TYPE,
+    LIGHT_TYPE_CWW,
+    LIGHT_TYPE_RGB,
+)
 from .codecs.models import BleAdvCodec, BleAdvConfig, BleAdvEntAttr
 from .const import (
     CONF_ADAPTER_ID,
@@ -149,12 +163,12 @@ class BleAdvConfigFlow(ConfigFlow, domain=DOMAIN):
             await asyncio.sleep(1)
         await self._async_stop_listen_to_config()
 
-    def _get_device(self, name: str, config: _CodecConfig) -> BleAdvDevice:
-        return BleAdvDevice(self.hass, name, name, config.codec_id, [self.selected_adapter_id], 3, 20, 850, config, self._coordinator)
+    def _get_device(self, name: str, config: _CodecConfig, duration: int) -> BleAdvDevice:
+        return BleAdvDevice(self.hass, name, name, config.codec_id, [self.selected_adapter_id], 3, 20, duration, config, self._coordinator)
 
     async def _async_blink_light(self) -> None:
         config = self._selected_conf()
-        tmp_device: BleAdvDevice = self._get_device("cf", config)
+        tmp_device: BleAdvDevice = self._get_device("cf", config, 850)
         await tmp_device.async_start()
         on_cmd = BleAdvEntAttr([ATTR_ON], {ATTR_ON: True}, LIGHT_TYPE, 0)
         off_cmd = BleAdvEntAttr([ATTR_ON], {ATTR_ON: False}, LIGHT_TYPE, 0)
@@ -168,13 +182,14 @@ class BleAdvConfigFlow(ConfigFlow, domain=DOMAIN):
         await tmp_device.async_stop()
 
     async def _async_pair_all(self) -> None:
-        pair_cmd = BleAdvEntAttr(["pair"], {}, "device", 0)
+        pair_cmd = BleAdvEntAttr([ATTR_CMD], {ATTR_CMD: ATTR_CMD_PAIR}, DEVICE_TYPE, 0)
         for i, config in enumerate(self._selected_adapter_confs()):
-            tmp_device: BleAdvDevice = self._get_device(f"cf{i}", config)
+            tmp_device: BleAdvDevice = self._get_device(f"cf{i}", config, 300)
             await tmp_device.async_start()
             await tmp_device.apply_change(pair_cmd)
             await asyncio.sleep(0.3)
             await tmp_device.async_stop()
+        await asyncio.sleep(2)
 
     async def async_step_user(self, _: dict[str, Any] | None = None) -> ConfigFlowResult:
         """Handle the user step to setup a device."""
