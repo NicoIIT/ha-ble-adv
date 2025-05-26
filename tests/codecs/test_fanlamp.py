@@ -17,6 +17,8 @@ from . import _TestEncoderBase, _TestEncoderFull
         ("fanlamp_pro_v3/s2", 0x03, "F0.08.20.82.36.38.FD.5F.91.3D.7A.8B.1B.7D.77.0F.91.80.FF.FF.A5.C6.53.2B.D5.2A"),
         ("lampsmart_pro_v1", 0x03, "77.F8.B6.5F.2B.5E.00.FC.31.51.CC.AF.92.1D.2E.4A.1B.FC.EC.A1.F4.57.3E.64.04.58"),
         ("lampsmart_pro_v3/s2", 0x03, "F0.08.30.82.36.3C.FD.5A.1B.3E.A5.75.1A.7D.77.0F.91.80.FF.0C.8F.C6.53.2B.8C.CA"),
+        ("lampsmart_pro_vi1", 0x03, "F9.08.49.13.F0.69.25.4E.31.51.BA.AE.25.02.99.C1.BA.7C.71.94.84.55.18.CA.EC.4C"),
+        ("lampsmart_pro_vi3", 0x03, "F0.08.21.80.0B.B5.DA.CF.F3.B5.A7.A0.3B.E9.1C.FC.27.A9.3A.34.0E.2D.3F.57.B9.81"),
         ("remote_v1", 0xFF, "56.55.18.87.52.B6.5F.2B.5E.00.FC.31.51.50.50.9A.08.24.0A.EC.FC.A9.7B.8E.0D.4A.67.60.57"),
         ("remote_v1", 0xFF, "56.55.18.87.52.B6.5F.2B.5E.00.FC.31.51.54.50.9A.08.24.0A.96.FC.F5.27.DB.51.D3.43.60.57"),
         ("remote_v3", 0x16, "F0.08.10.00.5B.B5.CC.F3.7B.EB.FC.C8.4A.F2.0A.2E.3F.FC.18.05.F7.AD.3B.BD.17.A6"),
