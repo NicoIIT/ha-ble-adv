@@ -11,7 +11,7 @@ Same as [ESPHome integration](https://github.com/NicoIIT/esphome-components) but
 * Listen to the command emitted by the Phone App and updates Home Assistant Entities state
 * Synchronize another controller: allows to have a Phone App and a remote both updating Home Assistant entities state
 * Guided configuration fully based on Home Assistant User Interface configuration flow
-* Use either the bluetooth of the HomeAssistant host or an ESPHome based `ble_adv_proxy` similar to the ESPHome `bluetooth_proxy`
+* Use either the bluetooth of the HomeAssistant host or an ESPHome based [ble_adv_proxy](https://github.com/NicoIIT/esphome-ble_adv_proxy) similar to the ESPHome `bluetooth_proxy`
 
 ## Requirements
 * Your Home Assistant must either:
@@ -46,9 +46,9 @@ Alternatively if you do not want to use HACS, you can simply clone this reposito
   |    |-> ble_adv
   |-> configuration.yaml
 ```
-
-Once the repository is added, you need to restart Home Assistant so that it could be taken into account.
 Still with this method you will not be warned when a new Release will be available.
+
+In any case, once the repository is added, you need to restart Home Assistant so that it could be taken into account.
 
 ## Adding Integrations
 Once the component is installed, you can now [add](https://www.home-assistant.io/getting-started/integration/) a **"BLE ADV Ceiling Fan / Lamps"** integration for each of the Devices you want to control.
@@ -73,18 +73,19 @@ Future developments are tracked in [github feature requests](https://github.com/
 
 ## FAQ
 
+### Can I change the entity parameters / technical parameters / bluetooth adapter / supplementary remote controller after having finished the configuration?
+Yes, you can use the HA 'Reconfigure' option:
+* Find the 'Modifying the integration' in this [page](https://www.home-assistant.io/getting-started/integration/)
+* Apply the same procedure (1) but click on 'Reconfigure' instead of 'Rename'
+
+What you cannot change still is the dicovered config (codec, id, index) that identifies your device in a unique way and are used as key.
+
 ### The 'Duplicate config' flow detects some potential configurations but none of them manages to make the light blink
 The fact configurations are detected means your controller(phone app or remote) is recognized and properly handled. Each of the codecs are designed (and validated) such as decoding / re-encoding is done in the exact same way so the commands that are emmitted by HA will be the exact same as the ones emmitted by the duplicated controller.
 
 As a consequence this is probably a Bluetooth range issue: the bluetooth adapter is too far from the device to be controlled. Try to place it next to your device (less than 3 meters, in direct view) and retry.
 
 If it does not solve the issue then open a Bug Report.
-
-### Can I change the entity parameters / technical parameters / bluetooth adapter / supplementary remote controller after having finished the configuration?
-Yes, you can use the HA 'Reconfigure' option:
-* Find the 'Modifying the integration' in this [page](https://www.home-assistant.io/getting-started/integration/)
-* Apply the same procedure (1) but click on 'Reconfigure' instead of 'Rename'
-What you cannot change still is the dicovered config (codec, id, index) that identifies your device in a unique way and are used as key.
 
 ### When I perform changes very fast on the light or fan, sometimes the command is not taken into account
 Some devices are not available to receive commands while they are still processing one. You can increase the 'Minimum Duration' in between 2 commands in the 'Technical' part of the configuration to be sure we will wait this delay before sending new commands to the Device.
@@ -100,12 +101,17 @@ Please note this will send several distinct commands very fast when the entity i
 Please also note some Fan does not support the re send of the same state for oscillation or direction (act as _toggle_) resulting in direction / oscillation changed on each 'switch ON' if those options are activated: this is the main reason why those options are not activated by default. If your Fan does not support it there is nothing I can do for you, simply do not use it.
 
 ### When I try to add an integration for the first time my ble_adv_proxy is not detected
-Home assistant does not automatically loads components if they have no integration, and then the ble_adv_proxy cannot be detected by the unloaded component, so you have to force the component to be loaded at start by adding the line in the `configuration.yaml`:
+Home assistant does not automatically loads components if they have no integration, and then the ble_adv_proxy cannot be registered by the unloaded component, so you have to force the component to be loaded eiher:
+* at start by adding the line in the `configuration.yaml`:
 ```yaml
 ble_adv:
-
 ```
-Alternatively, the first time you start a config flow the component is loaded, so you just have to wait for up to 1 minute after that to have the `ble_adv_proxy` detected and available.
+* by starting a new config flow.
+
+Once loaded, the component is listening to `ble_adv_proxy` that are publishing their config every minute, so you just have **to wait for up to 1 minute** after that to have the `ble_adv_proxy` connected and available. When it is the case the following line of log appears (if you named your proxy `esp-proxy`):
+```
+2025-05-26 20:24:55.415 INFO (MainThread) [custom_components.ble_adv.adapters] [esp-proxy] ESPHome ble_adv_proxy connected: esp-proxy
+```
 
 ### Why should I choose / test different configs while the Phone Application does not need to do so but manages to make it work?
 We could indeed broadcast ALL possible messages from all configs as what is done by Phone applications, but it is useless as only ONE effectively controls the device. The goal here is to be smarter than Phone apps and:
@@ -118,15 +124,15 @@ First of all it is only a matter of choosing the best adapter at config time, so
 * The synchronization in between the Phone App / Physical remote and the HA State is done by listening to the messages emitted, so to keep them in sync we have to be sure those messages are listened by BOTH the bluetooth adapter and the device, and this is most ensured when only one bluetooth adapter is considered, and if possible when it is near the device (in the same room at least).
 * The device may be reached by several commands coming from several adapters and may act in a stupid may, as for instance considering 2 ON commands coming from different places are in fact a first ON/OFF toggle followed by another ON/OFF toggle from another controller (and then accepted) and then resulting in ON then immediate OFF...
 
-### But I am a __smart__ guy with a __smart__ setup and I NEED several adapters for an integration
-First of all, this is a **BAD** idea, there is no point in doing so without drawbacks as highlighted in the previous questions. But if you think it is best for you, who am I to prevent you from doing it... You can select several adapters in the `Technical` part of the setup.
+### But I have a _smart_ setup and I _need_ several adapters for an integration
+First of all, this is a **BAD** idea, there is no point in doing so without drawbacks as highlighted in the previous questions. But if you think it is the best configuration for you, who am I to prevent you from doing it... You can select several adapters in the `Technical Parameters` section of the setup.
 
 Still in this case:
 * no help will be provided
 * no `Bug Report` will be accepted
 * no `Feature request` such as 'I am still forced to select one adapter at config time, please let me select more' will be accepted
 
-### When I perform a change on HA, it is not taken into account the phone app
-Well the main issue here is that those devices are never sending anything to any controller: they are just listening to commands. The consequence is that each individual controller is controlling the device in a standalone way (the remote does not update the Phone App state for instance, nor HA does).
+### When I perform a change on HA, it is not taken into account by the phone app
+Well the main issue here is that those devices are never sending anything to any controller: they are just listening to commands. The consequence is that each individual controller is controlling the device in a standalone way (the remote does not update the Phone App state for instance).
 
-Still, this HA integration is able to listen to commands sent from the Phone App, or from the Remote if it is linked, and update its state accordingly.
+Still, this HA component is smarter than other controllers and able to listen to commands sent from the Phone App, or from the Remote if it is linked, and update its state accordingly.
