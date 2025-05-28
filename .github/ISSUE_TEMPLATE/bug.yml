@@ -5,27 +5,24 @@ labels: ["bug"]
 body:
 - type: markdown
   attributes:
-    value: Before you open a new issue, search through the existing issues to see if others have had the same problem. **If some of the mandatory info is not provided (or not provided in the requested format) then the issue will be rejected, and future requests may not even be considered.** - I spent several months working on this component, you can spend several minutes providing the mandatory info I need to investigate your issue.
-- type: checkboxes
-  attributes:
-    label: Checklist
-    options:
-      - label: I provided ALL mandatory info and in the requested format.
-        required: true
-      - label: This issue only contains 1 issue (if you have multiple issues, open one issue for each issue).
-        required: true
-      - label: This issue is not a duplicate issue of any [previous issues](https://github.com/NicoIIT/ha-ble-adv/issues?q=is%3Aissue%20state%3Aopen%20label%3Abug)..
-        required: true
+    value:  |
+      Before you open a new issue, search through the existing [issues](https://github.com/NicoIIT/ha-ble-adv/issues?q=is%3Aissue%20state%3Aopen%20label%3Abug) to see if others have had the same problem.
+
+      **If some of the mandatory info is not provided (or not provided in the requested format) then the issue will be rejected, and future requests may not even be considered.**
+
+      I spent several months working on this component, you can spend several minutes providing the mandatory info I need to investigate your issue.
+
 - type: textarea
   attributes:
     label: "Describe the issue"
-    description: "A clear and concise description of what the issue is."
+    description: "A clear and concise description of what the issue is. 'It does not work' is not a valid description. Do not hesitate to add screenshots of the errors you are facing."
   validations:
     required: true
+
 - type: textarea
   attributes:
     label: Reproduction steps
-    description: "Without steps to reproduce, it will be hard to fix. Please specify the EXACT time (with 'second' precision) at which you performed a specific action so that we can correlate with the time in the debug logs. The description of the action must also be very clear as in the example below, in particular on which device / controller you perform which action."
+    description: "Without steps to reproduce, it will be hard to understand and even harder to fix. Please specify the EXACT time (with 'second' precision) at which you performed a specific action so that we can correlate with the time in the debug logs. The description of the action must also be very clear as in the example below, in particular on which device / controller you perform which action."
     value: |
       1. At 15:32:51 I pressed on the "Light On" button of my Physical Remote linked to ble_adv integration 'My Controller name'
       2. At 15:33:10 I changed the light from Cold to Warm using HA UI but the device went from Warm to Cold instead
@@ -33,6 +30,7 @@ body:
       ...
   validations:
     required: true
+
 - type: textarea
   attributes:
     label: "Debug logs"
@@ -49,13 +47,34 @@ body:
       More details in [logger](https://www.home-assistant.io/integrations/logger/) component.
 
       This **needs** to include _everything_ from startup of Home Assistant to the point where you encounter the issue.
-    render: text
+    render: shell
   validations:
     required: true
 
 - type: textarea
   attributes:
     label: "Diagnostics dump"
-    description: "Drag the integration [diagnostics dump](https://www.home-assistant.io/integrations/diagnostics/) file here. If the bug is in config flow phase and no integration was created yet simply write 'No Integration'"
+    description: |
+      If the integration was created: Drag the integration [diagnostics dump](https://www.home-assistant.io/integrations/diagnostics/) file here.
+
+      If the bug is in config flow phase and no integration was created yet please specify as much info as possible:
+      * `Home Assistant Core` version
+      * Host info (at leat OS type and version) and HA install type (HASS / docker / vm /...)
+      * `ha-ble-adv` Component version
+      * bluetooth adapter description
+      * content of configuration.yaml related to this ha-ble-adv
+      * everything you think could be usefull
+    render: json
   validations:
     required: true
+
+- type: checkboxes
+  attributes:
+    label: Checklist
+    options:
+      - label: I provided ALL mandatory info and in the requested format.
+        required: true
+      - label: This issue only contains 1 issue (if you have multiple issues, open one issue for each issue).
+        required: true
+      - label: This issue is not a duplicate issue of any [previous issues](https://github.com/NicoIIT/ha-ble-adv/issues?q=is%3Aissue%20state%3Aopen%20label%3Abug).
+        required: true
