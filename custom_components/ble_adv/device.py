@@ -70,7 +70,7 @@ class BleAdvEntity(RestoreEntity):
         self._attr_unique_id: str = f"{device.unique_id}_{base_type}_{index}"
         self._attr_translation_key: str = f"{base_type}_{index}"
         self._device.add_entity(self)
-        self.logger = _DeviceLoggingAdapter(_LOGGER, {"name": f"{base_type}_{index}_{sub_type}"})
+        self.logger = _DeviceLoggingAdapter(_LOGGER, {"name": f"{device.name}/{base_type}_{index}"})
 
     @property
     def available(self) -> bool:
@@ -281,6 +281,10 @@ class BleAdvDevice(BleAdvMatchingDevice):
         for remote in self.remotes:
             await remote.unregister()
         await self.unregister()
+
+    async def async_cmd(self, cmd_type: str, cmd_value: str | int | bool) -> None:
+        """Apply a command."""
+        await self.apply_change(BleAdvEntAttr([cmd_type], {cmd_type: cmd_value}, DEVICE_TYPE, 0))
 
     async def apply_change(self, ent_attr: BleAdvEntAttr) -> None:
         """Apply changes."""

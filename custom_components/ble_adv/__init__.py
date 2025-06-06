@@ -1,12 +1,16 @@
 "ble_adv package."
 
 import logging
+from functools import partial
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_DEVICE, CONF_NAME
-from homeassistant.core import HomeAssistant
+from homeassistant.core import HomeAssistant, ServiceCall
+from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers.singleton import singleton
 from homeassistant.helpers.typing import ConfigType
+
+from ble_adv.codecs.const import ATTR_CMD, ATTR_CMD_MUTE, ATTR_CMD_PAIR, ATTR_CMD_UNPAIR
 
 from .codecs import get_codecs
 from .codecs.models import BleAdvConfig
@@ -39,6 +43,8 @@ from .device import BleAdvDevice, BleAdvRemote
 
 _LOGGER = logging.getLogger(__name__)
 
+_PUBLISHED_COMMANDS = [ATTR_CMD_MUTE, ATTR_CMD_PAIR, ATTR_CMD_UNPAIR]
+
 
 @singleton(f"{DOMAIN}/{CONF_COORDINATOR_ID}")
 async def get_coordinator(hass: HomeAssistant) -> BleAdvCoordinator:
@@ -48,9 +54,22 @@ async def get_coordinator(hass: HomeAssistant) -> BleAdvCoordinator:
     return coordinator
 
 
+async def _async_device_action(hass: HomeAssistant, cmd_type: str, cmd_value: str, call: ServiceCall) -> None:
+    device_id = call.data.get(CONF_DEVICE)
+    device_registry = dr.async_get(hass)
+    if device_id is not None and (base_device := device_registry.async_get(device_id)) is not None:
+        for config_entry_id in base_device.config_entries:
+            if config_entry_id in hass.data[DOMAIN]:
+                await hass.data[DOMAIN][config_entry_id].async_cmd(cmd_type, cmd_value)
+                return
+    _LOGGER.warning(f"Device {device_id} is unknown")
+
+
 async def async_setup(hass: HomeAssistant, _: ConfigType) -> bool:
     """Initialize the integration."""
     await get_coordinator(hass)
+    for cmd in _PUBLISHED_COMMANDS:
+        hass.services.async_register(DOMAIN, cmd, partial(_async_device_action, hass, ATTR_CMD, cmd))
     return True
 
 

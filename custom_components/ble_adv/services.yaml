@@ -1,0 +1,26 @@
+mute:
+  fields:
+    device:
+      required: true
+      selector:
+        device:
+          filter:
+            - integration: ble_adv
+
+pair:
+  fields:
+    device:
+      required: true
+      selector:
+        device:
+          filter:
+            - integration: ble_adv
+
+unpair:
+  fields:
+    device:
+      required: true
+      selector:
+        device:
+          filter:
+            - integration: ble_adv

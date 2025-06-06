@@ -13,6 +13,7 @@ from .const import (
     ATTR_CMD_BR_UP,
     ATTR_CMD_CT_DOWN,
     ATTR_CMD_CT_UP,
+    ATTR_CMD_MUTE,
     ATTR_CMD_PAIR,
     ATTR_CMD_TIMER,
     ATTR_CMD_TOGGLE,
@@ -246,6 +247,7 @@ def _get_fan_translators() -> list[Trans]:
 
 def _get_device_translators() -> list[Trans]:
     return [
+        Trans(DeviceCmd().act(ATTR_CMD, ATTR_CMD_MUTE), EncCmd(0x31)),
         Trans(DeviceCmd().act(ATTR_CMD, ATTR_CMD_PAIR), EncCmd(0x28)),
         Trans(DeviceCmd().act(ATTR_CMD, ATTR_CMD_UNPAIR), EncCmd(0x45)),
         Trans(DeviceCmd().act(ATTR_ON, False), EncCmd(0x6F)).no_direct(),

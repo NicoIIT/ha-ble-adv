@@ -128,7 +128,7 @@ class BleAdvConfig:
         self.index: int = index
 
     def __repr__(self) -> str:
-        return f"id: 0x{self.id:08X}, index: {self.index}, tx: {self.tx_count}, seed: 0x{self.seed:04X}"
+        return f"id: 0x{self.id:08X}, index: {self.index}, tx: {self.app_restart_count}/{self.tx_count}, seed: 0x{self.seed:04X}"
 
 
 class CommonMatcher:
