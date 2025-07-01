@@ -259,7 +259,7 @@ class TestEncoderFanlampDupe(_TestEncoderBase):
             "02.01.19.1B.03.77.F8.B6.5F.2B.5E.00.FC.31.51.54.FE.D2.08.24.0A.B5.FC.20.4E.F4.B8.F3.E9.7C.7D",
             "cmd: 0x31, param: 0x00, args: [0,0,0]",
             "id: 0x003D5022, index: 2, tx: 113, seed: 0x00B7",
-            "fan_0: ['on'] / {'sub_type': '3speed', 'on': False}",  # hum sub_type '3speed' ... to be checked ...
+            "fan_0: ['on'] / {'on': False}",
         ),
         (
             "fanlamp_pro_v2",
