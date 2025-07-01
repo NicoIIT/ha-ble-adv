@@ -47,7 +47,6 @@ body:
       More details in [logger](https://www.home-assistant.io/integrations/logger/) component.
 
       This **needs** to include _everything_ from startup of Home Assistant to the point where you encounter the issue.
-    render: shell
   validations:
     required: true
 
@@ -64,7 +63,6 @@ body:
       * bluetooth adapter description
       * content of configuration.yaml related to this ha-ble-adv
       * everything you think could be usefull
-    render: json
   validations:
     required: true
 
