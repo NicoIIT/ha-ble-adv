@@ -233,12 +233,8 @@ class FanLampEncoderV2(FanLampEncoder):
         return bytes([conf.tx_count, *dt, *uid, conf.index, enc_cmd.cmd, 0, enc_cmd.param, enc_cmd.arg0, enc_cmd.arg1, enc_cmd.arg2, *seed])
 
 
-def _get_fan_translators(speed_attr: str, speed_count_attr: str) -> list[Trans]:
+def _get_fan_translators() -> list[Trans]:
     return [
-        Trans(Fan3SpeedCmd().act(ATTR_ON, False), EncCmd(0x31).eq(speed_count_attr, 0).eq(speed_attr, 0)),
-        Trans(Fan3SpeedCmd().act(ATTR_ON, True).act(ATTR_SPEED), EncCmd(0x31).eq(speed_count_attr, 0).min(speed_attr, 1)).copy(
-            ATTR_SPEED, speed_attr
-        ),
         Trans(FanCmd().act(ATTR_DIR, True), EncCmd(0x15).eq("arg0", 0)),  # Forward
         Trans(FanCmd().act(ATTR_DIR, False), EncCmd(0x15).eq("arg0", 1)),  # Reverse
         Trans(FanCmd().act(ATTR_OSC, True), EncCmd(0x16).eq("arg0", 1)),
@@ -294,9 +290,10 @@ def _get_rgb_translators() -> list[Trans]:
 TRANS_FANLAMP_V1 = [
     *_get_light_translators("param", "arg0", "arg1"),
     *_get_rgb_translators(),
-    Trans(Fan6SpeedCmd().act(ATTR_ON, False), EncCmd(0x32).eq("arg1", 6).eq("arg0", 0)),
+    Trans(FanCmd().act(ATTR_ON, False), EncCmd(0x31).eq("arg1", 0).eq("arg0", 0)),
     Trans(Fan6SpeedCmd().act(ATTR_ON, True).act(ATTR_SPEED), EncCmd(0x32).eq("arg1", 6).min("arg0", 1)).copy(ATTR_SPEED, "arg0"),
-    *_get_fan_translators("arg0", "arg1"),
+    Trans(Fan3SpeedCmd().act(ATTR_ON, True).act(ATTR_SPEED), EncCmd(0x31).eq("arg1", 0).min("arg0", 1)).copy(ATTR_SPEED, "arg0"),
+    *_get_fan_translators(),
     *_get_device_translators(),
     Trans(DeviceCmd().act(ATTR_CMD, ATTR_CMD_TIMER), EncCmd(0x51)).split_copy(ATTR_TIME, ["arg0"], 1.0 / 60.0, 256),
 ]
@@ -306,7 +303,9 @@ TRANS_FANLAMP_V2 = [
     *_get_rgb_translators(),
     Trans(Fan6SpeedCmd().act(ATTR_ON, False), EncCmd(0x31).eq("arg0", 0x20).eq("arg1", 0)),
     Trans(Fan6SpeedCmd().act(ATTR_ON, True).act(ATTR_SPEED), EncCmd(0x31).eq("arg0", 0x20).min("arg1", 1)).copy(ATTR_SPEED, "arg1"),
-    *_get_fan_translators("arg1", "arg0"),
+    Trans(Fan3SpeedCmd().act(ATTR_ON, False), EncCmd(0x31).eq("arg0", 0).eq("arg1", 0)),
+    Trans(Fan3SpeedCmd().act(ATTR_ON, True).act(ATTR_SPEED), EncCmd(0x31).eq("arg0", 0).min("arg1", 1)).copy(ATTR_SPEED, "arg1"),
+    *_get_fan_translators(),
     *_get_device_translators(),
     Trans(DeviceCmd().act(ATTR_CMD, ATTR_CMD_TIMER), EncCmd(0x41)).split_copy(ATTR_TIME, ["arg0", "arg1"], 1.0 / 60.0, 256),
 ]
