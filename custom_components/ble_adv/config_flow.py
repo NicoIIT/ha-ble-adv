@@ -226,10 +226,11 @@ class BleAdvConfigFlow(ConfigFlow, domain=DOMAIN):
         if user_input is not None:
             gen_id = randint(0xFF, 0xFFF5)
             self.selected_adapter_id = user_input[CONF_ADAPTER_ID]
+            self.configs.setdefault(self.selected_adapter_id, []).clear()
             for codec_id in PHONE_APPS[user_input[CONF_PHONE_APP]]:
-                self.configs.setdefault(self.selected_adapter_id, []).append(_CodecConfig(codec_id, gen_id, 1))
+                self.configs[self.selected_adapter_id].append(_CodecConfig(codec_id, gen_id, 1))
             await self._async_pair_all()
-            return await self.async_step_blink()
+            return await self.async_step_confirm_pair()
 
         data_schema = vol.Schema(
             {
@@ -238,6 +239,10 @@ class BleAdvConfigFlow(ConfigFlow, domain=DOMAIN):
             }
         )
         return self.async_show_form(step_id="pair", data_schema=data_schema)
+
+    async def async_step_confirm_pair(self, _: dict[str, Any] | None = None) -> ConfigFlowResult:
+        """Handle the confirm that pair worked OK."""
+        return self.async_show_menu(step_id="confirm_pair", menu_options=["pair", "confirm_no_abort", "blink"])
 
     async def async_step_wait_config(self, _: dict[str, Any] | None = None) -> ConfigFlowResult:
         """Wait for listened config Step."""

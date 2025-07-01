@@ -36,10 +36,18 @@
       },
       "pair": {
         "title": "Pairing",
-        "description": "Please select the Phone App from the list below, cut the power supply of your device, reinstate it and press the **Submit** button within 5s (this will send the pair commands)",
+        "description": "Please select the relevant Bluetooth Adapter and the Phone App from the lists below, cut the power supply of your device, reinstate it and press the **Submit** button within 5s (this will send the pair commands)",
         "data": {
           "adapter_id": "BLE ADV Adapter",
           "phone_app": "Phone Application"
+        }
+      },
+      "confirm_pair": {
+        "description": "Was Pairing successful? Usually if it is the case the light blinked, but it depends on the light type...",
+        "menu_options": {
+          "pair": "Pairing FAILED, retry",
+          "confirm_no_abort": "Pairing FAILED, abort",
+          "blink": "Pairing OK, test configurations"
         }
       },
       "choose_adapter": {
