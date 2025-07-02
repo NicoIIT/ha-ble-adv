@@ -152,10 +152,10 @@ async def test_btmanager_error(bt_manager: BleAdvBtManager) -> None:
 async def test_btmanager_mgmt_close(bt_manager: BleAdvBtManager) -> None:
     assert bt_manager._mgmt_sock.get_calls() == MGMT_OPEN_CALLS  # type: ignore[none]
     assert bt_manager.adapters[HCI_NAME]._async_socket.get_calls() == INIT_CALLS  # type: ignore[none]
-    bt_manager._mgmt_sock.fail_open_nb = 1  # type: ignore[none]
+    _AsyncSocketMock.fail_open_nb = 1  # type: ignore[none]
     bt_manager._mgmt_sock._close()  # simulate MGMT closure from remote # type: ignore[none]
     await asyncio.sleep(0.2)  # wait for first reconnection (forced failed)
-    assert bt_manager._mgmt_sock.get_calls() == []  # type: ignore[none]
+    assert bt_manager._mgmt_sock is None
     await asyncio.sleep(1.0)  # wait for second reconnection
     assert bt_manager._mgmt_sock.get_calls() == MGMT_OPEN_CALLS  # type: ignore[none]
 

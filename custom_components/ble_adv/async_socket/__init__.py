@@ -1,7 +1,6 @@
 """Async Socket Package."""
 
 import asyncio
-import atexit
 import logging
 import os
 import pickle
@@ -71,19 +70,23 @@ class AsyncSocketBase(ABC):
         await asyncio.wait_for(self._ready_recv_event.wait(), 1)
 
     async def _async_base_receive(self, wait_recv_callback: SocketWaitRecvCallback) -> None:
-        self._ready_recv_event.set()
-        is_listening: bool = True
-        while is_listening:
-            data, is_listening = await wait_recv_callback()
-            if is_listening and self._on_recv and data is not None:
-                try:
-                    await self._on_recv(data)
-                except Exception:
-                    _LOGGER.exception("Exception on recv")
-                    is_listening = False
-        if self._on_error and self._functional_recv_started:
-            self._functional_recv_started = False
-            await self._on_error("Socket closed by peer or Exception on recv.")
+        try:
+            self._ready_recv_event.set()
+            is_listening: bool = True
+            while is_listening:
+                data, is_listening = await wait_recv_callback()
+                if is_listening and self._on_recv and data is not None:
+                    try:
+                        await self._on_recv(data)
+                    except Exception:
+                        _LOGGER.exception("Exception on recv")
+                        is_listening = False
+            if self._on_error and self._functional_recv_started:
+                self._functional_recv_started = False
+                await self._on_error("Socket closed by peer or Exception on recv.")
+        except asyncio.CancelledError:
+            # Task Cancelled: just return
+            pass
 
     @abstractmethod
     async def _async_call(self, method: str, *args) -> Any:  # noqa: ANN002, ANN401
@@ -114,6 +117,8 @@ class AsyncSocketBase(ABC):
         """Closure."""
         self._functional_recv_started = False
         self._close()
+        if self._recv_task is not None and not self._recv_task.done():
+            self._recv_task.cancel()
 
     @abstractmethod
     def _close(self) -> None:
@@ -136,7 +141,7 @@ class AsyncSocket(AsyncSocketBase):
             self._socket = btmgmt_socket.open()
         else:
             self._socket = socket.socket(*args)
-        atexit.register(self.close)
+        self._socket.setblocking(False)
         return self._socket.fileno()
 
     async def _async_start_recv(self) -> None:
@@ -146,7 +151,6 @@ class AsyncSocket(AsyncSocketBase):
         """Receive Data from socket."""
         if self._socket is None:
             return None, False
-        self._socket.setblocking(False)
         data = await asyncio.get_event_loop().sock_recv(self._socket, 4096)
         return data, len(data) > 0
 
