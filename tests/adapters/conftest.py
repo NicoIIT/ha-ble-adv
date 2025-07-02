@@ -11,17 +11,18 @@ from ble_adv.async_socket import AsyncSocketBase
 
 
 class _AsyncSocketMock(AsyncSocketBase):
+    fail_open_nb: int = 0
+
     def __init__(self) -> None:
         super().__init__()
         self._recv_queue: asyncio.Queue = asyncio.Queue()
-        self.fail_open_nb: int = 0
         self.hci_adv_not_allowed: bool = False
         self.hci_ext_adv: bool = False
         self._calls = []
 
     async def _async_open_socket(self, _: str, *__) -> int:  # noqa: ANN002
-        if self.fail_open_nb > 0:
-            self.fail_open_nb -= 1
+        if _AsyncSocketMock.fail_open_nb > 0:
+            _AsyncSocketMock.fail_open_nb -= 1
             raise OSError("Forced Error")
         self._recv_queue = asyncio.Queue()
         return 1

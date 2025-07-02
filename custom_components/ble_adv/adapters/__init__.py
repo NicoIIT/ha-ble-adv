@@ -416,13 +416,13 @@ def lb(buf: bytes) -> int:
 class BleAdvBtManager:
     """Manage the bluetooth Adapters using MGMT api.
 
-    Bluez mgmt-api: https://web.git.kernel.org/pub/scm/bluetooth/bluez.git/tree/doc/mgmt-api.txt
+    Bluez mgmt-api: https://web.git.kernel.org/pub/scm/bluetooth/bluez.git/tree/doc/mgmt.rst
     """
 
     MGMT_CMD_RTO: float = 3.0
 
     def __init__(self, adv_recv_callback: AdvRecvCallback) -> None:
-        self._mgmt_sock: AsyncSocketBase = create_async_socket()
+        self._mgmt_sock: AsyncSocketBase | None = None
         self._hci_adapters: dict[str, BleAdvAdapter] = {}
         self._hci_adapter_ids: dict[str, int] = {}
         self._hci_adapter_names: dict[int, str] = {}
@@ -442,6 +442,8 @@ class BleAdvBtManager:
 
     async def async_init(self) -> None:
         """Init the handler: init the MGMT Socket and the discovered adapters."""
+        if self._mgmt_sock is None:
+            self._mgmt_sock = create_async_socket()
         fileno = await self._mgmt_sock.async_init("mgmt", self._mgmt_recv, self._mgmt_close, True)
         await self._mgmt_sock.async_start_recv()
         _LOGGER.info(f"MGMT Connected - fileno: {fileno}")
@@ -466,7 +468,9 @@ class BleAdvBtManager:
         self._mgmt_opened = False
         for adapter in self._hci_adapters.values():
             await adapter.async_final()
-        self._mgmt_sock.close()
+        if self._mgmt_sock is not None:
+            self._mgmt_sock.close()
+            self._mgmt_sock = None
         self._hci_adapters.clear()
         self._hci_adapter_ids.clear()
         self._hci_adapter_names.clear()
@@ -483,7 +487,7 @@ class BleAdvBtManager:
             # discovery events, ignore
             pass
         elif cmd_type in [0x03, 0x04, 0x05, 0x06]:
-            # Adapter changes: trigger refresh
+            # Adapter error / addition / removal / setting change: trigger refresh
             _LOGGER.debug(f"Event triggering refresh: 0x{cmd_type:04X}")
             self._launch_refresh()
         else:
