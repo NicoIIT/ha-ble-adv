@@ -1,4 +1,4 @@
-# ruff: noqa: S101, A005
+# ruff: noqa: S101
 """Codec Tests."""
 
 from ble_adv.codecs import get_codecs

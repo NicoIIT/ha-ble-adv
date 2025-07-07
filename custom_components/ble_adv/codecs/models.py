@@ -54,6 +54,9 @@ class BleAdvAdvertisement:
         """Repr."""
         return f"Type: 0x{self.ble_type:02X}, raw: {'.'.join(f'{x:02X}' for x in self.raw)}"
 
+    def __hash__(self) -> int:
+        return hash([self.ble_type, self.raw])
+
     def __eq__(self, comp: Self) -> bool:
         return (self.ble_type == comp.ble_type) and (self.raw == comp.raw)
 
@@ -99,6 +102,10 @@ class BleAdvEntAttr:
 
     def __repr__(self) -> str:
         return f"{self.base_type}_{self.index}: {self.chg_attrs} / {self.attrs}"
+
+    def __hash__(self) -> int:
+        """Hash."""
+        return hash([set(self.chg_attrs), self.attrs, self.base_type, self.index])
 
     def __eq__(self, comp: Self) -> bool:
         return (

@@ -1,6 +1,6 @@
 """Test adapters module."""
 
-# ruff: noqa: ANN001, SLF001, S101, D103
+# ruff: noqa: SLF001, S101, D103
 import asyncio
 from unittest import mock
 

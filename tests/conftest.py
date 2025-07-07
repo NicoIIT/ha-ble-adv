@@ -1,7 +1,5 @@
 """Init for HA tests."""
 
-# ruff: noqa: S101
-
 from unittest import mock
 
 import pytest

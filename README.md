@@ -136,3 +136,8 @@ Still in this case:
 Well the main issue here is that those devices are never sending anything to any controller: they are just listening to commands. The consequence is that each individual controller is controlling the device in a standalone way (the remote does not update the Phone App state for instance).
 
 Still, this HA component is smarter than other controllers and able to listen to commands sent from the Phone App, or from the Remote if it is linked, and update its state accordingly.
+
+### This integration is causing issues with other Bluetooth / BLE integrations
+Well ... Sh*** happens ... Only one has been [reported](https://github.com/NicoIIT/ha-ble-adv/discussions/69) so far (and without confirmation it is effectively the problem).
+
+Still when using the very low level interfaces of the Host Bluetooth Stack there could be bad interactions with other components using the Bluetooth Stack. Unfortunately nothing can be done to correct this as there is no other way to have it work, so if you face such issues I would advise NOT to use the Bluetooth Stack of the Host but to use a `ble_adv_proxy` as Bluetooth Adapter, this will guarantee there is no such bad interactions.

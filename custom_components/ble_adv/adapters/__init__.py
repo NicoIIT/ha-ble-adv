@@ -32,6 +32,10 @@ class BleAdvQueueItem:
         self.interval: int = interval
         self.data: bytes = data
 
+    def __hash__(self) -> int:
+        """Hash."""
+        return hash([self.key, self.repeat, self.delay_after, self.interval, self.data])
+
     def __eq__(self, comp: Self) -> bool:
         """Equality."""
         return (

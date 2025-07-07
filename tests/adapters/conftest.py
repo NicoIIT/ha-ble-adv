@@ -1,5 +1,5 @@
 """Fixtures for async_socket module."""
-# ruff: noqa: ANN001, SLF001, S101, D103
+# ruff: noqa: D103
 
 import asyncio
 from collections.abc import AsyncGenerator
