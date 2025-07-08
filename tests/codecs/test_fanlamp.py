@@ -15,6 +15,7 @@ from . import _TestEncoderBase, _TestEncoderFull
         ("fanlamp_pro_v3", 0x03, "F0.08.20.80.B8.52.E1.22.C6.F2.D3.A7.67.7C.A4.9F.67.F6.B6.B7.41.8B.53.2B.E9.59"),
         ("fanlamp_pro_v3", 0x03, "F0.08.20.80.8A.3F.2F.22.B9.F2.DB.03.FC.F8.68.C1.28.0C.1D.C3.6E.DA.19.48.88.61"),
         ("fanlamp_pro_v3/s2", 0x03, "F0.08.20.82.36.38.FD.5F.91.3D.7A.8B.1B.7D.77.0F.91.80.FF.FF.A5.C6.53.2B.D5.2A"),
+        ("fanlamp_pro_vi3/s2", 0x03, "F0.08.30.82.FD.F0.93.59.87.F4.03.02.D9.DF.08.52.B2.EA.71.93.89.69.3F.57.C5.B3"),
         ("lampsmart_pro_v1", 0x03, "77.F8.B6.5F.2B.5E.00.FC.31.51.CC.AF.92.1D.2E.4A.1B.FC.EC.A1.F4.57.3E.64.04.58"),
         ("lampsmart_pro_v3/s2", 0x03, "F0.08.30.82.36.3C.FD.5A.1B.3E.A5.75.1A.7D.77.0F.91.80.FF.0C.8F.C6.53.2B.8C.CA"),
         ("lampsmart_pro_vi1", 0x03, "F9.08.49.13.F0.69.25.4E.31.51.BA.AE.25.02.99.C1.BA.7C.71.94.84.55.18.CA.EC.4C"),
