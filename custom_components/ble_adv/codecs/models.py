@@ -75,6 +75,8 @@ class BleAdvEncCmd:
     arg0: int = 0
     arg1: int = 0
     arg2: int = 0
+    arg3: int = 0
+    arg4: int = 0
 
     def __init__(self, cmd: int) -> None:
         self.cmd = cmd
@@ -356,11 +358,11 @@ class BleAdvCodec(ABC):
     _len: int = 0
     _tx_step: int = 1
     _tx_max: int = 125
+    debug_mode: bool = False
 
     def __init__(self) -> None:
         self.codec_id: str = ""
         self.match_id: str = ""
-        self.debug_mode: bool = False
         self._header: bytearray = bytearray()  # header is excluded from the data sent to the child encoder
         self._prefix: bytearray = bytearray()  # prefix is included in the data sent to the child encoder
         self._ble_type: int = 0

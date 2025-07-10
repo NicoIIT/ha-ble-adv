@@ -27,7 +27,7 @@ ATTR_SUB_TYPE = "sub_type"
 
 ATTR_BR = "br"
 ATTR_CT = "ct"  # CT 0.0 => COLD, CT 1.0 => WARM
-ATTR_CT_REV = "ctr"  # CTR 0.0 => WARM, CT 1.0 => COLD
+ATTR_CT_REV = "ctr"  # CTR 0.0 => WARM, CTR 1.0 => COLD
 ATTR_COLD = "cold"
 ATTR_WARM = "warm"
 ATTR_RED = "r"

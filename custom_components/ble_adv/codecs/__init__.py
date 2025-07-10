@@ -2,6 +2,7 @@
 
 from .agarce import CODECS as AGARCE_CODECS
 from .fanlamp import CODECS as FANLAMP_CODECS
+from .mantra import CODECS as MANTRA_CODECS
 from .models import BleAdvCodec
 from .remotes import CODECS as REMOTES_CODECS
 from .zhijia import CODECS as ZHIJIA_CODECS
@@ -23,4 +24,4 @@ PHONE_APPS = {
 
 def get_codecs() -> dict[str, BleAdvCodec]:
     """Get all codecs."""
-    return {x.codec_id: x for x in [*FANLAMP_CODECS, *ZHIJIA_CODECS, *ZHIMEI_CODECS, *AGARCE_CODECS, *REMOTES_CODECS]}
+    return {x.codec_id: x for x in [*FANLAMP_CODECS, *ZHIJIA_CODECS, *ZHIMEI_CODECS, *AGARCE_CODECS, *REMOTES_CODECS, *MANTRA_CODECS]}
