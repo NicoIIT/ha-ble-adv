@@ -32,6 +32,7 @@ This integration **does not support any specific device type or brand**, but pro
 * Vmax smart
 * Zhi Mei Deng Kong
 * Smart Light (BETA, No RGB, users wanted!) (Only the control by device, not the Master Control)
+* Mantra Lighting (BETA, not working yet... Only devices with Fan and Light, Direction Forward / Breeze Mode NOT TESTED)
 * Other (Legacy), removed app from play store: 'FanLamp', 'ControlSwitch'
 
 ## Installing the component
@@ -64,80 +65,13 @@ The main steps of the configuration flow are the following:
   * **The expert way - Manual Input**: directly specifies the configuration parameters (codec / forced_id / index) if already known from a previous install or ESPHome config
   * **Pairing**: the last chance if you do not have an already paired controlling device, the process will try to pair with your device
 * **Validation**: For each of the potential configurations discovered / entered, verify if the lamp is properly controlled by trying to make it blink
-* **Definition**: Define the **Entities** to be created (Main Light, Second Light, Fan, ...) and their characteristics (RGB / Cold White Warm / Binary / Fan Speed / Min Brightness...), add a supplementary remote controller or modify the technical parameters. This step can be modified afterwards by reconfiguring the integration (see FAQ).
+* **Definition**: Define the **Entities** to be created (Main Light, Second Light, Fan, ...) and their characteristics (RGB / Cold White Warm / Binary / Fan Speed / Min Brightness...), add a supplementary remote controller or modify the technical parameters. This step can be modified afterwards by reconfiguring the integration (see [Wiki](https://github.com/NicoIIT/ha-ble-adv/wiki/Configuration-Guide)).
 * **Finalization**: Specify the name of the Device and save your changes.
 
 
 ## Future Developments
 Future developments are tracked in [github feature requests](https://github.com/NicoIIT/ha-ble-adv/issues?q=is%3Aissue%20state%3Aopen%20label%3Aenhancement), do not hesitate to vote for them if you need them giving it a :thumbsup:, or open new ones!
 
-## FAQ
-
-### Can I change the entity parameters / technical parameters / bluetooth adapter / supplementary remote controller after having finished the configuration?
-Yes, you can use the HA 'Reconfigure' option:
-* Find the 'Modifying the integration' in this [page](https://www.home-assistant.io/getting-started/integration/)
-* Apply the same procedure (1) but click on 'Reconfigure' instead of 'Rename'
-
-What you cannot change still is the dicovered config (codec, id, index) that identifies your device in a unique way and are used as key.
-
-### The 'Duplicate config' flow detects some potential configurations but none of them manages to make the light blink
-The fact configurations are detected means your controller(phone app or remote) is recognized and properly handled. Each of the codecs are designed (and validated) such as decoding / re-encoding is done in the exact same way so the commands that are emmitted by HA will be the exact same as the ones emmitted by the duplicated controller.
-
-As a consequence this is probably a Bluetooth range issue: the bluetooth adapter is too far from the device to be controlled. Try to place it next to your device (less than 3 meters, in direct view) and retry.
-
-If it does not solve the issue then open a Bug Report.
-
-### When I perform changes very fast on the light or fan, sometimes the command is not taken into account
-Some devices are not available to receive commands while they are still processing one. You can increase the 'Minimum Duration' in between 2 commands in the 'Technical' part of the configuration to be sure we will wait this delay before sending new commands to the Device.
-
-### When I change the color of my Cold / Warm White light from COLD to WARM in HA, it results in the reversed action on the device
-The issue is not understood, but there is an option to fix it: modify the entity parameters (see first question) and check the box "Reverse Cold / Warm"
-
-### When I switch OFF my entity, the device fully resets its state to the default and is then not aligned with HA state when I switch it back ON (color, brightness, fan direction, ...)
-You can force the re send of the HA state when the entity is switched ON: modify the entity parameters (see first question) and check the box "Force (...) refresh when switched ON".
-
-Please note this will send several distinct commands very fast when the entity is switched ON: depending on your device it may be too fast, see second question.
-
-Please also note some Fan does not support the re send of the same state for oscillation or direction (act as _toggle_) resulting in direction / oscillation changed on each 'switch ON' if those options are activated: this is the main reason why those options are not activated by default. If your Fan does not support it there is nothing I can do for you, simply do not use it.
-
-### When I try to add an integration for the first time my ble_adv_proxy is not detected
-Home assistant does not automatically loads components if they have no integration, and then the ble_adv_proxy cannot be registered by the unloaded component, so you have to force the component to be loaded eiher:
-* at start by adding the line in the `configuration.yaml`:
-```yaml
-ble_adv:
-```
-* by starting a new config flow.
-
-Once loaded, the component is listening to `ble_adv_proxy` that are publishing their config every minute, so you just have **to wait for up to 1 minute** after that to have the `ble_adv_proxy` connected and available. When it is the case the following line of log appears (if you named your proxy `esp-proxy`):
-```
-2025-05-26 20:24:55.415 INFO (MainThread) [custom_components.ble_adv.adapters] [esp-proxy] ESPHome ble_adv_proxy connected: esp-proxy
-```
-
-### Why should I choose / test different configs while the Phone Application does not need to do so but manages to make it work?
-We could indeed broadcast ALL possible messages from all configs as what is done by Phone applications, but it is useless as only ONE effectively controls the device. The goal here is to be smarter than Phone apps and:
-* avoid polluting the bluetooth network with hundreds of useless messages
-* improve the response time by emitting immediately the message that will work instead of emitting 3 or 4 useless ones before
-
-### I have several ble_adv_proxy / bluetooth adapters but I am forced to choose one and only one for my device, why I cannot use ALL?
-First of all it is only a matter of choosing the best adapter at config time, so not a big deal. This is done for those reasons:
-* Same as previous answer: we optimize a maximum the bluetooth network and we try to avoid polluting it with useless messages.
-* The synchronization in between the Phone App / Physical remote and the HA State is done by listening to the messages emitted, so to keep them in sync we have to be sure those messages are listened by BOTH the bluetooth adapter and the device, and this is most ensured when only one bluetooth adapter is considered, and if possible when it is near the device (in the same room at least).
-* The device may be reached by several commands coming from several adapters and may act in a stupid may, as for instance considering 2 ON commands coming from different places are in fact a first ON/OFF toggle followed by another ON/OFF toggle from another controller (and then accepted) and then resulting in ON then immediate OFF...
-
-### But I have a _smart_ setup and I _need_ several adapters for an integration
-First of all, this is a **BAD** idea, there is no point in doing so without drawbacks as highlighted in the previous questions. But if you think it is the best configuration for you, who am I to prevent you from doing it... You can select several adapters in the `Technical Parameters` section of the setup.
-
-Still in this case:
-* no help will be provided
-* no `Bug Report` will be accepted
-* no `Feature request` such as 'I am still forced to select one adapter at config time, please let me select more' will be accepted
-
-### When I perform a change on HA, it is not taken into account by the phone app
-Well the main issue here is that those devices are never sending anything to any controller: they are just listening to commands. The consequence is that each individual controller is controlling the device in a standalone way (the remote does not update the Phone App state for instance).
-
-Still, this HA component is smarter than other controllers and able to listen to commands sent from the Phone App, or from the Remote if it is linked, and update its state accordingly.
-
-### This integration is causing issues with other Bluetooth / BLE integrations
-Well ... Sh*** happens ... Only one has been [reported](https://github.com/NicoIIT/ha-ble-adv/discussions/69) so far (and without confirmation it is effectively the problem).
-
-Still when using the very low level interfaces of the Host Bluetooth Stack there could be bad interactions with other components using the Bluetooth Stack. Unfortunately nothing can be done to correct this as there is no other way to have it work, so if you face such issues I would advise NOT to use the Bluetooth Stack of the Host but to use a `ble_adv_proxy` as Bluetooth Adapter, this will guarantee there is no such bad interactions.
+## More Info on Wiki
+* [Configuration Guide](https://github.com/NicoIIT/ha-ble-adv/wiki/Configuration-Guide)
+* [Troubleshouting Guide](https://github.com/NicoIIT/ha-ble-adv/wiki/Troubleshooting-Guide)

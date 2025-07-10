@@ -90,7 +90,13 @@ class _CodecConfig(BleAdvConfig):
         self.codec_id: str = codec_id
 
     def __repr__(self) -> str:
-        return f"{self.codec_id}, 0x{self.id:X}, {self.index:d}"
+        return f"{self.codec_id} - 0x{self.id:X} - {self.index:d}"
+
+    def __eq__(self, comp: _CodecConfig) -> bool:
+        return (self.codec_id == comp.codec_id) and (self.id == comp.id) and (self.index == comp.index)
+
+    def __hash__(self) -> int:
+        return hash([self.codec_id, self.id, self.index])
 
 
 class BleAdvConfigFlow(ConfigFlow, domain=DOMAIN):
@@ -137,7 +143,13 @@ class BleAdvConfigFlow(ConfigFlow, domain=DOMAIN):
         }
 
     async def _async_on_new_config(self, codec_id: str, adapter_id: str, config: BleAdvConfig) -> None:
-        self.configs.setdefault(adapter_id, []).append(_CodecConfig(codec_id, config.id, config.index))
+        new_conf: _CodecConfig = _CodecConfig(codec_id, config.id, config.index)
+        if adapter_id not in self.configs:
+            self.configs[adapter_id] = [new_conf]
+        else:
+            confs = self.configs[adapter_id]
+            if new_conf not in confs:
+                confs.append(new_conf)
 
     async def _async_wait_for_config(self, nb_seconds: int) -> None:
         i = 0
@@ -284,7 +296,8 @@ class BleAdvConfigFlow(ConfigFlow, domain=DOMAIN):
 
     async def async_step_choose_adapter(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         """Choose adapter."""
-        _LOGGER.info(f"Config listened: {self.configs}")
+        if user_input is None:
+            _LOGGER.info(f"Configs listened: {self.configs}")
         if len(self.configs) != 1:
             if user_input is not None:
                 self.selected_adapter_id = user_input[CONF_ADAPTER_ID]
@@ -310,16 +323,11 @@ class BleAdvConfigFlow(ConfigFlow, domain=DOMAIN):
 
     async def async_step_confirm(self, _: dict[str, Any] | None = None) -> ConfigFlowResult:
         """Confirm choice Step."""
-        return self.async_show_menu(
-            step_id="confirm",
-            menu_options=[
-                "confirm_yes",
-                "confirm_no_abort" if self.selected_config == (len(self._selected_adapter_confs()) - 1) else "confirm_no_another",
-                "confirm_retry_last",
-                "confirm_retry_all",
-            ],
-            description_placeholders=self._selected_conf_placeholders(),
-        )
+        nb_confs = len(self._selected_adapter_confs())
+        opts = ["confirm_yes", "confirm_no_abort" if self.selected_config == (nb_confs - 1) else "confirm_no_another", "confirm_retry_last"]
+        if nb_confs > 1:
+            opts.append("confirm_retry_all")
+        return self.async_show_menu(step_id="confirm", menu_options=opts, description_placeholders=self._selected_conf_placeholders())
 
     async def async_step_confirm_yes(self, _: dict[str, Any] | None = None) -> ConfigFlowResult:
         """Confirm YES Step."""
@@ -491,13 +499,13 @@ class BleAdvConfigFlow(ConfigFlow, domain=DOMAIN):
             errors["base"] = "missing_adapter"
 
         def_tech = self._data[CONF_TECHNICAL]
+        avail_adapters = self._coordinator.get_adapter_ids()
+        def_adapters = [adapt for adapt in def_tech[CONF_ADAPTER_IDS] if adapt in avail_adapters]
         data_schema = vol.Schema(
             {
-                vol.Required(CONF_ADAPTER_IDS, default=def_tech[CONF_ADAPTER_IDS]): self._get_multi_selector(
-                    CONF_ADAPTER_IDS, self._coordinator.get_adapter_ids()
-                ),
+                vol.Required(CONF_ADAPTER_IDS, default=def_adapters): self._get_multi_selector(CONF_ADAPTER_IDS, avail_adapters),
                 vol.Optional(CONF_DURATION, default=def_tech[CONF_DURATION]): selector.NumberSelector(
-                    selector.NumberSelectorConfig(step=50, min=100, max=1000, mode=selector.NumberSelectorMode.SLIDER)
+                    selector.NumberSelectorConfig(step=50, min=100, max=2000, mode=selector.NumberSelectorMode.SLIDER)
                 ),
                 vol.Optional(CONF_INTERVAL, default=def_tech[CONF_INTERVAL]): selector.NumberSelector(
                     selector.NumberSelectorConfig(step=10, min=20, max=100, mode=selector.NumberSelectorMode.BOX)

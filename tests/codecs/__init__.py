@@ -8,7 +8,7 @@ CODECS: dict[str, BleAdvCodec] = get_codecs()
 # Disable tx_count bump by codecs
 for codec in CODECS.values():
     codec._tx_step = 0  # noqa: SLF001
-    codec._tx_max = 256  # noqa: SLF001
+    codec._tx_max = max(256, codec._tx_max)  # noqa: SLF001
 
 
 def _from_dotted(data: str) -> bytes:
