@@ -32,6 +32,7 @@ This integration **does not support any specific device type or brand**, but pro
 * Vmax smart
 * Zhi Mei Deng Kong
 * Smart Light (BETA, No RGB, users wanted!) (Only the control by device, not the Master Control)
+* Mantra Lighting (BETA, Only devices with Fan and Light, Direction Forward / Breeze Mode NOT TESTED)
 * Other (Legacy), removed app from play store: 'FanLamp', 'ControlSwitch'
 
 ## Installing the component

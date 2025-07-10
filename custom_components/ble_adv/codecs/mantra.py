@@ -9,6 +9,7 @@ from .const import (
     ATTR_DIR,
     ATTR_ON,
     ATTR_PRESET,
+    ATTR_PRESET_BREEZE,
     ATTR_PRESET_SLEEP,
     ATTR_SPEED,
     ATTR_TIME,
@@ -31,9 +32,9 @@ from .models import EncoderMatcher as EncCmd
 class MantraEncoder(BleAdvCodec):
     """Mantra encoder."""
 
-    _len = 18
+    _len: int = 18
+    _tx_max: int = 0x0FFF
     _family = bytes([0x12, 0x34, 0x56, 0x78])
-    debug_mode = True
 
     def _whiten16(self, buffer: bytes, seed: int, param: int = 4777, xorer: int = 73) -> bytearray:
         obuf = bytearray()
@@ -108,13 +109,15 @@ TRANS = [
     .copy(ATTR_CT_REV, "arg4", 255),
     Trans(FanCmd().act(ATTR_ON, True), EncCmd(0x01).eq("param", 0x07)),
     Trans(FanCmd().act(ATTR_ON, False), EncCmd(0x01).eq("param", 0x08)),
+    Trans(FanCmd().act(ATTR_PRESET, ATTR_PRESET_BREEZE), EncCmd(0x01).eq("param", 0x0D)),  # TENTATIVE
     Trans(FanCmd().act(ATTR_PRESET, ATTR_PRESET_SLEEP), EncCmd(0x01).eq("param", 0x0E)),
+    Trans(FanCmd().act(ATTR_DIR, True), EncCmd(0x01).eq("param", 0x12)),  # Forward
     Trans(FanCmd().act(ATTR_DIR, False), EncCmd(0x01).eq("param", 0x14)),  # Reverse
-    Trans(FanCmd().act(ATTR_DIR, True), EncCmd(0x01).eq("param", 0x11)).no_reverse(),  # Forward with speed full, no "single" command found for now
-    Trans(Fan6SpeedCmd().act(ATTR_SPEED).eq(ATTR_ON, True), EncCmd(0x03).eq("param", 0x01)).copy(ATTR_SPEED, "arg0", 5),
-    Trans(Fan6SpeedCmd().eq(ATTR_SPEED, 2).eq(ATTR_DIR, True), EncCmd(0x01).eq("param", 0x0F)).no_direct(),
-    Trans(Fan6SpeedCmd().eq(ATTR_SPEED, 4).eq(ATTR_DIR, True), EncCmd(0x01).eq("param", 0x10)).no_direct(),
-    Trans(Fan6SpeedCmd().eq(ATTR_SPEED, 6).eq(ATTR_DIR, True), EncCmd(0x01).eq("param", 0x11)).no_direct(),
+    # // Trans(FanCmd().act(ATTR_DIR, True), EncCmd(0x01).eq("param", 0x11)).no_reverse(),  # Forward with speed full
+    Trans(Fan6SpeedCmd().act(ATTR_SPEED).eq(ATTR_ON, True), EncCmd(0x03).eq("param", 0x01)).copy(ATTR_SPEED, "arg0", 31.0 / 6.0),
+    Trans(Fan6SpeedCmd().act(ATTR_SPEED, 2).act(ATTR_DIR, True), EncCmd(0x01).eq("param", 0x0F)).no_direct(),
+    Trans(Fan6SpeedCmd().act(ATTR_SPEED, 4).act(ATTR_DIR, True), EncCmd(0x01).eq("param", 0x10)).no_direct(),
+    Trans(Fan6SpeedCmd().act(ATTR_SPEED, 6).act(ATTR_DIR, True), EncCmd(0x01).eq("param", 0x11)).no_direct(),
 ]
 
 CODECS = [
