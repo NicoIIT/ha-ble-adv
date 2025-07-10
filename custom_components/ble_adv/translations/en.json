@@ -65,7 +65,7 @@
           "confirm_no_another": "No, try another.",
           "confirm_no_abort": "No, abort.",
           "confirm_retry_last": "Retry the same.",
-          "confirm_retry_all": "Retry ALL."
+          "confirm_retry_all": "Retry from first."
         }
       },
       "configure": {
