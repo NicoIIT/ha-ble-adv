@@ -84,13 +84,18 @@ class _MatchingAllCallback(MatchingCallback):
 
 
 class _CodecConfig(BleAdvConfig):
-    def __init__(self, codec_id: str, config_id: int, index: int) -> None:
+    def __init__(self, codec_id: str, config_id: int, index: int, tx_count: int = 1) -> None:
         """Init with codec, adapter, id and index."""
         super().__init__(config_id, index)
         self.codec_id: str = codec_id
+        self.tx_count = tx_count
 
     def __repr__(self) -> str:
-        return f"{self.codec_id}, 0x{self.id:X}, {self.index:d}"
+        return f"{self.codec_id} - 0x{self.id:X} - {self.index:d} - 0x{self.tx_count:X}"
+
+    def is_same(self, comp: _CodecConfig) -> bool:
+        """Check if same base conf."""
+        return (self.codec_id == comp.codec_id) and (self.id == comp.id) and (self.index == comp.index)
 
 
 class BleAdvConfigFlow(ConfigFlow, domain=DOMAIN):
@@ -137,7 +142,16 @@ class BleAdvConfigFlow(ConfigFlow, domain=DOMAIN):
         }
 
     async def _async_on_new_config(self, codec_id: str, adapter_id: str, config: BleAdvConfig) -> None:
-        self.configs.setdefault(adapter_id, []).append(_CodecConfig(codec_id, config.id, config.index))
+        new_conf: _CodecConfig = _CodecConfig(codec_id, config.id, config.index, config.tx_count)
+        if adapter_id not in self.configs:
+            self.configs[adapter_id] = [new_conf]
+        else:
+            confs = self.configs[adapter_id]
+            # In case someone press several buttons, check if conf already exists and keep the max tx_count
+            if (exist_conf_index := next((i for i, x in enumerate(confs) if x.is_same(new_conf)), None)) is not None:
+                confs[exist_conf_index].tx_count = max(confs[exist_conf_index].tx_count, config.tx_count)
+            else:
+                confs.append(new_conf)
 
     async def _async_wait_for_config(self, nb_seconds: int) -> None:
         i = 0
@@ -284,7 +298,8 @@ class BleAdvConfigFlow(ConfigFlow, domain=DOMAIN):
 
     async def async_step_choose_adapter(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         """Choose adapter."""
-        _LOGGER.info(f"Config listened: {self.configs}")
+        if user_input is None:
+            _LOGGER.info(f"Configs listened: {self.configs}")
         if len(self.configs) != 1:
             if user_input is not None:
                 self.selected_adapter_id = user_input[CONF_ADAPTER_ID]
@@ -310,16 +325,11 @@ class BleAdvConfigFlow(ConfigFlow, domain=DOMAIN):
 
     async def async_step_confirm(self, _: dict[str, Any] | None = None) -> ConfigFlowResult:
         """Confirm choice Step."""
-        return self.async_show_menu(
-            step_id="confirm",
-            menu_options=[
-                "confirm_yes",
-                "confirm_no_abort" if self.selected_config == (len(self._selected_adapter_confs()) - 1) else "confirm_no_another",
-                "confirm_retry_last",
-                "confirm_retry_all",
-            ],
-            description_placeholders=self._selected_conf_placeholders(),
-        )
+        nb_confs = len(self._selected_adapter_confs())
+        opts = ["confirm_yes", "confirm_no_abort" if self.selected_config == (nb_confs - 1) else "confirm_no_another", "confirm_retry_last"]
+        if nb_confs > 1:
+            opts.append("confirm_retry_all")
+        return self.async_show_menu(step_id="confirm", menu_options=opts, description_placeholders=self._selected_conf_placeholders())
 
     async def async_step_confirm_yes(self, _: dict[str, Any] | None = None) -> ConfigFlowResult:
         """Confirm YES Step."""
