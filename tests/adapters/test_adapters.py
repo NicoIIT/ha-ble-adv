@@ -54,6 +54,9 @@ INIT_CALLS = [
 
 HCI_NAME = "hci/48:45:20:37:67:BF"
 
+DEVICE_MAC_STR = "AA:BB:CC:DD:EE:FF"
+DEVICE_MAC_INT = list(reversed(bytes.fromhex(DEVICE_MAC_STR.replace(":", ""))))
+
 
 async def test_adapter(mock_socket: _AsyncSocketMock) -> None:
     hci_adapter = BluetoothHCIAdapter("hci0", 0, mock.AsyncMock(), mock.AsyncMock(), mock.AsyncMock())
@@ -67,13 +70,13 @@ async def test_adapter(mock_socket: _AsyncSocketMock) -> None:
     mock_socket.simulate_recv(bytearray([0x00]))  # invalid message, ignored
     await asyncio.sleep(0.1)
     hci_adapter._on_adv_recv.assert_not_called()
-    mock_socket.simulate_recv(bytearray([0x04, 0x3E, 0x00, 0x02] + [0x10] * 50))
+    mock_socket.simulate_recv(bytearray([0x04, 0x3E, 0x00, 0x02, 0x01, 0x03, 0x01] + DEVICE_MAC_INT + [0x10] * 50))
     await asyncio.sleep(0.1)
-    hci_adapter._on_adv_recv.assert_called_once_with("hci0", bytearray([0x10] * 0x10))
+    hci_adapter._on_adv_recv.assert_called_once_with("hci0", DEVICE_MAC_STR, bytearray([0x10] * 0x10))
     hci_adapter._on_adv_recv.reset_mock()
-    mock_socket.simulate_recv(bytearray([0x04, 0x3E, 0x00, 0x0D] + [0x10] * 50))
+    mock_socket.simulate_recv(bytearray([0x04, 0x3E, 0x00, 0x0D, 0x01, 0x03, 0x00, 0x01] + DEVICE_MAC_INT + [0x10] * 50))
     await asyncio.sleep(0.1)
-    hci_adapter._on_adv_recv.assert_called_once_with("hci0", bytearray([0x10] * 0x10))
+    hci_adapter._on_adv_recv.assert_called_once_with("hci0", DEVICE_MAC_STR, bytearray([0x10] * 0x10))
     await hci_adapter.enqueue("q1", BleAdvQueueItem(20, 1, 150, 20, b"msg01"))
     await hci_adapter.enqueue("q1", BleAdvQueueItem(30, 2, 100, 20, b"msg02"))
     await hci_adapter.drain()
@@ -195,3 +198,9 @@ async def test_btmanager_hci_error(bt_manager: BleAdvBtManager) -> None:
     await asyncio.sleep(0.3)  # wait for final / init
     assert bt_manager._mgmt_sock.get_calls() == MGMT_OPEN_CALLS  # type: ignore[none]
     assert bt_manager.adapters[HCI_NAME]._async_socket.get_calls() == INIT_CALLS  # type: ignore[none]
+
+
+async def test_ignored_hci() -> None:
+    bt_manager = BleAdvBtManager(mock.AsyncMock(), ["hci"])
+    await bt_manager.async_init()
+    assert bt_manager._disabled

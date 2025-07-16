@@ -1,0 +1,31 @@
+"""Esp-adapters tests."""
+
+# ruff: noqa: S101
+from unittest import mock
+
+from ble_adv.esp_adapters import BleAdvEspBtManager
+from homeassistant.core import HomeAssistant
+
+from tests.conftest import MockEspProxy
+
+
+async def test_esp_bt_manager(hass: HomeAssistant) -> None:
+    """Test ESP BT Manager."""
+    moc_recv = mock.AsyncMock()
+    man = BleAdvEspBtManager(hass, moc_recv, 10000, [], [])
+    t1 = MockEspProxy(hass, "esp-test1")
+    await t1.setup()  # Adding proxy before init
+    assert list(man.adapters.keys()) == []
+    await man.async_init()
+    assert list(man.adapters.keys()) == ["esp-test1"]
+    await t1.set_available(False)
+    assert list(man.adapters.keys()) == []
+    await t1.set_available(True)
+    assert list(man.adapters.keys()) == ["esp-test1"]
+    t2 = MockEspProxy(hass, "esp-test2")
+    await t2.setup()  # Adding proxy after init
+    assert list(man.adapters.keys()) == ["esp-test1", "esp-test2"]
+    t3 = MockEspProxy(hass, "esp-test3", True)
+    await t3.setup()  # Adding proxy by dicovery event - LEGACY
+    assert list(man.adapters.keys()) == ["esp-test1", "esp-test2", "esp-test3"]
+    await man.async_final()

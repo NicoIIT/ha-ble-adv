@@ -13,11 +13,13 @@ from .codecs.models import BleAdvConfig
 from .const import (
     CONF_ADAPTER_ID,
     CONF_ADAPTER_IDS,
+    CONF_APPLE_INC_UUIDS,
     CONF_CODEC_ID,
     CONF_COORDINATOR_ID,
     CONF_DURATION,
     CONF_FANS,
     CONF_FORCED_ID,
+    CONF_GOOGLE_LCC_UUIDS,
     CONF_INDEX,
     CONF_INTERVAL,
     CONF_LAST_VERSION,
@@ -43,13 +45,25 @@ _LOGGER = logging.getLogger(__name__)
 @singleton(f"{DOMAIN}/{CONF_COORDINATOR_ID}")
 async def get_coordinator(hass: HomeAssistant) -> BleAdvCoordinator:
     """Get and initiate a coordinator."""
-    coordinator = BleAdvCoordinator(hass, get_codecs())
+    conf = hass.data.get(DOMAIN, {}).get(CONF_COORDINATOR_ID, {})
+    coordinator = BleAdvCoordinator(
+        hass,
+        get_codecs(),
+        conf.get("ignored_adapters", []),
+        conf.get("ignored_duration", 20000),
+        conf.get("ignored_cids", [*CONF_GOOGLE_LCC_UUIDS, *CONF_APPLE_INC_UUIDS]),
+        conf.get("ignored_macs", []),
+    )
     await coordinator.async_init()
     return coordinator
 
 
-async def async_setup(hass: HomeAssistant, _: ConfigType) -> bool:
+async def async_setup(hass: HomeAssistant, conf: ConfigType) -> bool:
     """Initialize the integration."""
+    ble_adv_conf = conf.get(DOMAIN, {})
+    _LOGGER.debug(f"BLE ADV: Setting component with conf {ble_adv_conf}")
+    hass.data.setdefault(DOMAIN, {})
+    hass.data[DOMAIN][CONF_COORDINATOR_ID] = ble_adv_conf
     await get_coordinator(hass)
     return True
 
