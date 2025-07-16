@@ -163,3 +163,11 @@ async def test_migrate_v4(hass: HomeAssistant) -> None:
     await async_migrate_entry(hass, conf)
     assert CONF_ADAPTER_ID not in conf.data[CONF_TECHNICAL]
     assert conf.data[CONF_TECHNICAL][CONF_ADAPTER_IDS] == ["adapter_id"]
+
+
+async def test_default_ign_cids(hass: HomeAssistant) -> None:
+    """Test that Company IDs ignored by default are not used by codecs."""
+    coord = await get_coordinator(hass)
+    used_cids = [int.from_bytes(codec._header[:2], "little") for codec in coord.codecs.values()]  # noqa: SLF001
+    common_cids = [cid for cid in used_cids if cid in coord.ign_cids]
+    assert common_cids == []

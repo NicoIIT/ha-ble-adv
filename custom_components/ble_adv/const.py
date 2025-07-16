@@ -33,3 +33,54 @@ CONF_LIGHTS = "lights"
 CONF_FANS = "fans"
 CONF_REMOTE = "remote"
 CONF_MAX_ENTITY_NB = 3  # The max nb of entity that the config can handle in translations json files
+
+# Taken from https://www.bluetooth.com/specifications/assigned-numbers/
+CONF_GOOGLE_LCC_UUIDS = [
+    0xFEF4,
+    0xFEF3,
+    0xFED8,
+    0xFEAA,
+    0xFEA0,
+    0xFE9F,
+    0xFE56,
+    0xFE55,
+    0xFE50,
+    0xFE2C,
+    0xFE27,
+    0xFE26,
+    0xFE19,
+    0xFDF0,
+    0xFDE2,
+    0xFD96,
+    0xFD8C,
+    0xFD87,
+    0xFD63,
+    0xFD62,
+    0xFD36,
+    0xFCF1,
+    0xFCCF,
+    0xFCB1,
+    0xFC73,
+    0xFC56,
+]
+
+CONF_APPLE_INC_UUIDS = [
+    0xFED4,
+    0xFED3,
+    0xFED2,
+    0xFED1,
+    0xFED0,
+    0xFECF,
+    0xFECE,
+    0xFECD,
+    0xFECC,
+    0xFECB,
+    0xFECA,
+    0xFEC9,
+    0xFEC8,
+    0xFEC7,
+    0xFE8B,
+    0xFE8A,
+    0xFE25,
+    0xFD6F,
+]

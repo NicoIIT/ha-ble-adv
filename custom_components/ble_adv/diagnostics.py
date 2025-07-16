@@ -12,7 +12,4 @@ async def async_get_config_entry_diagnostics(hass: HomeAssistant, entry: ConfigE
     """Return diagnostics for a config entry."""
 
     coordinator = await get_coordinator(hass)
-    return {
-        "entry_data": {**entry.data},
-        "adapter_ids": coordinator.get_adapter_ids(),
-    }
+    return {"entry_data": {**entry.data}, "coordinator": coordinator.diagnostic_dump()}
