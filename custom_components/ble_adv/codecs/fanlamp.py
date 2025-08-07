@@ -252,16 +252,34 @@ def _get_device_translators() -> list[Trans]:
     ]
 
 
-def _get_light_translators(param_attr: str, cold_attr: str, warm_attr: str) -> list[Trans]:
+def _get_base_light_translators() -> list[Trans]:
     return [
         Trans(LightCmd().act(ATTR_ON, True), EncCmd(0x10)),
         Trans(LightCmd().act(ATTR_ON, False), EncCmd(0x11)),
         Trans(LightCmd(1).act(ATTR_ON, True), EncCmd(0x12)),
         Trans(LightCmd(1).act(ATTR_ON, False), EncCmd(0x13)),
+    ]
+
+
+def _get_remote_base_light_translators() -> list[Trans]:
+    return [
+        Trans(LightCmd().act(ATTR_ON, True), EncCmd(0x10)).no_reverse(),
+        Trans(LightCmd().act(ATTR_ON, False), EncCmd(0x11)).no_reverse(),
+        Trans(LightCmd(1).act(ATTR_ON, True), EncCmd(0x12)).no_reverse(),
+        Trans(LightCmd(1).act(ATTR_ON, False), EncCmd(0x13)).no_reverse(),
+        Trans(LightCmd().act(ATTR_CMD, ATTR_CMD_TOGGLE), EncCmd(0x09)).no_direct(),
+        Trans(LightCmd().act(ATTR_CMD, ATTR_CMD_TOGGLE), EncCmd(0x10)).no_direct(),
+        Trans(LightCmd().act(ATTR_CMD, ATTR_CMD_TOGGLE), EncCmd(0x11)).no_direct(),
+        Trans(LightCmd(1).act(ATTR_CMD, ATTR_CMD_TOGGLE), EncCmd(0x12)).no_direct(),
+        Trans(LightCmd(1).act(ATTR_CMD, ATTR_CMD_TOGGLE), EncCmd(0x13)).no_direct(),
+    ]
+
+
+def _get_cww_translators(param_attr: str, cold_attr: str, warm_attr: str) -> list[Trans]:
+    return [
         Trans(CTLightCmd().act(ATTR_COLD).act(ATTR_WARM), EncCmd(0x21).eq(param_attr, 0))
         .copy(ATTR_COLD, cold_attr, 255)
         .copy(ATTR_WARM, warm_attr, 255),
-        Trans(LightCmd().act(ATTR_CMD, ATTR_CMD_TOGGLE), EncCmd(0x09)).no_direct(),
         Trans(CTLightCmd().act(ATTR_COLD, 0.1).act(ATTR_WARM, 0.1), EncCmd(0x23)).no_direct(),  # night mode
         Trans(CTLightCmd().act(ATTR_COLD).act(ATTR_WARM), EncCmd(0x21).eq(param_attr, 0x40))
         .copy(ATTR_COLD, cold_attr, 255)
@@ -287,8 +305,8 @@ def _get_rgb_translators() -> list[Trans]:
     ]
 
 
-TRANS_FANLAMP_V1 = [
-    *_get_light_translators("param", "arg0", "arg1"),
+TRANS_FANLAMP_V1_COMMON = [
+    *_get_cww_translators("param", "arg0", "arg1"),
     *_get_rgb_translators(),
     Trans(FanCmd().act(ATTR_ON, False), EncCmd(0x31).eq("arg1", 0).eq("arg0", 0)),
     Trans(Fan6SpeedCmd().act(ATTR_ON, True).act(ATTR_SPEED), EncCmd(0x32).eq("arg1", 6).min("arg0", 1)).copy(ATTR_SPEED, "arg0"),
@@ -298,8 +316,12 @@ TRANS_FANLAMP_V1 = [
     Trans(DeviceCmd().act(ATTR_CMD, ATTR_CMD_TIMER), EncCmd(0x51)).split_copy(ATTR_TIME, ["arg0"], 1.0 / 60.0, 256),
 ]
 
-TRANS_FANLAMP_V2 = [
-    *_get_light_translators("arg0", "arg1", "arg2"),
+TRANS_FANLAMP_V1 = [*_get_base_light_translators(), *TRANS_FANLAMP_V1_COMMON]
+TRANS_FANLAMP_VR1 = [*_get_remote_base_light_translators(), *TRANS_FANLAMP_V1_COMMON]
+
+
+TRANS_FANLAMP_V2_COMMON = [
+    *_get_cww_translators("arg0", "arg1", "arg2"),
     *_get_rgb_translators(),
     Trans(Fan6SpeedCmd().act(ATTR_ON, False), EncCmd(0x31).eq("arg0", 0x20).eq("arg1", 0)),
     Trans(Fan6SpeedCmd().act(ATTR_ON, True).act(ATTR_SPEED), EncCmd(0x31).eq("arg0", 0x20).min("arg1", 1)).copy(ATTR_SPEED, "arg1"),
@@ -309,6 +331,9 @@ TRANS_FANLAMP_V2 = [
     *_get_device_translators(),
     Trans(DeviceCmd().act(ATTR_CMD, ATTR_CMD_TIMER), EncCmd(0x41)).split_copy(ATTR_TIME, ["arg0", "arg1"], 1.0 / 60.0, 256),
 ]
+
+TRANS_FANLAMP_V2 = [*_get_base_light_translators(), *TRANS_FANLAMP_V2_COMMON]
+TRANS_FANLAMP_VR2 = [*_get_remote_base_light_translators(), *TRANS_FANLAMP_V2_COMMON]
 
 CODECS = [
     # FanLamp Pro android App
@@ -337,14 +362,14 @@ CODECS = [
     FanLampEncoderV2(0x0100, True).id("lampsmart_pro_vi3", "s2").header([0xF0, 0x08]).prefix([0x21, 0x82, 0x00]).ble(0x19, 0x03).add_translators(TRANS_FANLAMP_V2),
     FanLampEncoderV2(0x0100, True).id("lampsmart_pro_vi3", "s3").header([0xF0, 0x08]).prefix([0x21, 0x83, 0x00]).ble(0x19, 0x03).add_translators(TRANS_FANLAMP_V2),
     # FanLamp remotes
-    FanLampEncoderV1(0x83, False, True, 0x00, 0x9372).id("remote_v1").header([0x56, 0x55, 0x18, 0x87, 0x52]).ble(0x00, 0xFF).add_translators(TRANS_FANLAMP_V1),
-    FanLampEncoderV2(0x0400, False).id("remote_v2").header([0xF0, 0x08]).prefix([0x10, 0x00, 0x56]).ble(0x02, 0x16).add_translators(TRANS_FANLAMP_V2),
-    FanLampEncoderV2(0x0100, False).id("remote_v21").header([0xF0, 0x08]).prefix([0x10, 0x00, 0x56]).ble(0x02, 0x16).add_translators(TRANS_FANLAMP_V2),
-    FanLampEncoderV2(0x0400, True).id("remote_v3").header([0xF0, 0x08]).prefix([0x10, 0x00, 0x56]).ble(0x02, 0x16).add_translators(TRANS_FANLAMP_V2),
-    FanLampEncoderV2(0x0100, True).id("remote_v31").header([0xF0, 0x08]).prefix([0x10, 0x00, 0x56]).ble(0x02, 0x16).add_translators(TRANS_FANLAMP_V2),
+    FanLampEncoderV1(0x83, False, True, 0x00, 0x9372).id("remote_v1").header([0x56, 0x55, 0x18, 0x87, 0x52]).ble(0x00, 0xFF).add_translators(TRANS_FANLAMP_VR1),
+    FanLampEncoderV2(0x0400, False).id("remote_v2").header([0xF0, 0x08]).prefix([0x10, 0x00, 0x56]).ble(0x02, 0x16).add_translators(TRANS_FANLAMP_VR2),
+    FanLampEncoderV2(0x0100, False).id("remote_v21").header([0xF0, 0x08]).prefix([0x10, 0x00, 0x56]).ble(0x02, 0x16).add_translators(TRANS_FANLAMP_VR2),
+    FanLampEncoderV2(0x0400, True).id("remote_v3").header([0xF0, 0x08]).prefix([0x10, 0x00, 0x56]).ble(0x02, 0x16).add_translators(TRANS_FANLAMP_VR2),
+    FanLampEncoderV2(0x0100, True).id("remote_v31").header([0xF0, 0x08]).prefix([0x10, 0x00, 0x56]).ble(0x02, 0x16).add_translators(TRANS_FANLAMP_VR2),
     # Legacy variants from no known apps, initially present in ESPHome component. Still used by some remotes
-    FanLampEncoderV1(0x81, True, True, 0x55).id("other_v1b").header([0xF9, 0x08]).ble(0x02, 0x16).add_translators(TRANS_FANLAMP_V1),
-    FanLampEncoderV1(0x81, True, True).id("other_v1a").header([0x77, 0xF8]).ble(0x02, 0x03).add_translators(TRANS_FANLAMP_V1),
-    FanLampEncoderV2(0x0100, False).id("other_v2").header([0xF0, 0x08]).prefix([0x10, 0x80, 0x00]).ble(0x19, 0x16).add_translators(TRANS_FANLAMP_V2),
-    FanLampEncoderV2(0x0100, True).id("other_v3").header([0xF0, 0x08]).prefix([0x10, 0x80, 0x00]).ble(0x19, 0x16).add_translators(TRANS_FANLAMP_V2),
+    FanLampEncoderV1(0x81, True, True, 0x55).id("other_v1b").header([0xF9, 0x08]).ble(0x02, 0x16).add_translators(TRANS_FANLAMP_VR1),
+    FanLampEncoderV1(0x81, True, True).id("other_v1a").header([0x77, 0xF8]).ble(0x02, 0x03).add_translators(TRANS_FANLAMP_VR1),
+    FanLampEncoderV2(0x0100, False).id("other_v2").header([0xF0, 0x08]).prefix([0x10, 0x80, 0x00]).ble(0x19, 0x16).add_translators(TRANS_FANLAMP_VR2),
+    FanLampEncoderV2(0x0100, True).id("other_v3").header([0xF0, 0x08]).prefix([0x10, 0x80, 0x00]).ble(0x19, 0x16).add_translators(TRANS_FANLAMP_VR2),
 ]  # fmt: skip
