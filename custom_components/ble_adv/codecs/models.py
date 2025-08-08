@@ -385,14 +385,15 @@ class BleAdvCodec(ABC):
     def convert_from_enc(self, enc_cmd: BleAdvEncCmd, conf: BleAdvConfig) -> bytes:
         """Convert an encoder command and a config into a readable buffer."""
 
-    def id(self, codec_id: str, sub_id: str | None = None) -> Self:
-        """Set id."""
-        self.match_id = codec_id
-        if sub_id is not None:
-            self.codec_id = f"{codec_id}/{sub_id}"
-        else:
-            self.codec_id = codec_id
+    def fid(self, codec_id: str, match_id: str) -> Self:
+        """Set codec id / match id."""
+        self.match_id = match_id
+        self.codec_id = codec_id
         return self
+
+    def id(self, match_id: str, sub_id: str | None = None) -> Self:
+        """Set match_id and codec_id from id and sub_id if any."""
+        return self.fid(f"{match_id}/{sub_id}" if sub_id is not None else match_id, match_id)
 
     def header(self, header: list[int]) -> Self:
         """Set header."""
