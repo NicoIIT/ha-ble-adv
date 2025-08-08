@@ -66,7 +66,7 @@ from .device import BleAdvDevice
 
 _LOGGER = logging.getLogger(__name__)
 
-type CodecFoundCallback = Callable[[str, str, BleAdvConfig], Awaitable[None]]
+type CodecFoundCallback = Callable[[str, str, str, BleAdvConfig], Awaitable[None]]
 
 WAIT_MAX_SECONDS = 10
 
@@ -78,8 +78,8 @@ class _MatchingAllCallback(MatchingCallback):
     def __repr__(self) -> str:
         return "Matching ALL"
 
-    async def handle(self, codec_id: str, _: str, adapter_id: str, config: BleAdvConfig, __: list[BleAdvEntAttr]) -> bool:
-        await self.callback(codec_id, adapter_id, config)
+    async def handle(self, codec_id: str, match_id: str, adapter_id: str, config: BleAdvConfig, __: list[BleAdvEntAttr]) -> bool:
+        await self.callback(codec_id, match_id, adapter_id, config)
         return True
 
 
@@ -142,13 +142,16 @@ class BleAdvConfigFlow(ConfigFlow, domain=DOMAIN):
             "index": str(conf[CONF_INDEX]),
         }
 
-    async def _async_on_new_config(self, codec_id: str, adapter_id: str, config: BleAdvConfig) -> None:
+    async def _async_on_new_config(self, codec_id: str, match_id: str, adapter_id: str, config: BleAdvConfig) -> None:
         new_conf: _CodecConfig = _CodecConfig(codec_id, config.id, config.index)
+        match_conf: _CodecConfig = _CodecConfig(match_id, config.id, config.index)
         if adapter_id not in self.configs:
-            self.configs[adapter_id] = [new_conf]
+            self.configs[adapter_id] = [match_conf, new_conf]
         else:
             confs = self.configs[adapter_id]
             if new_conf not in confs:
+                if codec_id != match_id and match_conf not in confs:
+                    confs.append(match_conf)
                 confs.append(new_conf)
 
     async def _async_wait_for_config(self, nb_seconds: int) -> None:

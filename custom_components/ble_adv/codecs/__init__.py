@@ -1,7 +1,7 @@
 """Codecs Package."""
 
 from .agarce import CODECS as AGARCE_CODECS
-from .fanlamp import CODECS as FANLAMP_CODECS
+from .fanlamp import FLCODECS, LSCODECS
 from .mantra import CODECS as MANTRA_CODECS
 from .models import BleAdvCodec
 from .remotes import CODECS as REMOTES_CODECS
@@ -16,12 +16,14 @@ PHONE_APPS = {
     "Zhi Mei Deng Kong (Fan)": ["zhimei_fan_v1", "zhimei_fan_v0"],
     "Zhi Mei Deng Kong (Light only)": ["zhimei_v2", "zhimei_v1"],
     "Smart Lights": ["agarce_v4", "agarce_v3"],
-    "Other (legacy)": ["other_v1a", "other_v1b"],
-    "Physical Remotes (FanLamp)": ["remote_v1", "remote_v2", "remote_v21", "remote_v3", "remote_v31"],
-    "Physical Remotes (Others)": ["zhijia_vr1", "remote_v4", "zhimei_fan_vr1"],
 }
 
 
+def get_codec_list() -> list[BleAdvCodec]:
+    """Get codec list."""
+    return [*FLCODECS, *LSCODECS, *ZHIJIA_CODECS, *ZHIMEI_CODECS, *AGARCE_CODECS, *REMOTES_CODECS, *MANTRA_CODECS]
+
+
 def get_codecs() -> dict[str, BleAdvCodec]:
-    """Get all codecs."""
-    return {x.codec_id: x for x in [*FANLAMP_CODECS, *ZHIJIA_CODECS, *ZHIMEI_CODECS, *AGARCE_CODECS, *REMOTES_CODECS, *MANTRA_CODECS]}
+    """Get codec map."""
+    return {x.codec_id: x for x in get_codec_list()}

@@ -70,6 +70,8 @@ body:
   attributes:
     label: Checklist
     options:
+      - label: I checked the [troubleshooting guide](https://github.com/NicoIIT/ha-ble-adv/wiki/Troubleshooting-Guide) and it did not solve my issue
+        required: true
       - label: I provided ALL mandatory info and in the requested format.
         required: true
       - label: This issue only contains 1 issue (if you have multiple issues, open one issue for each issue).

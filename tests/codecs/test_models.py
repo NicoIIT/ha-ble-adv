@@ -289,3 +289,13 @@ def test_codec() -> None:
     assert codec.decode_adv(BleAdvAdvertisement(0x00, _from_dotted("55.56.74.65.73.74"))) == (None, None)
     assert codec.ent_to_enc(ent_light_binary) == [BleAdvEncCmd(0x10)]
     assert codec.enc_to_ent(BleAdvEncCmd(0x10)) == [BleAdvEntAttr([ATTR_ON], {ATTR_ON: True}, LIGHT_TYPE, 0)]
+
+
+def test_codec_id() -> None:
+    """Test BleAdvCodec id."""
+    assert _TestCodec().id("tc").codec_id == "tc"
+    assert _TestCodec().id("tc").match_id == "tc"
+    assert _TestCodec().id("tc", "s1").codec_id == "tc/s1"
+    assert _TestCodec().id("tc", "s1").match_id == "tc"
+    assert _TestCodec().fid("tc", "mid").codec_id == "tc"
+    assert _TestCodec().fid("tc", "mid").match_id == "mid"
