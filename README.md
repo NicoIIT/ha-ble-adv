@@ -23,17 +23,16 @@ Same as [ESPHome integration](https://github.com/NicoIIT/esphome-components) but
 ## Supported Ceiling Fans / Lamps Protocols
 This integration **does not support any specific device type or brand**, but protocols used by the ANDROID apps controlling them. Protocols supported are the ones used by the following Apps:
 
-* LampSmart Pro
-* Lamp Smart Pro - Soft Lighting / Smart Lighting
-* FanLamp Pro
-* Zhi Jia
-* Zhi Guang
-* ApplianceSmart
-* Vmax smart
-* Zhi Mei Deng Kong
-* Smart Light (BETA, No RGB, users wanted!) (Only the control by device, not the Master Control)
-* Mantra Lighting (BETA, not working yet... Only devices with Fan and Light, Direction Forward / Breeze Mode NOT TESTED)
-* Other (Legacy), removed app from play store: 'FanLamp', 'ControlSwitch'
+* [LampSmart Pro](https://play.google.com/store/apps/details?id=com.jingyuan.lamp)
+* [FanLamp Pro](https://play.google.com/store/apps/details?id=com.jingyuan.fan_lamp)
+* [ApplianceSmart](https://play.google.com/store/apps/details?id=com.jingyuan.smart_home)
+* [Vmax smart](https://play.google.com/store/apps/details?id=com.jingyuan.vmax_smart)
+* [Zhi Jia](https://play.google.com/store/apps/details?id=com.cxw.cxwblelight)
+* [Zhi Guang](https://play.google.com/store/apps/details?id=com.cxw.zhiguang)
+* [Zhi Mei Deng Kong](http://mihuan.iotworkshop.com/zhiguang/) (not available on Play Store)
+* [Mantra Lighting](https://play.google.com/store/apps/details?id=com.newenergy.baolilan) (BETA, Only devices with Fan and Light, Direction Forward / Breeze Mode NOT TESTED)
+* [Smart Light / Argrace Smart](https://apkpure.com/argrace-smart/ai.argrace.oem) (BETA, No RGB, Only the control by device, not the Master Control) (not available on Play Store anymore, seems abandoned)
+* Other (Legacy), removed app from play store: 'FanLamp', 'ControlSwitch', 'Lamp Smart Pro - Soft Lighting / Smart Lighting'
 
 ## Installing the component
 This component is an [HACS](https://www.hacs.xyz/) Custom Repository. With HACS installed, the repository installation procedure can be found [here](https://www.hacs.xyz/docs/faq/custom_repositories/), with parameters:

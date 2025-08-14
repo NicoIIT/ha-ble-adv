@@ -143,16 +143,11 @@ class BleAdvConfigFlow(ConfigFlow, domain=DOMAIN):
         }
 
     async def _async_on_new_config(self, codec_id: str, match_id: str, adapter_id: str, config: BleAdvConfig) -> None:
-        new_conf: _CodecConfig = _CodecConfig(codec_id, config.id, config.index)
-        match_conf: _CodecConfig = _CodecConfig(match_id, config.id, config.index)
-        if adapter_id not in self.configs:
-            self.configs[adapter_id] = [match_conf, new_conf]
-        else:
-            confs = self.configs[adapter_id]
-            if new_conf not in confs:
-                if codec_id != match_id and match_conf not in confs:
-                    confs.append(match_conf)
-                confs.append(new_conf)
+        confs = self.configs.setdefault(adapter_id, [])
+        if (match_conf := _CodecConfig(match_id, config.id, config.index)) not in confs:
+            confs.append(match_conf)
+        if (new_conf := _CodecConfig(codec_id, config.id, config.index)) not in confs:
+            confs.append(new_conf)
 
     async def _async_wait_for_config(self, nb_seconds: int) -> None:
         i = 0
@@ -178,12 +173,24 @@ class BleAdvConfigFlow(ConfigFlow, domain=DOMAIN):
             await asyncio.sleep(1)
         await self._async_stop_listen_to_config()
 
-    def _get_device(self, name: str, config: _CodecConfig, duration: int) -> BleAdvDevice:
-        return BleAdvDevice(self.hass, name, name, config.codec_id, [self.selected_adapter_id], 3, 20, duration, config, self._coordinator)
+    def _get_device(self, name: str, config: _CodecConfig, duration: int | None = None) -> BleAdvDevice:
+        codec: BleAdvCodec = self._coordinator.codecs[config.codec_id]
+        return BleAdvDevice(
+            self.hass,
+            name,
+            name,
+            config.codec_id,
+            [self.selected_adapter_id],
+            codec.repeat,
+            codec.interval,
+            duration if duration is not None else codec.duration,
+            config,
+            self._coordinator,
+        )
 
     async def _async_blink_light(self) -> None:
         config = self._selected_conf()
-        tmp_device: BleAdvDevice = self._get_device("cf", config, 850)
+        tmp_device: BleAdvDevice = self._get_device("cf", config)
         await tmp_device.async_start()
         on_cmd = BleAdvEntAttr([ATTR_ON], {ATTR_ON: True}, LIGHT_TYPE, 0)
         off_cmd = BleAdvEntAttr([ATTR_ON], {ATTR_ON: False}, LIGHT_TYPE, 0)
@@ -337,11 +344,17 @@ class BleAdvConfigFlow(ConfigFlow, domain=DOMAIN):
         conf = self._selected_conf()
         await self.async_set_unique_id(f"{conf.codec_id}##0x{conf.id:X}##{conf.index:d}", raise_on_progress=False)
         self._abort_if_unique_id_configured()
+        codec: BleAdvCodec = self._coordinator.codecs[conf.codec_id]
         self._data = {
             CONF_DEVICE: {CONF_CODEC_ID: conf.codec_id, CONF_FORCED_ID: conf.id, CONF_INDEX: conf.index},
             CONF_LIGHTS: [{}] * CONF_MAX_ENTITY_NB,
             CONF_FANS: [{}] * CONF_MAX_ENTITY_NB,
-            CONF_TECHNICAL: {CONF_ADAPTER_IDS: [self.selected_adapter_id], CONF_DURATION: 850, CONF_INTERVAL: 20, CONF_REPEAT: 3},
+            CONF_TECHNICAL: {
+                CONF_ADAPTER_IDS: [self.selected_adapter_id],
+                CONF_DURATION: codec.duration,
+                CONF_INTERVAL: codec.interval,
+                CONF_REPEAT: codec.repeat,
+            },
         }
         return await self.async_step_configure()
 
@@ -511,10 +524,10 @@ class BleAdvConfigFlow(ConfigFlow, domain=DOMAIN):
                     selector.NumberSelectorConfig(step=50, min=100, max=2000, mode=selector.NumberSelectorMode.SLIDER)
                 ),
                 vol.Optional(CONF_INTERVAL, default=def_tech[CONF_INTERVAL]): selector.NumberSelector(
-                    selector.NumberSelectorConfig(step=10, min=20, max=100, mode=selector.NumberSelectorMode.BOX)
+                    selector.NumberSelectorConfig(step=10, min=10, max=150, mode=selector.NumberSelectorMode.BOX)
                 ),
                 vol.Optional(CONF_REPEAT, default=def_tech[CONF_REPEAT]): selector.NumberSelector(
-                    selector.NumberSelectorConfig(step=1, min=1, max=10, mode=selector.NumberSelectorMode.BOX)
+                    selector.NumberSelectorConfig(step=1, min=1, max=20, mode=selector.NumberSelectorMode.BOX)
                 ),
             }
         )

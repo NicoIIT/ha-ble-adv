@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import logging
 from abc import ABC, abstractmethod
 from datetime import datetime, timedelta
@@ -74,6 +75,7 @@ class BleAdvEsphomeAdapter(BleAdvAdapter):
         await self.hass.services.async_call(
             ESPHOME_DOMAIN, self._conf[CONF_ATTR_PUBLISH_ADV_SVC], {CONF_ATTR_RAW: data.hex(), CONF_ATTR_DURATION: 3 * interval}
         )
+        await asyncio.sleep(0.0028 * interval)
 
 
 class BleAdvCoordinator:

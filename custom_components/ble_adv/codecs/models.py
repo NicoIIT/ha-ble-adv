@@ -359,6 +359,9 @@ class BleAdvCodec(ABC):
     _tx_step: int = 1
     _tx_max: int = 125
     debug_mode: bool = False
+    duration: int = 750
+    interval: int = 30
+    repeat: int = 3
 
     def __init__(self) -> None:
         self.codec_id: str = ""
