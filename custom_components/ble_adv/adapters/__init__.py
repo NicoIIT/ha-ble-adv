@@ -8,6 +8,7 @@ import struct
 from abc import ABC, abstractmethod
 from binascii import hexlify
 from collections.abc import Awaitable, Callable, Coroutine, MutableMapping
+from math import ceil
 from typing import Any, Self
 
 from btsocket.btmgmt_protocol import reader as btmgmt_reader
@@ -31,20 +32,20 @@ class BleAdvQueueItem:
         self.delay_after: int = delay
         self.interval: int = interval
         self.data: bytes = data
+        self.adapter_repeat: int = 1
+
+    def split_repeat(self, adapter_bunch_time: int) -> None:
+        """Split the initial repeat based on adapter capacity."""
+        self.adapter_repeat = max(1, min(int(adapter_bunch_time / self.interval), self.repeat))
+        self.repeat = max(1, ceil(self.repeat / self.adapter_repeat))
 
     def __hash__(self) -> int:
         """Hash."""
-        return hash([self.key, self.repeat, self.delay_after, self.interval, self.data])
+        return hash([self.key, self.data])
 
     def __eq__(self, comp: Self) -> bool:
         """Equality."""
-        return (
-            (self.key == comp.key)
-            and (self.repeat == comp.repeat)
-            and (self.delay_after == comp.delay_after)
-            and (self.interval == comp.interval)
-            and (self.data == comp.data)
-        )
+        return (self.key == comp.key) and (self.data == comp.data)
 
 
 type AdvRecvCallback = Callable[[str, str, bytes], Awaitable[None]]
@@ -66,9 +67,11 @@ class BleAdvAdapter(ABC):
         self,
         name: str,
         on_error: AdapterErrorCallback,
+        bunch_adv_time: int,
     ) -> None:
         """Init with name."""
         self.name: str = name
+        self._bunch_adv_time = bunch_adv_time
         self._on_error: AdapterErrorCallback = on_error
         self._qlen: int = 0
         self._queues_index: dict[str, int] = {}
@@ -120,11 +123,12 @@ class BleAdvAdapter(ABC):
         """Close the adapter."""
 
     @abstractmethod
-    async def _advertise(self, interval: int, data: bytes) -> None:
+    async def _advertise(self, interval: int, repeat: int, data: bytes) -> None:
         """Advertise the msg."""
 
     async def enqueue(self, queue_id: str, item: BleAdvQueueItem) -> None:
         """Enqueue an Adv in the queue_id."""
+        item.split_repeat(self._bunch_adv_time)
         async with self._lock:
             tq_ind = self._queues_index.get(queue_id, None)
             if tq_ind is None:
@@ -172,7 +176,7 @@ class BleAdvAdapter(ABC):
                     self._add_event.clear()
                 if item is not None:
                     self.logger.debug(f"Advertising {hexlify(item.data, '.').upper()}")
-                    await asyncio.wait_for(self._advertise(item.interval, item.data), self.MAX_ADV_WAIT)
+                    await asyncio.wait_for(self._advertise(item.interval, item.adapter_repeat, item.data), self.MAX_ADV_WAIT)
                     self.logger.debug(f"End Advertising {hexlify(item.data, '.').upper()}")
                     await self._lock_queue_for(self._cur_ind, lock_delay)
                     self._add_event.set()
@@ -231,7 +235,7 @@ class BluetoothHCIAdapter(BleAdvAdapter):
         on_error: AdapterErrorCallback,
     ) -> None:
         """Create Adapter."""
-        super().__init__(name, on_error)
+        super().__init__(name, on_error, 60)
         self.device_id: int = device_id
         self._mgmt_send: MgmtSendCallback = mgmt_send
         self._on_adv_recv: AdvRecvCallback = on_adv_recv
@@ -321,15 +325,17 @@ class BluetoothHCIAdapter(BleAdvAdapter):
     async def _set_scan_enable(self, *, enabled: bool = True) -> None:
         await self._send_hci_cmd(self.OCF_LE_SET_SCAN_ENABLE, bytearray([0x01 if enabled else 0x00, 0x00]))
 
-    async def _advertise(self, interval: int, data: bytes) -> None:
+    async def _advertise(self, interval: int, repeat: int, data: bytes) -> None:
         """Advertise the 'data' for the given interval."""
         async with self._adv_lock:
+            min_adv = max(0x20, int(interval * 1.6))
+            duration = int(0.0009 * repeat * interval)
             if self._use_ext_adv:
-                await self._hci_ext_advertise(interval, data)
+                await self._hci_ext_advertise(min_adv, duration, data)
             elif self._use_mgmt_adv:
-                await self._mgmt_advertise(interval, data)
+                await self._mgmt_advertise(duration, data)
             else:
-                await self._hci_advertise(interval, data)
+                await self._hci_advertise(min_adv, duration, data)
 
     async def _set_advertise_enable(self, *, enabled: bool = True) -> int:
         ret, _ = await self._send_hci_cmd(self.OCF_LE_SET_ADVERTISE_ENABLE, bytearray([0x01 if enabled else 0x00]))
@@ -346,13 +352,12 @@ class BluetoothHCIAdapter(BleAdvAdapter):
         # btmon will give error 'invalid packet size' if data not of len 31, but the command is successful.
         await self._send_hci_cmd(self.OCF_LE_SET_ADVERTISING_DATA, bytearray([len(data), *data]))
 
-    async def _hci_advertise(self, interval: int, data: bytes) -> None:
-        int_as_hex = int(interval * 1.6)
+    async def _hci_advertise(self, min_adv: int, duration: int, data: bytes) -> None:
         await self._set_advertise_enable(enabled=False)
-        await self._set_advertising_parameter(int_as_hex, int_as_hex)
+        await self._set_advertising_parameter(min_adv, min_adv)
         await self._set_advertising_data(data)
         await self._set_advertise_enable()
-        await asyncio.sleep(0.0028 * interval)
+        await asyncio.sleep(duration)
         await self._set_advertise_enable(enabled=False)
         # set a fake adv, just in case it would be re enabled
         await self._set_advertising_data(bytes([0x03, 0xFF, 0x00, 0x00]))
@@ -391,21 +396,20 @@ class BluetoothHCIAdapter(BleAdvAdapter):
         cmd = struct.pack(f"<BBBB{data_len}B", self.ADV_INST, 0x03, 0x01, data_len, *data)
         await self._send_hci_cmd(self.OCF_LE_SET_EXT_ADVERTISING_DATA, cmd)
 
-    async def _hci_ext_advertise(self, interval: int, data: bytes) -> None:
-        int_as_hex = int(interval * 1.6)
+    async def _hci_ext_advertise(self, min_adv: int, duration: int, data: bytes) -> None:
         await self._set_ext_advertise_enable(enabled=False)
-        await self._set_ext_advertising_parameter(int_as_hex, int_as_hex)
+        await self._set_ext_advertising_parameter(min_adv, min_adv)
         await self._set_ext_advertising_data(data)
         await self._set_ext_advertise_enable()
-        await asyncio.sleep(0.0028 * interval)
+        await asyncio.sleep(duration)
         await self._set_ext_advertise_enable(enabled=False)
         # set a fake adv, just in case it would be re enabled
         await self._set_ext_advertising_data(bytes([0x03, 0xFF, 0x00, 0x00]))
 
-    async def _mgmt_advertise(self, interval: int, data: bytes) -> None:
+    async def _mgmt_advertise(self, duration: int, data: bytes) -> None:
         data_len = len(data)
         await self._mgmt_send(self.device_id, 0x003E, struct.pack(f"<BIHHBB{data_len}B", self.ADV_INST, 0, 0, 0, data_len, 0, *data))
-        await asyncio.sleep(max(0.0028 * interval, 0.5))
+        await asyncio.sleep(duration)
         await self._mgmt_send(self.device_id, 0x003F, bytes([self.ADV_INST]))
 
     async def _start_scan(self) -> None:
