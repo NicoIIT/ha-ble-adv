@@ -42,7 +42,7 @@ class BleAdvEsphomeAdapter(BleAdvAdapter):
     """ESPHome BT Adapter with discovery based on Event - LEGACY."""
 
     def __init__(self, hass: HomeAssistant, conf: dict[str, str]) -> None:
-        super().__init__(conf[CONF_ATTR_NAME], self._on_error)
+        super().__init__(conf[CONF_ATTR_NAME], self._on_error, 100)
         self._conf = conf
         self.hass = hass
 
@@ -57,12 +57,12 @@ class BleAdvEsphomeAdapter(BleAdvAdapter):
     async def _on_error(self, message: str) -> None:
         self.logger.warning(f"Unhandled error: {message}")
 
-    async def _advertise(self, interval: int, data: bytes) -> None:
+    async def _advertise(self, interval: int, repeat: int, data: bytes) -> None:
         """Advertise the msg."""
         await self.hass.services.async_call(
-            ESPHOME_DOMAIN, self._conf[CONF_ATTR_PUBLISH_ADV_SVC], {CONF_ATTR_RAW: data.hex(), CONF_ATTR_DURATION: 3 * interval}
+            ESPHOME_DOMAIN, self._conf[CONF_ATTR_PUBLISH_ADV_SVC], {CONF_ATTR_RAW: data.hex(), CONF_ATTR_DURATION: repeat * interval}
         )
-        await asyncio.sleep(0.0028 * interval)
+        await asyncio.sleep(0.0009 * repeat * interval)
 
 
 class BleAdvEsphomeService:
@@ -99,7 +99,7 @@ class BleAdvEsphomeAdapterV2(BleAdvAdapter):
     """ESPHome BT Adapter with discovery based on text_sensor name entity."""
 
     def __init__(self, hass: HomeAssistant, name: str, ign_duration: int, ign_cids: list[int], ign_macs: list[str]) -> None:
-        super().__init__(name, self._on_error)
+        super().__init__(name, self._on_error, 100)
         self.hass: HomeAssistant = hass
         self.ign_duration: int = ign_duration
         self.ign_cids: list[int] = ign_cids
@@ -119,16 +119,17 @@ class BleAdvEsphomeAdapterV2(BleAdvAdapter):
     async def _on_error(self, message: str) -> None:
         self.logger.warning(f"Unhandled error: {message}")
 
-    async def _advertise(self, interval: int, data: bytes) -> None:
+    async def _advertise(self, interval: int, repeat: int, data: bytes) -> None:
         """Advertise the msg."""
         params = {
             CONF_ATTR_RAW: data.hex(),
             CONF_ATTR_DURATION: interval,
-            CONF_ATTR_REPEAT: 3,
-            CONF_ATTR_IGN_DURATION: 2000,
+            CONF_ATTR_REPEAT: repeat,
+            CONF_ATTR_IGN_DURATION: int(1.5 * interval * repeat),
             CONF_ATTR_IGN_ADVS: [data.hex()],
         }
         await self._adv_svc_.call(params)
+        await asyncio.sleep(0.0009 * repeat * interval)
 
 
 class BleAdvEspBtManager:

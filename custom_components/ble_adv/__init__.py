@@ -134,7 +134,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         entry.title,
         device_conf[CONF_CODEC_ID],
         tech_conf[CONF_ADAPTER_IDS],
-        tech_conf[CONF_REPEAT],
+        3 * tech_conf[CONF_REPEAT],
         tech_conf[CONF_INTERVAL],
         tech_conf[CONF_DURATION],
         BleAdvConfig(device_conf[CONF_FORCED_ID], device_conf[CONF_INDEX]),
