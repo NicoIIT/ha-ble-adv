@@ -32,6 +32,7 @@ This integration **does not support any specific device type or brand**, but pro
 * [Zhi Mei Deng Kong](http://mihuan.iotworkshop.com/zhiguang/) (not available on Play Store)
 * [Mantra Lighting](https://play.google.com/store/apps/details?id=com.newenergy.baolilan) (BETA, Only devices with Fan and Light, Direction Forward / Breeze Mode NOT TESTED)
 * [Smart Light / Argrace Smart](https://apkpure.com/argrace-smart/ai.argrace.oem) (BETA, No RGB, Only the control by device, not the Master Control) (not available on Play Store anymore, seems abandoned)
+* [LE Light Pro / 乐智光Pro](https://openapi.lelight.top/dl/cqan) (not available on Play Store) (BETA)
 * Other (Legacy), removed app from play store: 'FanLamp', 'ControlSwitch', 'Lamp Smart Pro - Soft Lighting / Smart Lighting'
 
 ## Installing the component

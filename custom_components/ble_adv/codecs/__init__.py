@@ -17,6 +17,7 @@ PHONE_APPS = {
     "Zhi Mei Deng Kong (Fan)": ["zhimei_fan_v1", "zhimei_fan_v0"],
     "Zhi Mei Deng Kong (Light only)": ["zhimei_v2", "zhimei_v1"],
     "Smart Lights": ["agarce_v4", "agarce_v3"],
+    "LE Light": ["lelight"],
 }
 
 

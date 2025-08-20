@@ -6,6 +6,7 @@ from .const import (
     ATTR_BLUE_F,
     ATTR_BR,
     ATTR_CMD,
+    ATTR_CMD_PAIR,
     ATTR_CMD_TIMER,
     ATTR_CT,
     ATTR_CT_REV,
@@ -85,19 +86,13 @@ class LeEncoder(BleAdvCodec):
     def convert_from_enc(self, enc_cmd: BleAdvEncCmd, conf: BleAdvConfig) -> bytes:
         """Convert an encoder command and a config into a readable buffer."""
         uid = conf.id.to_bytes(4, "little")
-        args = [enc_cmd.param, enc_cmd.arg0, enc_cmd.arg1, enc_cmd.arg2]
-        return bytes([*uid, 0xFE, conf.index, conf.tx_count, enc_cmd.cmd, *args[: enc_cmd.param + 1]])
+        args = [enc_cmd.arg0, enc_cmd.arg1, enc_cmd.arg2]
+        return bytes([*uid, 0xFE, conf.index, conf.tx_count, enc_cmd.cmd, enc_cmd.param, *args[: enc_cmd.param]])
 
 
 TRANS = [
-    Trans(FanCmd().act(ATTR_ON, False), EncCmd(0x21).eq("param", 1).eq("arg0", 0)),
-    Trans(Fan3SpeedCmd().act(ATTR_ON, True).act(ATTR_SPEED, 1), EncCmd(0x21).eq("param", 1).eq("arg0", 1)),
-    Trans(Fan3SpeedCmd().act(ATTR_ON, True).act(ATTR_SPEED, 2), EncCmd(0x21).eq("param", 1).eq("arg0", 2)),
-    Trans(Fan3SpeedCmd().act(ATTR_ON, True).act(ATTR_SPEED, 3), EncCmd(0x21).eq("param", 1).eq("arg0", 3)),
-    Trans(Fan3SpeedCmd().act(ATTR_DIR, True), EncCmd(0x21).eq("param", 1).eq("arg0", 128)),
-    Trans(Fan3SpeedCmd().act(ATTR_DIR, False), EncCmd(0x21).eq("param", 1).eq("arg0", 129)),
+    Trans(DeviceCmd().act(ATTR_CMD, ATTR_CMD_PAIR), EncCmd(0x00).eq("param", 1).eq("arg0", 1)).no_reverse(),
     Trans(DeviceCmd().act(ATTR_CMD, ATTR_CMD_TIMER), EncCmd(0x22).eq("param", 3).eq("arg0", 0))
-    .no_direct()
     .copy(ATTR_TIME, "arg1", 7.0 / 1800.0)
     .copy(ATTR_TIME, "arg2", 8.0 / 1800.0),
     Trans(LightCmd().act(ATTR_ON, True), EncCmd(0x00).eq("param", 1).eq("arg0", 1)),
@@ -107,11 +102,17 @@ TRANS = [
     Trans(CTLightCmd().act(ATTR_CT_REV).max(ATTR_CT_REV, 0.4999999999), EncCmd(0x0D).eq("param", 2).eq("arg1", 128).max("arg0", 127)).copy(
         ATTR_CT_REV, "arg0", 256.0
     ),
-    Trans(CTLightCmd().act(ATTR_BR, 0.1).act(ATTR_CT, 0.1), EncCmd(0x12).eq("param", 2).eq("arg0", 0).eq("arg1", 5)).no_direct(),
-    Trans(RGBLightCmd(1).act(ATTR_RED_F).act(ATTR_GREEN_F).act(ATTR_BLUE_F), EncCmd(0x16).eq("param", 3))
+    Trans(CTLightCmd().act(ATTR_BR, 0.1).act(ATTR_CT, 0.5), EncCmd(0x12).eq("param", 2).eq("arg0", 0).eq("arg1", 5)).no_direct(),
+    Trans(RGBLightCmd().act(ATTR_RED_F).act(ATTR_GREEN_F).act(ATTR_BLUE_F), EncCmd(0x16).eq("param", 3))
     .copy(ATTR_RED_F, "arg0", 255)
     .copy(ATTR_GREEN_F, "arg1", 255)
     .copy(ATTR_BLUE_F, "arg2", 255),
+    Trans(FanCmd().act(ATTR_ON, False), EncCmd(0x21).eq("param", 1).eq("arg0", 0)),
+    Trans(Fan3SpeedCmd().act(ATTR_ON, True).act(ATTR_SPEED, 1), EncCmd(0x21).eq("param", 1).eq("arg0", 1)),
+    Trans(Fan3SpeedCmd().act(ATTR_ON, True).act(ATTR_SPEED, 2), EncCmd(0x21).eq("param", 1).eq("arg0", 2)),
+    Trans(Fan3SpeedCmd().act(ATTR_ON, True).act(ATTR_SPEED, 3), EncCmd(0x21).eq("param", 1).eq("arg0", 3)),
+    Trans(Fan3SpeedCmd().act(ATTR_DIR, True), EncCmd(0x21).eq("param", 1).eq("arg0", 128)),
+    Trans(Fan3SpeedCmd().act(ATTR_DIR, False), EncCmd(0x21).eq("param", 1).eq("arg0", 129)),
 ]
 
 CODECS = [
