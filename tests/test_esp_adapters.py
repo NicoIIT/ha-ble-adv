@@ -28,4 +28,6 @@ async def test_esp_bt_manager(hass: HomeAssistant) -> None:
     t3 = MockEspProxy(hass, "esp-test3", True)
     await t3.setup()  # Adding proxy by dicovery event - LEGACY
     assert list(man.adapters.keys()) == ["esp-test1", "esp-test2", "esp-test3"]
+    await man.remove_adapter("esp-test2")
+    assert list(man.adapters.keys()) == ["esp-test1", "esp-test3"]
     await man.async_final()

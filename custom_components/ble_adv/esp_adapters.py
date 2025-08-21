@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import re
 from typing import Any
 
 from homeassistant.const import STATE_UNAVAILABLE, STATE_UNKNOWN
@@ -41,10 +42,10 @@ CONF_ATTR_PUBLISH_ADV_SVC = "publish_adv_svc"
 class BleAdvEsphomeAdapter(BleAdvAdapter):
     """ESPHome BT Adapter with discovery based on Event - LEGACY."""
 
-    def __init__(self, hass: HomeAssistant, conf: dict[str, str]) -> None:
+    def __init__(self, manager: BleAdvEspBtManager, conf: dict[str, str]) -> None:
         super().__init__(conf[CONF_ATTR_NAME], self._on_error, 100)
         self._conf = conf
-        self.hass = hass
+        self.manager: BleAdvEspBtManager = manager
 
     async def open(self) -> None:
         """Open adapter."""
@@ -55,11 +56,12 @@ class BleAdvEsphomeAdapter(BleAdvAdapter):
         self.logger.info("Disconnected")
 
     async def _on_error(self, message: str) -> None:
-        self.logger.warning(f"Unhandled error: {message}")
+        self.logger.warning(f"Unhandled error: {message}. Removing adapter")
+        await self.manager.remove_adapter(self.name)
 
     async def _advertise(self, interval: int, repeat: int, data: bytes) -> None:
         """Advertise the msg."""
-        await self.hass.services.async_call(
+        await self.manager.hass.services.async_call(
             ESPHOME_DOMAIN, self._conf[CONF_ATTR_PUBLISH_ADV_SVC], {CONF_ATTR_RAW: data.hex(), CONF_ATTR_DURATION: repeat * interval}
         )
         await asyncio.sleep(0.0009 * repeat * interval)
@@ -75,7 +77,7 @@ class BleAdvEsphomeService:
 
     def __init__(self, hass: HomeAssistant, device_name: str, svcs: list[str]) -> None:
         self.hass: HomeAssistant = hass
-        esp_svcs: list[str] = [self._build_service_name(device_name, svc) for svc in svcs]
+        esp_svcs: list[str] = [f"{device_name}_{svc}" for svc in svcs]
         all_svcs = self.hass.services.async_services_for_domain(ESPHOME_DOMAIN)
         for esp_svc in esp_svcs:
             if esp_svc in all_svcs:
@@ -86,9 +88,6 @@ class BleAdvEsphomeService:
     def _def_attr_val(self, attr_type: Any) -> Any:  # noqa: ANN401
         return [] if isinstance(attr_type, list) else "" if attr_type == cv.string else False if attr_type == cv.boolean else 0
 
-    def _build_service_name(self, device_name: str, service: str) -> str:
-        return f"{device_name.replace('-', '_')}_{service}"
-
     async def call(self, attrs: dict[str, Any]) -> None:
         """Call the service with the given attributes, filtered with the effectively available attributes and default values for others."""
         attrs = {attr: attrs.get(attr, def_val) for attr, def_val in self._svc_attrs.items()}
@@ -98,18 +97,20 @@ class BleAdvEsphomeService:
 class BleAdvEsphomeAdapterV2(BleAdvAdapter):
     """ESPHome BT Adapter with discovery based on text_sensor name entity."""
 
-    def __init__(self, hass: HomeAssistant, name: str, ign_duration: int, ign_cids: list[int], ign_macs: list[str]) -> None:
-        super().__init__(name, self._on_error, 100)
-        self.hass: HomeAssistant = hass
-        self.ign_duration: int = ign_duration
-        self.ign_cids: list[int] = ign_cids
-        self.ign_macs: list[str] = ign_macs
-        self._adv_svc_: BleAdvEsphomeService = BleAdvEsphomeService(hass, name, CONF_ADV_SVCS)
-        self._setup_svc_: BleAdvEsphomeService = BleAdvEsphomeService(hass, name, CONF_SETUP_SVCS)
+    def __init__(self, manager: BleAdvEspBtManager, adapter_name: str, device_name: str) -> None:
+        super().__init__(adapter_name, self._on_error, 100)
+        self.manager: BleAdvEspBtManager = manager
+        self._adv_svc_: BleAdvEsphomeService = BleAdvEsphomeService(manager.hass, device_name, CONF_ADV_SVCS)
+        self._setup_svc_: BleAdvEsphomeService = BleAdvEsphomeService(manager.hass, device_name, CONF_SETUP_SVCS)
 
     async def open(self) -> None:
         """Open adapter."""
-        await self._setup_svc_.call({CONF_ATTR_IGN_DURATION: self.ign_duration, CONF_ATTR_IGN_CIDS: self.ign_cids, CONF_ATTR_IGN_MACS: self.ign_macs})
+        call_params = {
+            CONF_ATTR_IGN_DURATION: self.manager.ign_duration,
+            CONF_ATTR_IGN_CIDS: self.manager.ign_cids,
+            CONF_ATTR_IGN_MACS: self.manager.ign_macs,
+        }
+        await self._setup_svc_.call(call_params)
         self.logger.info("Connected")
 
     def close(self) -> None:
@@ -117,7 +118,8 @@ class BleAdvEsphomeAdapterV2(BleAdvAdapter):
         self.logger.info("Disconnected")
 
     async def _on_error(self, message: str) -> None:
-        self.logger.warning(f"Unhandled error: {message}")
+        self.logger.warning(f"Unhandled error: {message}. Removing adapter")
+        await self.manager.remove_adapter(self.name)
 
     async def _advertise(self, interval: int, repeat: int, data: bytes) -> None:
         """Advertise the msg."""
@@ -135,7 +137,7 @@ class BleAdvEsphomeAdapterV2(BleAdvAdapter):
 class BleAdvEspBtManager:
     """Class to manage ESPHome BLE ADV Proxies Bluetooth Adapters."""
 
-    STR_PROXY_NAME: str = "_ble_adv_proxy_name"
+    PROXY_NAME_PATTERN: re.Pattern = re.compile(r"sensor.(\w+)_ble_adv_proxy_name")
 
     def __init__(self, hass: HomeAssistant, adv_recv_callback: AdvRecvCallback, ign_duration: int, ign_cids: list[int], ign_macs: list[str]) -> None:
         """Init."""
@@ -151,13 +153,13 @@ class BleAdvEspBtManager:
     async def async_init(self) -> None:
         """Async Init."""
         ent_reg = er.async_get(self.hass)
-        proxy_names = [ent.entity_id for ent in ent_reg.entities.values() if ent.entity_id.endswith(self.STR_PROXY_NAME)]
-        _LOGGER.debug(f"BLE ADV Proxies: {proxy_names}")
-        for proxy_name in proxy_names:
-            if (adapter_name := self._get_name_from_state(self.hass.states.get(proxy_name))) is not None:
-                await self._create_adapter(adapter_name, proxy_name)
+        proxy_name_ids = [ent.entity_id for ent in ent_reg.entities.values() if self.PROXY_NAME_PATTERN.match(ent.entity_id) is not None]
+        _LOGGER.debug(f"BLE ADV Name Entities: {proxy_name_ids}")
+        for entity_id in proxy_name_ids:
+            if (adapter_name := self._get_name_from_state(self.hass.states.get(entity_id))) is not None:
+                await self._create_adapter(adapter_name, entity_id)
 
-        self._cnl_clbck.append(async_track_state_change_event(self.hass, proxy_names, self._async_name_state_changed_listener))
+        self._cnl_clbck.append(async_track_state_change_event(self.hass, proxy_name_ids, self._async_name_state_changed_listener))
         self._cnl_clbck.append(self.hass.bus.async_listen(er.EVENT_ENTITY_REGISTRY_UPDATED, self._proxy_created, event_filter=self._proxy_filter))
         self._cnl_clbck.append(self.hass.bus.async_listen(ESPHOME_BLE_ADV_DISCOVERY_EVENT, self._on_discovery_event))
         self._cnl_clbck.append(self.hass.bus.async_listen(ESPHOME_BLE_ADV_RECV_EVENT, self._on_adv_recv_event))
@@ -179,22 +181,29 @@ class BleAdvEspBtManager:
     async def _create_adapter(self, adapter_name: str, entity_id: str) -> None:
         if adapter_name in self.adapters:
             return
+        device_name = dv.group(1) if (dv := self.PROXY_NAME_PATTERN.match(entity_id)) is not None else adapter_name.replace("-", "_")
         if (ent := er.async_get(self.hass).async_get(entity_id)) is not None and (dev_id := ent.device_id) is not None:
             self._device_to_name[dev_id] = adapter_name
-        self.adapters[adapter_name] = BleAdvEsphomeAdapterV2(self.hass, adapter_name, self.ign_duration, self.ign_cids, self.ign_macs)
+
+        self.adapters[adapter_name] = BleAdvEsphomeAdapterV2(self, adapter_name, device_name)
         await self.adapters[adapter_name].async_init()
+
+    async def remove_adapter(self, adapter_name: str) -> None:
+        """Remove an adapter."""
+        if (adapter := self.adapters.pop(adapter_name, None)) is not None:
+            await adapter.async_final()
+            self._device_to_name = {k: v for k, v in self._device_to_name.items() if v != adapter_name}
 
     async def _async_name_state_changed_listener(self, event: Event[EventStateChangedData]) -> None:
         _LOGGER.debug(f"Name State Event: {event.data}")
         if (adapter_name := self._get_name_from_state(event.data["new_state"])) is not None:
             await self._create_adapter(adapter_name, event.data["entity_id"])
         elif (adapter_name := self._get_name_from_state(event.data["old_state"])) is not None:
-            if (adapter := self.adapters.pop(adapter_name, None)) is not None:
-                await adapter.async_final()
+            await self.remove_adapter(adapter_name)
 
     @callback
     def _proxy_filter(self, event_data: er.EventEntityRegistryUpdatedData) -> bool:
-        return event_data["action"] == "create" and event_data["entity_id"].endswith(self.STR_PROXY_NAME)
+        return event_data["action"] == "create" and self.PROXY_NAME_PATTERN.match(event_data["entity_id"]) is not None
 
     async def _proxy_created(self, event: Event[er.EventEntityRegistryUpdatedData]) -> None:
         _LOGGER.debug(f"Registry Event: {event.data['entity_id']} {event.data['action']}")
@@ -206,7 +215,7 @@ class BleAdvEspBtManager:
         if adapter_name not in self.adapters:
             _LOGGER.warning("ESPHome ble_adv_proxy LEGACY discovery by Event, please upgrade your proxy to latest version.")
             self._device_to_name[event.data[CONF_ATTR_DEVICE_ID]] = adapter_name
-            self.adapters[adapter_name] = BleAdvEsphomeAdapter(self.hass, {**event.data})
+            self.adapters[adapter_name] = BleAdvEsphomeAdapter(self, {**event.data})
             await self.adapters[adapter_name].async_init()
 
     async def _on_adv_recv_event(self, event: Event) -> None:
