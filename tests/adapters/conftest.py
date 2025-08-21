@@ -39,7 +39,7 @@ class _AsyncSocketMock(AsyncSocketBase):
         if method == "sendall":
             data = args[0]
             if data[0] == 0x01 and data[2] == 0x20:
-                if data == b"\x01\x08 \n\tforce_rto":
+                if data == b"\x01\x08  \x1fforce_rto\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00":
                     return
                 ret_code = 0x0C if self.hci_adv_not_allowed and data[1] in [0x06, 0x08, 0x0A] else 0x00
                 self._calls.append(("op_call", data[1], data[4:]))
