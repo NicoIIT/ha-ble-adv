@@ -196,6 +196,7 @@ class BluetoothHCIAdapter(BleAdvAdapter):
 
     CMD_RTO: float = 1.0
     ADV_INST: int = 1
+    FAKE_ADV: bytes = bytearray([0x1D, 0xFF, 0xFF, 0xFF] + [0x00] * 27)
 
     HCI_SUCCESS = 0x00
     HCI_DISALLOWED = 0x0C
@@ -327,15 +328,17 @@ class BluetoothHCIAdapter(BleAdvAdapter):
 
     async def _advertise(self, interval: int, repeat: int, data: bytes) -> None:
         """Advertise the 'data' for the given interval."""
+        # Patch the adv data to have full len 31
+        patched_data = bytearray(data) + bytearray([0x00] * (31 - len(data)))
         async with self._adv_lock:
             min_adv = max(0x20, int(interval * 1.6))
             duration = int(0.0009 * repeat * interval)
             if self._use_ext_adv:
-                await self._hci_ext_advertise(min_adv, duration, data)
+                await self._hci_ext_advertise(min_adv, duration, patched_data)
             elif self._use_mgmt_adv:
-                await self._mgmt_advertise(duration, data)
+                await self._mgmt_advertise(duration, patched_data)
             else:
-                await self._hci_advertise(min_adv, duration, data)
+                await self._hci_advertise(min_adv, duration, patched_data)
 
     async def _set_advertise_enable(self, *, enabled: bool = True) -> int:
         ret, _ = await self._send_hci_cmd(self.OCF_LE_SET_ADVERTISE_ENABLE, bytearray([0x01 if enabled else 0x00]))
@@ -360,7 +363,7 @@ class BluetoothHCIAdapter(BleAdvAdapter):
         await asyncio.sleep(duration)
         await self._set_advertise_enable(enabled=False)
         # set a fake adv, just in case it would be re enabled
-        await self._set_advertising_data(bytes([0x03, 0xFF, 0x00, 0x00]))
+        await self._set_advertising_data(self.FAKE_ADV)
 
     async def _set_ext_advertise_enable(self, *, enabled: bool = True) -> int:
         enb = 0x01 if enabled else 0x00
@@ -372,7 +375,7 @@ class BluetoothHCIAdapter(BleAdvAdapter):
         cmd = struct.pack(
             "<BHHBHBBBB6BBBBBBBB",
             self.ADV_INST,
-            0x0010,  # Properties (Use legacy advertising PDUs: ADV_NONCONN_IND)
+            0x0011,  # Properties (Use legacy advertising PDUs / ADV_CONN_IND)
             min_interval,  # Min advertising interval
             0x00,
             max_interval,  # Max advertising interval
@@ -404,7 +407,7 @@ class BluetoothHCIAdapter(BleAdvAdapter):
         await asyncio.sleep(duration)
         await self._set_ext_advertise_enable(enabled=False)
         # set a fake adv, just in case it would be re enabled
-        await self._set_ext_advertising_data(bytes([0x03, 0xFF, 0x00, 0x00]))
+        await self._set_ext_advertising_data(self.FAKE_ADV)
 
     async def _mgmt_advertise(self, duration: int, data: bytes) -> None:
         data_len = len(data)

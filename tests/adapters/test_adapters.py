@@ -15,10 +15,10 @@ def adv_msg(interval: int, data: bytes) -> list[tuple[str, int, bytes]]:
     return [
         ("op_call", 0x0A, b"\x00"),  # DISABLE ADV
         ("op_call", 0x06, inter + inter + b"\x00\x00\x00\x00\x00\x00\x00\x00\x00\x07\x00"),  # SET ADV PARAM
-        ("op_call", 0x08, len(data).to_bytes(1) + data),  # SET ADV DATA
+        ("op_call", 0x08, b"\x1f" + data + bytes([0] * (31 - len(data)))),  # SET ADV DATA
         ("op_call", 0x0A, b"\x01"),  # ENABLE ADV
         ("op_call", 0x0A, b"\x00"),  # DISABLE ADV
-        ("op_call", 0x08, b"\x04\x03\xff\x00\x00"),  # RESET ADV DATA
+        ("op_call", 0x08, b"\x1f\x1d\xff\xff\xff" + bytes([0] * 27)),  # RESET ADV DATA
     ]
 
 
@@ -27,16 +27,16 @@ def adv_ext_msg(interval: int, data: bytes) -> list[tuple[str, int, bytes]]:
     return [
         ("op_call", 0x39, b"\x00\x01\x01\x00\x00\x00"),  # DISABLE ADV EXT
         ("op_call", 0x36, b"\x01\x10\x00" + inter + b"\x00" + inter + b"\x00\x07\x00\x00\x00\x00\x00\x00\x00\x00\x00\x7f\x01\x00\x01\x00\x00"),
-        ("op_call", 0x37, b"\x01\x03\x01" + len(data).to_bytes(1) + data),  # SET ADV DATA EXT
+        ("op_call", 0x37, b"\x01\x03\x01" + b"\x1f" + data + bytes([0] * (31 - len(data)))),  # SET ADV DATA EXT
         ("op_call", 0x39, b"\x01\x01\x01\x00\x00\x00"),  # ENABLE ADV EXT
         ("op_call", 0x39, b"\x00\x01\x01\x00\x00\x00"),  # DISABLE ADV EXT
-        ("op_call", 0x37, b"\x01\x03\x01\x04\x03\xff\x00\x00"),  # RESET ADV DATA  EXT
+        ("op_call", 0x37, b"\x01\x03\x01\x1f\x1d\xff\xff\xff" + bytes([0] * 27)),  # RESET ADV DATA  EXT
     ]
 
 
 def adv_mgmt_msg(data: bytes) -> list[mock._Call]:
     return [
-        mock.call(0, 0x3E, b"\x01\x00\x00\x00\x00\x00\x00\x00\x00" + len(data).to_bytes(2, "little") + data),
+        mock.call(0, 0x3E, b"\x01\x00\x00\x00\x00\x00\x00\x00\x00" + b"\x1f\x00" + data + bytes([0] * (31 - len(data)))),
         mock.call(0, 0x3F, b"\x01"),
     ]
 
