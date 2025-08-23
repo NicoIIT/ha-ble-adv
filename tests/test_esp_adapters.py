@@ -13,6 +13,7 @@ async def test_esp_bt_manager(hass: HomeAssistant) -> None:
     """Test ESP BT Manager."""
     moc_recv = mock.AsyncMock()
     man = BleAdvEspBtManager(hass, moc_recv, 10000, [], [])
+    man.WAIT_REDISCOVER = 0
     t1 = MockEspProxy(hass, "esp-test1")
     await t1.setup()  # Adding proxy before init
     assert list(man.adapters.keys()) == []
@@ -28,6 +29,8 @@ async def test_esp_bt_manager(hass: HomeAssistant) -> None:
     t3 = MockEspProxy(hass, "esp-test3", True)
     await t3.setup()  # Adding proxy by dicovery event - LEGACY
     assert list(man.adapters.keys()) == ["esp-test1", "esp-test2", "esp-test3"]
-    await man.remove_adapter("esp-test2")
-    assert list(man.adapters.keys()) == ["esp-test1", "esp-test3"]
+    await man.reset_adapter("esp-test2", "test")
+    assert list(man.adapters.keys()) == ["esp-test1", "esp-test3", "esp-test2"]
+    await man.reset_adapter("esp-test3", "test")
+    assert list(man.adapters.keys()) == ["esp-test1", "esp-test2"]
     await man.async_final()

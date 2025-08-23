@@ -5,7 +5,7 @@ import asyncio
 from unittest import mock
 
 import pytest
-from ble_adv.adapters import AdapterError, BleAdvBtManager, BleAdvQueueItem, BluetoothHCIAdapter
+from ble_adv.adapters import AdapterError, BleAdvBtHciManager, BleAdvQueueItem, BluetoothHCIAdapter
 
 from .conftest import _AsyncSocketMock
 
@@ -26,7 +26,7 @@ def adv_ext_msg(interval: int, data: bytes) -> list[tuple[str, int, bytes]]:
     inter = int(interval * 1.6).to_bytes(2, "little")
     return [
         ("op_call", 0x39, b"\x00\x01\x01\x00\x00\x00"),  # DISABLE ADV EXT
-        ("op_call", 0x36, b"\x01\x10\x00" + inter + b"\x00" + inter + b"\x00\x07\x00\x00\x00\x00\x00\x00\x00\x00\x00\x7f\x01\x00\x01\x00\x00"),
+        ("op_call", 0x36, b"\x01\x11\x00" + inter + b"\x00" + inter + b"\x00\x07\x00\x00\x00\x00\x00\x00\x00\x00\x00\x7f\x01\x00\x01\x00\x00"),
         ("op_call", 0x37, b"\x01\x03\x01" + b"\x1f" + data + bytes([0] * (31 - len(data)))),  # SET ADV DATA EXT
         ("op_call", 0x39, b"\x01\x01\x01\x00\x00\x00"),  # ENABLE ADV EXT
         ("op_call", 0x39, b"\x00\x01\x01\x00\x00\x00"),  # DISABLE ADV EXT
@@ -74,7 +74,7 @@ async def test_split_queue() -> None:
 
 
 async def test_adapter(mock_socket: _AsyncSocketMock) -> None:
-    hci_adapter = BluetoothHCIAdapter("hci0", 0, mock.AsyncMock(), mock.AsyncMock(), mock.AsyncMock())
+    hci_adapter = BluetoothHCIAdapter("hci0", 0, "mac", mock.AsyncMock(), mock.AsyncMock(), mock.AsyncMock())
     hci_adapter._async_socket = mock_socket
     BluetoothHCIAdapter.CMD_RTO = 0.1
     await hci_adapter.async_init()
@@ -112,7 +112,7 @@ INIT_CALLS_EXT_ADV = [
 
 
 async def test_adapter_ext_adv(mock_socket: _AsyncSocketMock) -> None:
-    hci_adapter = BluetoothHCIAdapter("hci0", 0, mock.AsyncMock(), mock.AsyncMock(), mock.AsyncMock())
+    hci_adapter = BluetoothHCIAdapter("hci0", 0, "mac", mock.AsyncMock(), mock.AsyncMock(), mock.AsyncMock())
     hci_adapter._async_socket = mock_socket
     hci_adapter._async_socket.hci_ext_adv = True
     BluetoothHCIAdapter.CMD_RTO = 0.1
@@ -128,7 +128,7 @@ async def test_adapter_ext_adv(mock_socket: _AsyncSocketMock) -> None:
 
 async def test_adapter_mgmt_adv(mock_socket: _AsyncSocketMock) -> None:
     mock_mgmt_cmd = mock.AsyncMock()
-    hci_adapter_adv_mgmt = BluetoothHCIAdapter("hci0", 0, mock_mgmt_cmd, mock.AsyncMock(), mock.AsyncMock())
+    hci_adapter_adv_mgmt = BluetoothHCIAdapter("hci0", 0, "mac", mock_mgmt_cmd, mock.AsyncMock(), mock.AsyncMock())
     hci_adapter_adv_mgmt._async_socket = mock_socket
     hci_adapter_adv_mgmt._async_socket.hci_adv_not_allowed = True
     BluetoothHCIAdapter.CMD_RTO = 0.1
@@ -150,14 +150,14 @@ MGMT_OPEN_CALLS = [
 ]
 
 
-async def test_btmanager(bt_manager: BleAdvBtManager) -> None:
+async def test_btmanager(bt_manager: BleAdvBtHciManager) -> None:
     assert bt_manager._mgmt_sock.get_calls() == MGMT_OPEN_CALLS  # type: ignore[none]
     assert bt_manager.adapters[HCI_NAME]._async_socket.get_calls() == INIT_CALLS  # type: ignore[none]
     bt_manager._mgmt_sock.simulate_recv(b"\x12\x00\x00\x00")  # type: ignore[none]
     bt_manager._mgmt_sock.simulate_recv(b"\x14\x00\x00\x00")  # type: ignore[none]
 
 
-async def test_btmanager_error(bt_manager: BleAdvBtManager) -> None:
+async def test_btmanager_error(bt_manager: BleAdvBtHciManager) -> None:
     assert bt_manager._mgmt_sock.get_calls() == MGMT_OPEN_CALLS  # type: ignore[none]
     assert bt_manager.adapters[HCI_NAME]._async_socket.get_calls() == INIT_CALLS  # type: ignore[none]
     with pytest.raises(TimeoutError):
@@ -167,7 +167,7 @@ async def test_btmanager_error(bt_manager: BleAdvBtManager) -> None:
         await bt_manager.send_mgmt_cmd(0, 0x12, b"")
 
 
-async def test_btmanager_mgmt_close(bt_manager: BleAdvBtManager) -> None:
+async def test_btmanager_mgmt_close(bt_manager: BleAdvBtHciManager) -> None:
     assert bt_manager._mgmt_sock.get_calls() == MGMT_OPEN_CALLS  # type: ignore[none]
     assert bt_manager.adapters[HCI_NAME]._async_socket.get_calls() == INIT_CALLS  # type: ignore[none]
     _AsyncSocketMock.fail_open_nb = 1  # type: ignore[none]
@@ -178,7 +178,7 @@ async def test_btmanager_mgmt_close(bt_manager: BleAdvBtManager) -> None:
     assert bt_manager._mgmt_sock.get_calls() == MGMT_OPEN_CALLS  # type: ignore[none]
 
 
-async def test_btmanager_hci_adapter_close(bt_manager: BleAdvBtManager) -> None:
+async def test_btmanager_hci_adapter_close(bt_manager: BleAdvBtHciManager) -> None:
     assert bt_manager._mgmt_sock.get_calls() == MGMT_OPEN_CALLS  # type: ignore[none]
     assert bt_manager.adapters[HCI_NAME]._async_socket.get_calls() == INIT_CALLS  # type: ignore[none]
     bt_manager.adapters[HCI_NAME]._async_socket._close()  # simulate HCI Adapter closure from remote # type: ignore[none]
@@ -186,7 +186,7 @@ async def test_btmanager_hci_adapter_close(bt_manager: BleAdvBtManager) -> None:
     assert bt_manager._mgmt_sock.get_calls() == MGMT_OPEN_CALLS  # type: ignore[none]
 
 
-async def test_btmanager_hci_and_mgmt_close(bt_manager: BleAdvBtManager) -> None:
+async def test_btmanager_hci_and_mgmt_close(bt_manager: BleAdvBtHciManager) -> None:
     assert bt_manager._mgmt_sock.get_calls() == MGMT_OPEN_CALLS  # type: ignore[none]
     assert bt_manager.adapters[HCI_NAME]._async_socket.get_calls() == INIT_CALLS  # type: ignore[none]
     bt_manager._mgmt_sock._close()  # simulate MGMT closure from remote # type: ignore[none]
@@ -196,7 +196,7 @@ async def test_btmanager_hci_and_mgmt_close(bt_manager: BleAdvBtManager) -> None
     assert bt_manager.adapters[HCI_NAME]._async_socket.get_calls() == INIT_CALLS  # type: ignore[none]
 
 
-async def test_btmanager_mgmt_adapter_change(bt_manager: BleAdvBtManager) -> None:
+async def test_btmanager_mgmt_adapter_change(bt_manager: BleAdvBtHciManager) -> None:
     assert bt_manager._mgmt_sock.get_calls() == MGMT_OPEN_CALLS  # type: ignore[none]
     assert bt_manager.adapters[HCI_NAME]._async_socket.get_calls() == INIT_CALLS  # type: ignore[none]
     bt_manager._mgmt_sock.simulate_recv(b"\x06\x00\x00\x00")  # simulate change on adapters # type: ignore[none]
@@ -205,17 +205,17 @@ async def test_btmanager_mgmt_adapter_change(bt_manager: BleAdvBtManager) -> Non
     assert bt_manager.adapters[HCI_NAME]._async_socket.get_calls() == INIT_CALLS  # type: ignore[none]
 
 
-async def test_btmanager_hci_error(bt_manager: BleAdvBtManager) -> None:
+async def test_btmanager_hci_error(bt_manager: BleAdvBtHciManager) -> None:
     assert bt_manager._mgmt_sock.get_calls() == MGMT_OPEN_CALLS  # type: ignore[none]
     assert bt_manager.adapters[HCI_NAME]._async_socket.get_calls() == INIT_CALLS  # type: ignore[none]
     # simulate rto by adapter on advertising
     await bt_manager.adapters[HCI_NAME].enqueue("q1", BleAdvQueueItem(30, 2, 100, 20, b"force_rto"))
-    await asyncio.sleep(0.3)  # wait for final / init
+    await asyncio.sleep(0.4)  # wait for final / init
     assert bt_manager._mgmt_sock.get_calls() == MGMT_OPEN_CALLS  # type: ignore[none]
     assert bt_manager.adapters[HCI_NAME]._async_socket.get_calls() == INIT_CALLS  # type: ignore[none]
 
 
 async def test_ignored_hci() -> None:
-    bt_manager = BleAdvBtManager(mock.AsyncMock(), ["hci"])
+    bt_manager = BleAdvBtHciManager(mock.AsyncMock(), ["hci"])
     await bt_manager.async_init()
     assert bt_manager._disabled

@@ -10,9 +10,11 @@ from typing import Any
 
 from homeassistant.const import EVENT_HOMEASSISTANT_STOP
 from homeassistant.core import Event, HomeAssistant
+from homeassistant.helpers.system_info import async_get_system_info
 
-from .adapters import BleAdvBtManager, BleAdvQueueItem
+from .adapters import BleAdvBtHciManager, BleAdvQueueItem
 from .codecs.models import BleAdvAdvertisement, BleAdvCodec, BleAdvConfig, BleAdvEntAttr
+from .const import DOMAIN
 from .esp_adapters import BleAdvEspBtManager
 
 _LOGGER = logging.getLogger(__name__)
@@ -53,7 +55,7 @@ class BleAdvCoordinator:
 
         self._last_advs: dict[str, dict[bytes, datetime]] = {}
         self._callbacks: dict[str, MatchingCallback] = {}
-        self._hci_bt_manager: BleAdvBtManager = BleAdvBtManager(self.handle_raw_adv, ign_adapters)
+        self._hci_bt_manager: BleAdvBtHciManager = BleAdvBtHciManager(self.handle_raw_adv, ign_adapters)
         self._esp_bt_manager: BleAdvEspBtManager = BleAdvEspBtManager(self.hass, self.handle_raw_adv, ign_duration, ign_cids, ign_macs)
 
     async def async_init(self) -> None:
@@ -157,10 +159,19 @@ class BleAdvCoordinator:
     def diagnostic_dump(self) -> dict[str, Any]:
         """Dump diagnostc dict."""
         return {
-            "adapter_ids": self.get_adapter_ids(),
+            "hci": self._hci_bt_manager.diagnostic_dump(),
+            "esp": self._esp_bt_manager.diagnostic_dump(),
             "codec_ids": list(self.codecs.keys()),
             "ign_adapters": self.ign_adapters,
             "ign_duration": self.ign_duration,
             "ign_cids": list(self.ign_cids),
             "ign_macs": list(self.ign_macs),
         }
+
+    async def full_diagnostic_dump(self) -> dict[str, Any]:
+        """Dump Full diagnostic dict including system data."""
+        hass_sys_info = await async_get_system_info(self.hass)
+        hass_sys_info["run_as_root"] = hass_sys_info["user"] == "root"
+        del hass_sys_info["user"]
+        entries = {entry_id: self.hass.config_entries.async_get_entry(entry_id) for entry_id in self.hass.data.get(DOMAIN, {})}
+        return {"home_assistant": hass_sys_info, "coordinator": self.diagnostic_dump(), "entries": entries}
