@@ -7,8 +7,19 @@
         "menu_options": {
           "manual": "Manual Input (Expert)",
           "wait_config": "Duplicate Paired Phone App config (Recommended)",
-          "pair": "Pairing"
+          "pair": "Pairing",
+          "tools": "Tools and Helpers"
         }
+      },
+      "tools": {
+        "title": "Tools and Helpers",
+        "description": "Tooling section",
+        "menu_options": {
+          "diag": "Diagnostic Dump"
+        }
+      },
+      "diag": {
+        "title": "Diagnostic Dump"
       },
       "manual": {
         "title": "Manual Input",

@@ -61,3 +61,10 @@ async def test_coordinator(hass: HomeAssistant) -> None:
     await coord.unregister_callback("clbck2")
     assert coord.has_available_adapters()
     await coord.async_final()
+
+
+async def test_full_diagnostics(hass: HomeAssistant) -> None:
+    """TestFull Diagnostics."""
+    coord = BleAdvCoordinator(hass, {}, ["hci"], 20000, [], [])
+    diag = await coord.full_diagnostic_dump()
+    assert len(diag["coordinator"]) > 0

@@ -45,7 +45,7 @@ _LOGGER = logging.getLogger(__name__)
 @singleton(f"{DOMAIN}/{CONF_COORDINATOR_ID}")
 async def get_coordinator(hass: HomeAssistant) -> BleAdvCoordinator:
     """Get and initiate a coordinator."""
-    conf = hass.data.get(DOMAIN, {}).get(CONF_COORDINATOR_ID, {})
+    conf = hass.data.get(DOMAIN, {}).pop(CONF_COORDINATOR_ID, {})
     coordinator = BleAdvCoordinator(
         hass,
         get_codecs(),

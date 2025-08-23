@@ -54,15 +54,8 @@ body:
   attributes:
     label: "Diagnostics dump"
     description: |
-      If the integration was created: Drag the integration [diagnostics dump](https://www.home-assistant.io/integrations/diagnostics/) file here.
-
-      If the bug is in config flow phase and no integration was created yet please specify as much info as possible:
-      * `Home Assistant Core` version
-      * Host info (at leat OS type and version) and HA install type (HASS / docker / vm /...)
-      * `ha-ble-adv` Component version
-      * bluetooth adapter description
-      * content of configuration.yaml related to this ha-ble-adv
-      * everything you think could be usefull
+      If the integration was created: Drag the integration [diagnostic dump](https://www.home-assistant.io/integrations/diagnostics/) file here.
+      If the bug is in config flow phase: Drag the diagnostic dump from the config flow menu -> Tools and Helpers -> Diagnostic Dump
   validations:
     required: true
 

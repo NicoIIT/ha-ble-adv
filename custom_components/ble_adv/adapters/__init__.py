@@ -7,7 +7,9 @@ import socket
 import struct
 from abc import ABC, abstractmethod
 from binascii import hexlify
+from collections import deque
 from collections.abc import Awaitable, Callable, Coroutine, MutableMapping
+from datetime import datetime
 from math import ceil
 from typing import Any, Self
 
@@ -66,11 +68,13 @@ class BleAdvAdapter(ABC):
     def __init__(
         self,
         name: str,
+        mac: str,
         on_error: AdapterErrorCallback,
         bunch_adv_time: int,
     ) -> None:
         """Init with name."""
         self.name: str = name
+        self.mac: str = mac
         self._bunch_adv_time = bunch_adv_time
         self._on_error: AdapterErrorCallback = on_error
         self._qlen: int = 0
@@ -90,6 +94,11 @@ class BleAdvAdapter(ABC):
     def available(self) -> bool:
         """Available."""
         return self._opened
+
+    def diagnostic_dump(self) -> dict[str, Any]:
+        """Diagnostic dump."""
+        dequeueing = self._dequeue_task is not None and not self._dequeue_task.done() and self._processing
+        return {"type": type(self).__name__, "mac": self.mac, "available": self.available, "queue": self._qlen, "dequeueing": dequeueing}
 
     async def async_init(self) -> None:
         """Async Init."""
@@ -231,12 +240,13 @@ class BluetoothHCIAdapter(BleAdvAdapter):
         self,
         name: str,
         device_id: int,
+        mac: str,
         mgmt_send: MgmtSendCallback,
         on_adv_recv: AdvRecvCallback,
         on_error: AdapterErrorCallback,
     ) -> None:
         """Create Adapter."""
-        super().__init__(name, on_error, 60)
+        super().__init__(name, mac, on_error, 60)
         self.device_id: int = device_id
         self._mgmt_send: MgmtSendCallback = mgmt_send
         self._on_adv_recv: AdvRecvCallback = on_adv_recv
@@ -247,6 +257,10 @@ class BluetoothHCIAdapter(BleAdvAdapter):
         self._cmd_lock: asyncio.Lock = asyncio.Lock()
         self._use_ext_adv = False
         self._use_mgmt_adv = False
+
+    def diagnostic_dump(self) -> dict[str, Any]:
+        """Diagnostic dump."""
+        return {**super().diagnostic_dump(), "extended_adv": self._use_ext_adv, "mgmt_adv": self._use_mgmt_adv}
 
     async def open(self) -> None:
         """Open the adapters. Can throw exception if invalid."""
@@ -427,19 +441,68 @@ def lb(buf: bytes) -> int:
 
 
 class BleAdvBtManager:
+    """Base Bluetooth Manager."""
+
+    def __init__(self) -> None:
+        self._adapters: dict[str, BleAdvAdapter] = {}
+        self._id_to_name: dict[str, str] = {}
+        self._diags: deque[str] = deque(maxlen=30)
+
+    @property
+    def adapters(self) -> dict[str, BleAdvAdapter]:
+        """Get adapters dict."""
+        return self._adapters
+
+    def _name_from_id(self, adapter_id: str) -> str:
+        """Return the adapter name from the id. Defaults to "no_adapter."""
+        return self._id_to_name.get(adapter_id, "no_adapter")
+
+    def _add_diag(self, msg: str, log_level: int = logging.DEBUG) -> None:
+        """Add a diagnostic log."""
+        _LOGGER.log(log_level, msg)
+        self._diags.append(f"{datetime.now()} - {msg}")
+
+    def diagnostic_dump(self) -> dict[str, Any]:
+        """Diagnostic dump."""
+        return {
+            "adapters": {name: adapt.diagnostic_dump() for name, adapt in self.adapters.items()},
+            "ids": self._id_to_name,
+            "logs": list(self._diags),
+        }
+
+    async def _clean(self) -> None:
+        self._add_diag("Clean all adapters")
+        for adapter in self._adapters.values():
+            await adapter.async_final()
+        self._adapters.clear()
+        self._id_to_name.clear()
+
+    async def _add_adapter(self, adapter_name: str, adapter_id: str, adapter: BleAdvAdapter) -> None:
+        self._add_diag(f"Adding adapter '{adapter_name}'/'{adapter_id}' of type {type(adapter).__name__}")
+        self._id_to_name[adapter_id] = adapter_name
+        self._adapters[adapter_name] = adapter
+        await self._adapters[adapter_name].async_init()
+
+    async def _remove_adapter(self, adapter_name: str) -> None:
+        self._add_diag(f"Removing adapter '{adapter_name}'")
+        if (adapter := self._adapters.pop(adapter_name, None)) is not None:
+            await adapter.async_final()
+            self._id_to_name = {k: v for k, v in self._id_to_name.items() if v != adapter_name}
+
+
+class BleAdvBtHciManager(BleAdvBtManager):
     """Manage the bluetooth Adapters using MGMT api.
 
     Bluez mgmt-api: https://web.git.kernel.org/pub/scm/bluetooth/bluez.git/tree/doc/mgmt.rst
     """
 
     MGMT_CMD_RTO: float = 3.0
+    RECONNECT_RTO: float = 1.0
     CONF_HCI: str = "hci"
 
     def __init__(self, adv_recv_callback: AdvRecvCallback, ign_adapters: list[str]) -> None:
+        super().__init__()
         self._mgmt_sock: AsyncSocketBase | None = None
-        self._hci_adapters: dict[str, BleAdvAdapter] = {}
-        self._hci_adapter_ids: dict[str, int] = {}
-        self._hci_adapter_names: dict[int, str] = {}
         self._mgmt_cmd_event = asyncio.Event()
         self._og_mgmt_cmd = None
         self._og_mgmt_dev_id = None
@@ -452,14 +515,13 @@ class BleAdvBtManager:
         self._disabled = self.CONF_HCI in ign_adapters
 
     @property
-    def adapters(self) -> dict[str, BleAdvAdapter]:
-        """Get hci adapters dict."""
-        return self._hci_adapters
-
-    @property
     def supported_by_host(self) -> bool:
         """Is Bluetooth Socket supported."""
         return hasattr(socket, "AF_BLUETOOTH")
+
+    def diagnostic_dump(self) -> dict[str, Any]:
+        """Diagnostic dump."""
+        return {**super().diagnostic_dump(), "supported_by_host": self.supported_by_host}
 
     async def async_init(self) -> None:
         """Init the handler: init the MGMT Socket and the discovered adapters."""
@@ -475,35 +537,29 @@ class BleAdvBtManager:
         # Controller Index List
         _, index_resp = await self.send_mgmt_cmd(0xFFFF, 0x03, b"")
         nb = lb(index_resp[0:2])
-        _LOGGER.debug(f"MGMT Nb HCI Adapters: {nb}")
+        self._add_diag(f"MGMT Nb HCI Adapters: {nb}")
         for i in range(nb):
             dev_id = lb(index_resp[2 * (i + 1) : 2 * (i + 2)])
             try:
                 _, info_resp = await self.send_mgmt_cmd(dev_id, 0x04, b"")
                 btaddr = ":".join([f"{x:02X}" for x in reversed(info_resp[0:6])])
-                _LOGGER.debug(f"MGMT - HCI Adapter {self.CONF_HCI}{dev_id} btaddr: {btaddr}")
+                self._add_diag(f"MGMT - HCI Adapter {self.CONF_HCI}{dev_id} btaddr: {btaddr}")
                 name = f"{self.CONF_HCI}/{btaddr}"
                 if any(name.startswith(ign_adapt) for ign_adapt in self._ign_adapters):
-                    _LOGGER.debug(f"MGMT - HCI Adapter {name} ignored as per config")
+                    self._add_diag(f"MGMT - HCI Adapter {name} ignored as per config")
                 else:
-                    self._hci_adapter_ids[name] = dev_id
-                    self._hci_adapter_names[dev_id] = name
-                    self._hci_adapters[name] = BluetoothHCIAdapter(name, dev_id, self.send_mgmt_cmd, self._adv_recv, self._hci_adapter_error)
-                    await self._hci_adapters[name].async_init()
+                    adapter = BluetoothHCIAdapter(name, dev_id, btaddr, self.send_mgmt_cmd, self._adv_recv, self._hci_adapter_error)
+                    await self._add_adapter(name, str(dev_id), adapter)
             except BaseException as exc:
-                _LOGGER.error(f"MGMT - Unable to use adapter {self.CONF_HCI}{dev_id} - {exc}")
+                self._add_diag(f"MGMT - Unable to use adapter {self.CONF_HCI}{dev_id} - {exc}", logging.ERROR)
 
     async def async_final(self) -> None:
         """Finalize: Stop Discovery and clean adapters."""
+        await self._clean()
         self._mgmt_opened = False
-        for adapter in self._hci_adapters.values():
-            await adapter.async_final()
         if self._mgmt_sock is not None:
             self._mgmt_sock.close()
             self._mgmt_sock = None
-        self._hci_adapters.clear()
-        self._hci_adapter_ids.clear()
-        self._hci_adapter_names.clear()
 
     async def _mgmt_recv(self, data: bytes) -> None:
         cmd_type = lb(data[0:2])
@@ -518,21 +574,19 @@ class BleAdvBtManager:
             pass
         elif cmd_type in [0x03, 0x04, 0x05, 0x06]:
             # Adapter error / addition / removal / setting change: trigger refresh
-            _LOGGER.debug(f"Event triggering refresh: 0x{cmd_type:04X}")
-            self._launch_refresh()
+            self._launch_refresh(f"Event: 0x{cmd_type:04X}")
         else:
             with contextlib.suppress(Exception):
                 _LOGGER.debug(f"Unhandled Event: {btmgmt_reader(data)}")
 
     async def _hci_adapter_error(self, message: str) -> None:
-        _LOGGER.debug(f"HCI Adapter error: {message}, resetting")
-        self._launch_refresh()
+        self._launch_refresh(f"HCI Adapter error: {message}")
 
     async def _mgmt_close(self, message: str) -> None:
-        _LOGGER.debug(f"MGMT Error: {message}, resetting ..")
-        self._launch_refresh()
+        self._launch_refresh(f"MGMT Closure: {message}")
 
-    def _launch_refresh(self) -> None:
+    def _launch_refresh(self, reason: str) -> None:
+        self._add_diag(f"Manager Refresh - {reason}")
         if self._reconnecting:
             return
         self._reconnecting = True
@@ -543,6 +597,7 @@ class BleAdvBtManager:
         await self.async_final()
         nb_attempt = 0
         while self._reconnecting:
+            await asyncio.sleep(self.RECONNECT_RTO)
             nb_attempt += 1
             try:
                 await self.async_init()
@@ -550,7 +605,6 @@ class BleAdvBtManager:
             except Exception as exc:
                 _LOGGER.debug(f"Reconnect failed ({nb_attempt}): {exc}, retrying..")
                 await self.async_final()
-                await asyncio.sleep(1)
 
     async def send_mgmt_cmd(self, device_id: int, cmd_type: int, cmd_data: bytes = bytearray()) -> tuple[int, bytes]:
         """Send a MGMT command."""
