@@ -186,9 +186,16 @@ class BleAdvConfigFlow(ConfigFlow, domain=DOMAIN):
         if (new_conf := _CodecConfig(codec_id, config.id, config.index)) not in confs:
             confs.append(new_conf)
 
+    def async_update_progress(self, progress: float) -> None:
+        """Backward compatibility to avoid the need for user to upgrade their HA, as this feature is a Nice to Have."""
+        if hasattr(ConfigFlow, "async_update_progress"):
+            super().async_update_progress(progress)  # type: ignore[none]
+
     async def _async_wait_for_config(self, nb_seconds: int) -> None:
         i = 0
         while not self.configs and i < (10 * nb_seconds):
+            if i % 10 == 0:
+                self.async_update_progress(0.01 * i)
             i += 1
             await asyncio.sleep(0.1)
 
@@ -231,13 +238,19 @@ class BleAdvConfigFlow(ConfigFlow, domain=DOMAIN):
         await tmp_device.async_start()
         on_cmd = BleAdvEntAttr([ATTR_ON], {ATTR_ON: True}, LIGHT_TYPE, 0)
         off_cmd = BleAdvEntAttr([ATTR_ON], {ATTR_ON: False}, LIGHT_TYPE, 0)
+        self.async_update_progress(0)
         await tmp_device.apply_change(on_cmd)
         await asyncio.sleep(1)
+        self.async_update_progress(0.25)
         await tmp_device.apply_change(off_cmd)
         await asyncio.sleep(1)
+        self.async_update_progress(0.50)
         await tmp_device.apply_change(on_cmd)
         await asyncio.sleep(1)
+        self.async_update_progress(0.75)
         await tmp_device.apply_change(off_cmd)
+        await asyncio.sleep(1)
+        self.async_update_progress(1)
         await tmp_device.async_stop()
 
     async def _async_pair_all(self) -> None:
@@ -256,6 +269,7 @@ class BleAdvConfigFlow(ConfigFlow, domain=DOMAIN):
 
     async def async_step_user(self, _: dict[str, Any] | None = None) -> ConfigFlowResult:
         """Handle the user step to setup a device."""
+        _LOGGER.debug("Config flow 'user' started.")
         self._coordinator: BleAdvCoordinator = await get_coordinator(self.hass)
         if not self._coordinator.has_available_adapters():
             return self.async_abort(reason="no_adapters")
