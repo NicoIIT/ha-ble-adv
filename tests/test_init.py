@@ -37,6 +37,7 @@ async def test_setup(hass: HomeAssistant) -> None:
 
 async def create_entry(hass: HomeAssistant, entry_id: str | None, version: int, data: dict[str, Any]) -> ConfigEntry:
     """Create an Entry ith default attributes."""
+    # for higher HA versions, add parameter: subentries_data=[],
     conf = ConfigEntry(
         domain=DOMAIN,
         unique_id=entry_id,

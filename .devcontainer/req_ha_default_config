@@ -1,28 +1,32 @@
-# side dependencies needed by home assistant default config to avoid downloading at startup
+# This file allows the pre-install of the python dependencies needed by the components defined in the config,
+# directly in the docker container, avoiding the re install by hass on 'simple' container rebuild
+# see requirements.txt to know how to generate the content of this file
 home-assistant-frontend==20250214.0
-async-upnp-client==0.43.0
-pymicro-vad==1.0.1
-pyspeex-noise==1.0.2
+aiousbwatcher==1.1.1
+pyserial==3.5
 aiodhcpwatcher==1.0.3
 aiodiscover==2.1.0
 cached-ipaddress==0.8.0
-aiousbwatcher==1.1.1
-pyserial==3.5
+async-upnp-client==0.43.0
+PyTurboJPEG==1.7.5
+pymicro-vad==1.0.1
+pyspeex-noise==1.0.2
+bleak==0.22.3
+bleak-retry-connector==3.8.1
+bluetooth-auto-recovery==1.4.2
+bluetooth-data-tools==1.23.4
+habluetooth==3.21.1
 hassil==2.2.3
 home-assistant-intents==2025.2.5
 mutagen==1.47.0
 ha-ffmpeg==3.2.2
-PyTurboJPEG==1.7.5
 python-matter-server==7.0.0
 go2rtc-client==0.1.2
 av==13.1.0
-radios==0.3.2
-pycountry==24.6.1
 gTTS==2.5.3
+radios==0.3.2
 PyNaCl==1.5.0
-bleak-retry-connector==3.8.1
-bluetooth-auto-recovery==1.4.2
-bluetooth-data-tools==1.23.4
-dbus-fast==2.33.0
-habluetooth==3.21.1
-PyMetno==0.13.0
+aioesphomeapi==29.0.0
+esphome-dashboard-api==1.2.3
+bleak-esphome==2.7.0
+aioesphomeapi==29.0.0
