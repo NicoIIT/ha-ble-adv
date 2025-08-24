@@ -15,11 +15,30 @@
         "title": "Tools and Helpers",
         "description": "Tooling section",
         "menu_options": {
-          "diag": "Diagnostic Dump"
+          "diag": "Diagnostic Dump",
+          "inject": "Inject Raw"
         }
       },
       "diag": {
         "title": "Diagnostic Dump"
+      },
+      "inject": {
+        "title": "Manual Injection",
+        "description": "For experienced users, inject raw data",
+        "data": {
+          "adapter_id": "BLE ADV Adapter",
+          "raw": "Raw Data",
+          "interval": "Interval",
+          "repeat": "Repeat"
+        }
+      },
+      "inject_res": {
+        "title": "Injection Result",
+        "description": "Injection Done.",
+        "menu_options": {
+          "inject": "Inject New Raw",
+          "tools": "Back to Tools"
+        }
       },
       "manual": {
         "title": "Manual Input",

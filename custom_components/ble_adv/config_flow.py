@@ -20,6 +20,8 @@ from homeassistant.helpers import selector
 from homeassistant.helpers.http import HomeAssistantView
 from homeassistant.helpers.json import ExtendedJSONEncoder
 
+from ble_adv.adapters import BleAdvQueueItem
+
 from . import get_coordinator
 from .codecs import PHONE_APPS
 from .codecs.const import (
@@ -54,6 +56,7 @@ from .const import (
     CONF_MIN_BRIGHTNESS,
     CONF_PHONE_APP,
     CONF_PRESETS,
+    CONF_RAW,
     CONF_REFRESH_DIR_ON_START,
     CONF_REFRESH_ON_START,
     CONF_REFRESH_OSC_ON_START,
@@ -154,6 +157,7 @@ class BleAdvConfigFlow(ConfigFlow, domain=DOMAIN):
         self._data: dict[str, Any] = {}
         self._conf_name: str = ""
         self._finalize_requested: bool = False
+        self._last_inject: dict[str, Any] = {CONF_RAW: "", CONF_INTERVAL: 20, CONF_REPEAT: 3}
 
     def _selected_adapter_confs(self) -> list[_CodecConfig]:
         return self.configs[self.selected_adapter_id]
@@ -277,7 +281,7 @@ class BleAdvConfigFlow(ConfigFlow, domain=DOMAIN):
 
     async def async_step_tools(self, _: dict[str, Any] | None = None) -> ConfigFlowResult:
         """Tooling Step."""
-        return self.async_show_menu(step_id="tools", menu_options=["diag"])
+        return self.async_show_menu(step_id="tools", menu_options=["diag", "inject"])
 
     async def async_step_diag(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         """Diagnostic step."""
@@ -296,6 +300,33 @@ class BleAdvConfigFlow(ConfigFlow, domain=DOMAIN):
         diag_view = BleAdvConfigView(self.flow_id, diag_resp)
         self.hass.http.register_view(diag_view)
         return self.async_external_step(url=diag_view.full_url)
+
+    async def async_step_inject(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
+        """Manual injection step."""
+        if user_input is not None:
+            self._last_inject = user_input
+            qi = BleAdvQueueItem(0, 3 * user_input[CONF_REPEAT], 0, user_input[CONF_INTERVAL], bytes.fromhex(user_input[CONF_RAW]))
+            await self._coordinator.advertise(user_input[CONF_ADAPTER_ID], "man", qi)
+            return await self.async_step_inject_res()
+
+        data_schema = vol.Schema(
+            {
+                vol.Required(CONF_ADAPTER_ID, default=self._last_inject.get(CONF_ADAPTER_ID, None)): vol.In(self._coordinator.get_adapter_ids()),
+                vol.Required(CONF_RAW, default=self._last_inject[CONF_RAW]): selector.TextSelector(selector.TextSelectorConfig()),
+                vol.Optional(CONF_INTERVAL, default=self._last_inject[CONF_INTERVAL]): selector.NumberSelector(
+                    selector.NumberSelectorConfig(step=10, min=10, max=150, mode=selector.NumberSelectorMode.BOX)
+                ),
+                vol.Optional(CONF_REPEAT, default=self._last_inject[CONF_REPEAT]): selector.NumberSelector(
+                    selector.NumberSelectorConfig(step=1, min=1, max=20, mode=selector.NumberSelectorMode.BOX)
+                ),
+            }
+        )
+
+        return self.async_show_form(step_id="inject", data_schema=data_schema)
+
+    async def async_step_inject_res(self, _: dict[str, Any] | None = None) -> ConfigFlowResult:
+        """Manual injection result step."""
+        return self.async_show_menu(step_id="inject_res", menu_options=["inject", "tools"])
 
     async def async_step_manual(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         """Manual input step."""
