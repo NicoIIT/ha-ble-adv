@@ -9,6 +9,7 @@ from collections.abc import Awaitable, Callable
 from datetime import datetime, timedelta
 from http import HTTPStatus
 from random import randint
+from types import CoroutineType
 from typing import Any
 
 import voluptuous as vol
@@ -116,6 +117,7 @@ class BleAdvConfigView(HomeAssistantView):
     url: str = f"/api/{DOMAIN}/config_flow/{{flow_id}}"
     name: str = f"api:{DOMAIN}:config_flow"
     requires_auth: bool = False
+    NOT_FOUND_RESP: web.Response = web.Response(status=HTTPStatus.NOT_FOUND)
 
     def __init__(self, flow_id: str, response: WebResponseCallback) -> None:
         self._flow_id: str = flow_id
@@ -134,9 +136,42 @@ class BleAdvConfigView(HomeAssistantView):
         # as it is not possible to unregister the view
         if self._called_once or self._flow_id != flow_id:
             _LOGGER.error(f"Invalid flow_id given: {flow_id}")
-            return web.Response(status=HTTPStatus.NOT_FOUND)
+            return self.NOT_FOUND_RESP
         self._called_once = True
         return await self._response()
+
+
+class BleAdvMultiTaskProgress:
+    """Multi Task progress flow helper."""
+
+    def __init__(self, flow: ConfigFlow, step_id: str) -> None:
+        self._flow = flow
+        self._step_id = step_id
+        self._tasks: list[tuple[str, CoroutineType[Any, Any, None], dict[str, str]]] = []
+        self._og_task: asyncio.Task | None = None
+        self._og_name: str = ""
+        self._og_ph: dict[str, str] = {}
+
+    def add_task(self, name: str, task: CoroutineType[Any, Any, None], ph: dict[str, str]) -> None:
+        """Add a task to the sequence of tasks to be executed."""
+        self._tasks.append((name, task, ph))
+
+    def next(self) -> ConfigFlowResult | None:
+        """Return the next task to be executed if any."""
+        if self._og_task is None or self._og_task.done():
+            if self._tasks:
+                self._og_name, task, self._og_ph = self._tasks.pop(0)
+                self._og_task = self._flow.hass.async_create_task(task)
+            else:
+                self._og_task = None
+        if self._og_task is None:
+            return None
+        return self._flow.async_show_progress(
+            step_id=self._step_id,
+            progress_action=self._og_name,
+            progress_task=self._og_task,
+            description_placeholders=self._og_ph,
+        )
 
 
 class BleAdvConfigFlow(ConfigFlow, domain=DOMAIN):
@@ -149,13 +184,11 @@ class BleAdvConfigFlow(ConfigFlow, domain=DOMAIN):
         self.configs: dict[str, list[_CodecConfig]] = {}
         self.selected_adapter_id: str = ""
         self.selected_config: int = 0
-        self.pair_done: bool = False
-        self._blink_task = None
-        self._wait_task = None
+
+        self._progress: BleAdvMultiTaskProgress | None = None
         self._clean_datetime = None
 
         self._data: dict[str, Any] = {}
-        self._conf_name: str = ""
         self._finalize_requested: bool = False
         self._last_inject: dict[str, Any] = {CONF_RAW: "", CONF_INTERVAL: 20, CONF_REPEAT: 3}
 
@@ -177,11 +210,7 @@ class BleAdvConfigFlow(ConfigFlow, domain=DOMAIN):
 
     def _remote_conf_placeholders(self) -> dict[str, str]:
         conf = self._data[CONF_REMOTE]
-        return {
-            "codec": conf[CONF_CODEC_ID],
-            "id": f"0x{conf[CONF_FORCED_ID]:X}",
-            "index": str(conf[CONF_INDEX]),
-        }
+        return {"codec": conf[CONF_CODEC_ID], "id": f"0x{conf[CONF_FORCED_ID]:X}", "index": str(conf[CONF_INDEX])}
 
     async def _async_on_new_config(self, codec_id: str, match_id: str, adapter_id: str, config: BleAdvConfig) -> None:
         confs = self.configs.setdefault(adapter_id, [])
@@ -267,9 +296,23 @@ class BleAdvConfigFlow(ConfigFlow, domain=DOMAIN):
             await tmp_device.async_stop()
         await asyncio.sleep(2)
 
-    async def view_called(self) -> None:
-        """BleAdvConfigView has been called: continue flow."""
-        await self.hass.config_entries.flow.async_configure(flow_id=self.flow_id, user_input={})
+    def _create_api_view(self, response: web.Response) -> str:
+        async def api_resp() -> web.Response:
+            await self.hass.config_entries.flow.async_configure(flow_id=self.flow_id, user_input={})
+            return response
+
+        api_view = BleAdvConfigView(self.flow_id, api_resp)
+        self.hass.http.register_view(api_view)
+        return api_view.full_url
+
+    def _create_api_json_view(self, name: str, data: dict[str, Any]) -> str:
+        return self._create_api_view(
+            web.Response(
+                body=json.dumps(data, indent=2, cls=ExtendedJSONEncoder),
+                content_type="application/json",
+                headers={"Content-Disposition": f'attachment; filename="{name}.json"'},
+            )
+        )
 
     async def async_step_user(self, _: dict[str, Any] | None = None) -> ConfigFlowResult:
         """Handle the user step to setup a device."""
@@ -288,18 +331,8 @@ class BleAdvConfigFlow(ConfigFlow, domain=DOMAIN):
         if user_input is not None:
             return self.async_external_step_done(next_step_id="tools")
 
-        async def diag_resp() -> web.Response:
-            data = await self._coordinator.full_diagnostic_dump()
-            await self.view_called()
-            return web.Response(
-                body=json.dumps(data, indent=2, cls=ExtendedJSONEncoder),
-                content_type="application/json",
-                headers={"Content-Disposition": 'attachment; filename="ble_adv_diag.json"'},
-            )
-
-        diag_view = BleAdvConfigView(self.flow_id, diag_resp)
-        self.hass.http.register_view(diag_view)
-        return self.async_external_step(url=diag_view.full_url)
+        diag = await self._coordinator.full_diagnostic_dump()
+        return self.async_external_step(url=self._create_api_json_view("ble_adv_diag", diag))
 
     async def async_step_inject(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         """Manual injection step."""
@@ -375,21 +408,16 @@ class BleAdvConfigFlow(ConfigFlow, domain=DOMAIN):
 
     async def async_step_wait_config(self, _: dict[str, Any] | None = None) -> ConfigFlowResult:
         """Wait for listened config Step."""
-        if not self.configs:
-            if self._wait_task is None:
-                await self._async_start_listen_to_config()
-                self._wait_task = self.hass.async_create_task(self._async_wait_for_config(WAIT_MAX_SECONDS))
-            if self._wait_task.done():
-                self._wait_task = None
-                return self.async_show_progress_done(next_step_id="no_config")
-            return self.async_show_progress(
-                step_id="wait_config",
-                progress_action="wait_config",
-                progress_task=self._wait_task,
-                description_placeholders={"max_seconds": str(WAIT_MAX_SECONDS)},
-            )
-        self.wait_for_agg = False
-        return self.async_show_progress_done(next_step_id="agg_config")
+        if self._progress is None:
+            self._progress = BleAdvMultiTaskProgress(self, "wait_config")
+            self._progress.add_task("wait_config", self._async_wait_for_config(WAIT_MAX_SECONDS), {"max_seconds": str(WAIT_MAX_SECONDS)})
+            self._progress.add_task("agg_config", asyncio.sleep(3.0), {})
+            await self._async_start_listen_to_config()
+        if (flow_res := self._progress.next()) is not None:
+            return flow_res
+        await self._async_stop_listen_to_config()
+        self._progress = None
+        return self.async_show_progress_done(next_step_id="no_config" if not self.configs else "choose_adapter")
 
     async def async_step_no_config(self, _: dict[str, Any] | None = None) -> ConfigFlowResult:
         """No Config found, abort or retry."""
@@ -398,18 +426,6 @@ class BleAdvConfigFlow(ConfigFlow, domain=DOMAIN):
     async def async_step_abort_config(self, _: dict[str, Any] | None = None) -> ConfigFlowResult:
         """No Config found, abort."""
         return self.async_abort(reason="no_config")
-
-    async def async_step_agg_config(self, _: dict[str, Any] | None = None) -> ConfigFlowResult:
-        """Supplementary wait for other config Step."""
-        if not self.wait_for_agg:
-            self.wait_for_agg = True
-            return self.async_show_progress(
-                step_id="agg_config",
-                progress_action="agg_config",
-                progress_task=self.hass.async_create_task(asyncio.sleep(3.0)),
-            )
-        await self._async_stop_listen_to_config()
-        return self.async_show_progress_done(next_step_id="choose_adapter")
 
     async def async_step_choose_adapter(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         """Choose adapter."""
@@ -428,17 +444,13 @@ class BleAdvConfigFlow(ConfigFlow, domain=DOMAIN):
 
     async def async_step_blink(self, _: dict[str, Any] | None = None) -> ConfigFlowResult:
         """Blink Step."""
-        if self._blink_task is None:
-            self._blink_task = self.hass.async_create_task(self._async_blink_light())
-        if self._blink_task.done():
-            self._blink_task = None
-            return self.async_show_progress_done(next_step_id="confirm")
-        return self.async_show_progress(
-            step_id="blink",
-            progress_action="blink",
-            progress_task=self._blink_task,
-            description_placeholders=self._selected_conf_placeholders(),
-        )
+        if self._progress is None:
+            self._progress = BleAdvMultiTaskProgress(self, "blink")
+            self._progress.add_task("blink", self._async_blink_light(), self._selected_conf_placeholders())
+        if (flow_res := self._progress.next()) is not None:
+            return flow_res
+        self._progress = None
+        return self.async_show_progress_done(next_step_id="confirm")
 
     async def async_step_confirm(self, _: dict[str, Any] | None = None) -> ConfigFlowResult:
         """Confirm choice Step."""
@@ -562,7 +574,7 @@ class BleAdvConfigFlow(ConfigFlow, domain=DOMAIN):
         self.configs.clear()
         self.selected_config = 0
         self.selected_adapter_id = ""
-        self._wait_task = None
+        self._progress = None
         if CONF_REMOTE in self._data and CONF_CODEC_ID in self._data[CONF_REMOTE]:
             return self.async_show_menu(
                 step_id="config_remote",
@@ -578,20 +590,16 @@ class BleAdvConfigFlow(ConfigFlow, domain=DOMAIN):
 
     async def async_step_config_remote_new(self, _: dict[str, Any] | None = None) -> ConfigFlowResult:
         """Configure New Remote."""
-        if not self.configs:
-            if self._wait_task is None:
-                await self._async_start_listen_to_config()
-                self._wait_task = self.hass.async_create_task(self._async_wait_for_config(WAIT_MAX_SECONDS))
-            if self._wait_task.done():
-                self._wait_task = None
-                return self.async_show_progress_done(next_step_id="configure")
-            return self.async_show_progress(
-                step_id="config_remote_new",
-                progress_action="wait_config_remote",
-                progress_task=self._wait_task,
-                description_placeholders={"max_seconds": str(WAIT_MAX_SECONDS)},
-            )
+        if self._progress is None:
+            self._progress = BleAdvMultiTaskProgress(self, "config_remote_new")
+            self._progress.add_task("wait_config_remote", self._async_wait_for_config(WAIT_MAX_SECONDS), {"max_seconds": str(WAIT_MAX_SECONDS)})
+            await self._async_start_listen_to_config()
+        if (flow_res := self._progress.next()) is not None:
+            return flow_res
         await self._async_stop_listen_to_config()
+        self._progress = None
+        if not self.configs:
+            return self.async_show_progress_done(next_step_id="configure")
         config = self.configs[next(iter(self.configs))][0]  # get the first found adapter/config
         self._data[CONF_REMOTE] = {CONF_CODEC_ID: config.codec_id, CONF_FORCED_ID: config.id, CONF_INDEX: config.index}
         return self.async_show_progress_done(next_step_id="config_remote_update")
