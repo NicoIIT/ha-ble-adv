@@ -21,9 +21,8 @@ from homeassistant.helpers import selector
 from homeassistant.helpers.http import HomeAssistantView
 from homeassistant.helpers.json import ExtendedJSONEncoder
 
-from ble_adv.adapters import BleAdvQueueItem
-
 from . import get_coordinator
+from .adapters import BleAdvQueueItem
 from .codecs import PHONE_APPS
 from .codecs.const import (
     ATTR_CMD,
