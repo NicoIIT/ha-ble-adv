@@ -346,7 +346,7 @@ class BluetoothHCIAdapter(BleAdvAdapter):
         patched_data = bytearray(data) + bytearray([0x00] * (31 - len(data)))
         async with self._adv_lock:
             min_adv = max(0x20, int(interval * 1.6))
-            duration = int(0.0009 * repeat * interval)
+            duration = float(0.0009 * repeat * interval)
             if self._use_ext_adv:
                 await self._hci_ext_advertise(min_adv, duration, patched_data)
             elif self._use_mgmt_adv:
@@ -369,7 +369,7 @@ class BluetoothHCIAdapter(BleAdvAdapter):
         # btmon will give error 'invalid packet size' if data not of len 31, but the command is successful.
         await self._send_hci_cmd(self.OCF_LE_SET_ADVERTISING_DATA, bytearray([len(data), *data]))
 
-    async def _hci_advertise(self, min_adv: int, duration: int, data: bytes) -> None:
+    async def _hci_advertise(self, min_adv: int, duration: float, data: bytes) -> None:
         await self._set_advertise_enable(enabled=False)
         await self._set_advertising_parameter(min_adv, min_adv)
         await self._set_advertising_data(data)
@@ -413,7 +413,7 @@ class BluetoothHCIAdapter(BleAdvAdapter):
         cmd = struct.pack(f"<BBBB{data_len}B", self.ADV_INST, 0x03, 0x01, data_len, *data)
         await self._send_hci_cmd(self.OCF_LE_SET_EXT_ADVERTISING_DATA, cmd)
 
-    async def _hci_ext_advertise(self, min_adv: int, duration: int, data: bytes) -> None:
+    async def _hci_ext_advertise(self, min_adv: int, duration: float, data: bytes) -> None:
         await self._set_ext_advertise_enable(enabled=False)
         await self._set_ext_advertising_parameter(min_adv, min_adv)
         await self._set_ext_advertising_data(data)
@@ -423,7 +423,7 @@ class BluetoothHCIAdapter(BleAdvAdapter):
         # set a fake adv, just in case it would be re enabled
         await self._set_ext_advertising_data(self.FAKE_ADV)
 
-    async def _mgmt_advertise(self, duration: int, data: bytes) -> None:
+    async def _mgmt_advertise(self, duration: float, data: bytes) -> None:
         data_len = len(data)
         await self._mgmt_send(self.device_id, 0x003E, struct.pack(f"<BIHHBB{data_len}B", self.ADV_INST, 0, 0, 0, data_len, 0, *data))
         await asyncio.sleep(duration)
