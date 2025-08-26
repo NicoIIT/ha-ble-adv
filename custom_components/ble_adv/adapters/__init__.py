@@ -43,7 +43,7 @@ class BleAdvQueueItem:
 
     def __hash__(self) -> int:
         """Hash."""
-        return hash([self.key, self.data])
+        return hash((self.key, self.data))
 
     def __eq__(self, comp: Self) -> bool:
         """Equality."""
@@ -389,7 +389,7 @@ class BluetoothHCIAdapter(BleAdvAdapter):
         cmd = struct.pack(
             "<BHHBHBBBB6BBBBBBBB",
             self.ADV_INST,
-            0x0011,  # Properties (Use legacy advertising PDUs / ADV_CONN_IND)
+            0x0013,  # Properties (Use legacy advertising PDUs / ADV_IND)
             min_interval,  # Min advertising interval
             0x00,
             max_interval,  # Max advertising interval

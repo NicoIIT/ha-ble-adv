@@ -1,6 +1,7 @@
 """Coordinator tests."""
 
 # ruff: noqa: S101
+import asyncio
 from unittest import mock
 
 from ble_adv.adapters import BleAdvQueueItem
@@ -63,8 +64,40 @@ async def test_coordinator(hass: HomeAssistant) -> None:
     await coord.async_final()
 
 
+async def test_listening(hass: HomeAssistant) -> None:
+    """Test listening mode."""
+    coord = BleAdvCoordinator(hass, {}, ["hci"], 20000, [], [])
+    coord.start_listening(0.1)
+    assert coord.is_listening()
+    raw_adv = bytes([0x03, 0xFF, 0x12, 0x34])
+    await coord.handle_raw_adv("aaa", "mac", raw_adv)
+    await coord.handle_raw_adv("bbb", "mac", raw_adv)
+    await coord.handle_raw_adv("aaa", "mac", raw_adv)
+    assert coord.listened_raw_advs == [raw_adv, raw_adv]
+    await asyncio.sleep(0.2)
+    assert not coord.is_listening()
+
+
+async def test_ign_cid(hass: HomeAssistant) -> None:
+    """Test Ignored Company IDs."""
+    coord = BleAdvCoordinator(hass, {}, ["hci"], 20000, [0x3412], [])
+    coord.start_listening(0.1)
+    raw_adv = bytes([0x03, 0xFF, 0x12, 0x34])
+    await coord.handle_raw_adv("aaa", "mac1", raw_adv)
+    assert coord.listened_raw_advs == []
+
+
+async def test_ign_mac(hass: HomeAssistant) -> None:
+    """Test Ignored Macs."""
+    coord = BleAdvCoordinator(hass, {}, ["hci"], 20000, [], ["mac1"])
+    coord.start_listening(0.1)
+    raw_adv = bytes([0x03, 0xFF, 0x12, 0x34])
+    await coord.handle_raw_adv("aaa", "mac1", raw_adv)
+    assert coord.listened_raw_advs == []
+
+
 async def test_full_diagnostics(hass: HomeAssistant) -> None:
-    """TestFull Diagnostics."""
+    """Test Full Diagnostics."""
     coord = BleAdvCoordinator(hass, {}, ["hci"], 20000, [], [])
     diag = await coord.full_diagnostic_dump()
     assert len(diag["coordinator"]) > 0

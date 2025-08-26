@@ -20,17 +20,12 @@ from .esp_adapters import BleAdvEspBtManager
 _LOGGER = logging.getLogger(__name__)
 
 
-class CoordinatorError(Exception):
-    """Coordinator Exception."""
-
-
 class MatchingCallback(ABC):
     """Base MatchingCallback class."""
 
     @abstractmethod
     async def handle(self, codec_id: str, match_id: str, adapter_id: str, config: BleAdvConfig, ent_attrs: list[BleAdvEntAttr]) -> None:
         """Implement Action."""
-        raise CoordinatorError("Not Implemented")
 
 
 class BleAdvCoordinator:
@@ -57,6 +52,10 @@ class BleAdvCoordinator:
         self._callbacks: dict[str, MatchingCallback] = {}
         self._hci_bt_manager: BleAdvBtHciManager = BleAdvBtHciManager(self.handle_raw_adv, ign_adapters)
         self._esp_bt_manager: BleAdvEspBtManager = BleAdvEspBtManager(self.hass, self.handle_raw_adv, ign_duration, ign_cids, ign_macs)
+
+        self._stop_listening_time: datetime | None = None
+        self.listened_raw_advs: list[bytes] = []
+        self.listened_decoded_confs: list[tuple[str, str, str, BleAdvConfig]] = []
 
     async def async_init(self) -> None:
         """Async Init."""
@@ -87,6 +86,18 @@ class BleAdvCoordinator:
     async def on_stop_event(self, _: Event) -> None:
         """Act on stop event."""
         await self.async_final()
+
+    def is_listening(self) -> bool:
+        """Return if listening."""
+        if self._stop_listening_time is not None and datetime.now() > self._stop_listening_time:
+            self._stop_listening_time = None
+        return self._stop_listening_time is not None
+
+    def start_listening(self, max_duration: float) -> None:
+        """Start listening to raw and decoded ADVs."""
+        self._stop_listening_time = datetime.now() + timedelta(seconds=max_duration)
+        self.listened_raw_advs.clear()
+        self.listened_decoded_confs.clear()
 
     async def register_callback(self, callback_id: str, callback: MatchingCallback) -> None:
         """Register a matching callback by its id."""
@@ -130,7 +141,7 @@ class BleAdvCoordinator:
 
             # Parse the raw data and find the relevant info
             if (adv := BleAdvAdvertisement.FromRaw(raw_adv)) is None:
-                _LOGGER.debug(f"[{adapter_id}][{orig}] BLE ADV received - RAW - {raw_adv.hex('.').upper()}")
+                await self._on_new_raw_received(adapter_id, orig, raw_adv)
                 return
 
             # Exclude by Company ID
@@ -143,11 +154,12 @@ class BleAdvCoordinator:
             if skip:
                 return
 
-            _LOGGER.debug(f"[{adapter_id}][{orig}] BLE ADV received - RAW - {raw_adv.hex('.').upper()}")
+            await self._on_new_raw_received(adapter_id, orig, raw_adv)
 
             for codec_id, acodec in self.codecs.items():
                 enc_cmd, conf = acodec.decode_adv(adv)
                 if conf is not None and enc_cmd is not None:
+                    await self._on_new_decoded_received(adapter_id, orig, codec_id, acodec.match_id, conf)
                     ent_attrs = acodec.enc_to_ent(enc_cmd)
                     _LOGGER.debug(f"[{adapter_id}][{codec_id}] {conf} / {enc_cmd} / {ent_attrs}")
                     for device_callback in self._callbacks.values():
@@ -155,6 +167,15 @@ class BleAdvCoordinator:
 
         except Exception:
             _LOGGER.exception(f"[{adapter_id}] Exception handling raw adv message")
+
+    async def _on_new_raw_received(self, adapter_id: str, orig: str, raw_adv: bytes) -> None:
+        _LOGGER.debug(f"[{adapter_id}][{orig}] BLE ADV received - RAW - {raw_adv.hex('.').upper()}")
+        if self.is_listening():
+            self.listened_raw_advs.append(raw_adv)
+
+    async def _on_new_decoded_received(self, adapter_id: str, _: str, codec_id: str, match_id: str, conf: BleAdvConfig) -> None:
+        if self.is_listening():
+            self.listened_decoded_confs.append((adapter_id, codec_id, match_id, conf))
 
     def diagnostic_dump(self) -> dict[str, Any]:
         """Dump diagnostc dict."""
