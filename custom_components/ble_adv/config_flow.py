@@ -5,12 +5,13 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
+from abc import abstractmethod
 from collections.abc import Awaitable, Callable
+from dataclasses import dataclass
 from datetime import datetime, timedelta
 from http import HTTPStatus
 from random import randint
-from types import CoroutineType
-from typing import Any
+from typing import Any, cast
 
 import voluptuous as vol
 from aiohttp import web
@@ -69,26 +70,12 @@ from .const import (
     CONF_USE_OSC,
     DOMAIN,
 )
-from .coordinator import BleAdvCoordinator, MatchingCallback
+from .coordinator import BleAdvCoordinator
 from .device import BleAdvDevice
 
 _LOGGER = logging.getLogger(__name__)
 
-type CodecFoundCallback = Callable[[str, str, str, BleAdvConfig], Awaitable[None]]
-
 WAIT_MAX_SECONDS = 10
-
-
-class _MatchingAllCallback(MatchingCallback):
-    def __init__(self, callback: CodecFoundCallback) -> None:
-        self.callback: CodecFoundCallback = callback
-
-    def __repr__(self) -> str:
-        return "Matching ALL"
-
-    async def handle(self, codec_id: str, match_id: str, adapter_id: str, config: BleAdvConfig, __: list[BleAdvEntAttr]) -> bool:
-        await self.callback(codec_id, match_id, adapter_id, config)
-        return True
 
 
 class _CodecConfig(BleAdvConfig):
@@ -104,7 +91,7 @@ class _CodecConfig(BleAdvConfig):
         return (self.codec_id == comp.codec_id) and (self.id == comp.id) and (self.index == comp.index)
 
     def __hash__(self) -> int:
-        return hash([self.codec_id, self.id, self.index])
+        return hash((self.codec_id, self.id, self.index))
 
 
 type WebResponseCallback = Callable[[], Awaitable[web.Response]]
@@ -140,37 +127,201 @@ class BleAdvConfigView(HomeAssistantView):
         return await self._response()
 
 
-class BleAdvMultiTaskProgress:
-    """Multi Task progress flow helper."""
+@dataclass
+class _ActionResult:
+    name: str | None = None
+    ph: dict[str, str] | None = None
 
-    def __init__(self, flow: ConfigFlow, step_id: str) -> None:
-        self._flow = flow
-        self._step_id = step_id
-        self._tasks: list[tuple[str, CoroutineType[Any, Any, None], dict[str, str]]] = []
-        self._og_task: asyncio.Task | None = None
-        self._og_name: str = ""
-        self._og_ph: dict[str, str] = {}
 
-    def add_task(self, name: str, task: CoroutineType[Any, Any, None], ph: dict[str, str]) -> None:
-        """Add a task to the sequence of tasks to be executed."""
-        self._tasks.append((name, task, ph))
+class BleAdvProgressFlowBase:
+    """Base Progress Flow."""
+
+    def __init__(self, flow: BleAdvConfigFlow, step_id: str, ph: dict[str, str]) -> None:
+        self._flow: BleAdvConfigFlow = flow
+        self._step_id: str = step_id
+        self._task: asyncio.Task | None = None
+        self._result: _ActionResult = _ActionResult(name=self._step_id, ph=ph)
+        self._exit = False
+
+    @abstractmethod
+    async def _action_task(self) -> None:
+        """Task to be implemented by child. Called in loop, updates _result until the _exit is setup."""
+
+    def _update_action_result(self, result: _ActionResult) -> bool:
+        if result.name is not None and self._result.name != result.name:
+            self._result.name = result.name
+            return True
+        if result.ph is not None and self._result.ph != result.ph:
+            self._result.ph = result.ph
+            return True
+        return False
 
     def next(self) -> ConfigFlowResult | None:
-        """Return the next task to be executed if any."""
-        if self._og_task is None or self._og_task.done():
-            if self._tasks:
-                self._og_name, task, self._og_ph = self._tasks.pop(0)
-                self._og_task = self._flow.hass.async_create_task(task)
-            else:
-                self._og_task = None
-        if self._og_task is None:
+        """Execute next step of the Progress Flow."""
+        if self._exit:
             return None
+        if self._task is None or self._task.done():
+            self._task = self._flow.hass.async_create_task(self._action_task())
         return self._flow.async_show_progress(
             step_id=self._step_id,
-            progress_action=self._og_name,
-            progress_task=self._og_task,
-            description_placeholders=self._og_ph,
+            progress_action=self._result.name if self._result.name is not None else self._step_id,
+            progress_task=self._task,
+            description_placeholders=self._result.ph if self._result.ph is not None else {},
         )
+
+
+class BleAdvBlinkProgressFlow(BleAdvProgressFlowBase):
+    """Progress flow for blink task."""
+
+    async def _action_task(self) -> None:
+        await self._flow.async_blink_light()
+        self._exit = True
+
+
+class BleAdvPairProgressFlow(BleAdvProgressFlowBase):
+    """Progress flow for pair task."""
+
+    async def _action_task(self) -> None:
+        await self._flow.async_pair_all()
+        self._exit = True
+
+
+class BleAdvWaitProgress(BleAdvProgressFlowBase):
+    """Base Progress Flow based on wait / update."""
+
+    def __init__(self, flow: BleAdvConfigFlow, step_id: str, max_duration: float) -> None:
+        super().__init__(flow, step_id, {})
+        self._stop_time: datetime | None = None
+        self._max_duration: float = max_duration
+        self._setup_stop_time(max_duration)
+
+    def _setup_stop_time(self, max_duration: float | None = None) -> None:
+        if max_duration is not None:
+            self._stop_time = datetime.now() + timedelta(seconds=max_duration)
+
+    @abstractmethod
+    def _evaluate(self) -> _ActionResult:
+        """Evaluate of the updated name / placeholders. Called every 0.1s to compute the updated _ActionResult."""
+
+    async def _action_task(self) -> None:
+        """Task for Evaluation every 0.1s. Return if name / placeholders changed."""
+        while self._stop_time is None or datetime.now() < self._stop_time:
+            if self._update_action_result(self._evaluate()):
+                return
+            await asyncio.sleep(0.1)
+        self._exit = True
+
+
+class BleAdvWaitConfigProgress(BleAdvWaitProgress):
+    """Listen to configurations."""
+
+    def __init__(self, flow: BleAdvConfigFlow, step_id: str, max_duration: float, wait_agg: float = 0) -> None:
+        super().__init__(flow, step_id, max_duration)
+        self._wait_agg = wait_agg
+        self._agg_mode: bool = False
+        self.configs: dict[str, list[_CodecConfig]] = {}
+        self._flow.coordinator.start_listening(max_duration + wait_agg)
+
+    def _add_config(self, adapter_id: str, conf: _CodecConfig) -> None:
+        confs = self.configs.setdefault(adapter_id, [])
+        if conf not in confs:
+            confs.append(conf)
+
+    def _evaluate(self) -> _ActionResult:
+        coord = self._flow.coordinator
+        for adapter_id, codec_id, match_id, config in coord.listened_decoded_confs:
+            self._add_config(adapter_id, _CodecConfig(match_id, config.id, config.index))
+            self._add_config(adapter_id, _CodecConfig(codec_id, config.id, config.index))
+        coord.listened_decoded_confs.clear()
+
+        if not self.configs:
+            return _ActionResult(ph={"max_seconds": str(self._max_duration)})
+        if not self._agg_mode:
+            self._agg_mode = True
+            self._setup_stop_time(self._wait_agg)
+        return _ActionResult(name="agg_config", ph={})
+
+
+def _format_advs(raw_advs: list[bytes]) -> str:
+    return "\n    " + "\n    ".join([x.hex().upper() for x in raw_advs]) if raw_advs else "\n    None"
+
+
+class BleAdvWaitRawAdvProgress(BleAdvWaitProgress):
+    """Listen to raw ADVs."""
+
+    def __init__(self, flow: BleAdvConfigFlow, step_id: str, max_duration: float) -> None:
+        super().__init__(flow, step_id, max_duration)
+        self.raw_advs: list[bytes] = []
+        self._flow.coordinator.start_listening(max_duration)
+
+    def _evaluate(self) -> _ActionResult:
+        coord = self._flow.coordinator
+        for raw_adv in coord.listened_raw_advs:
+            if raw_adv not in self.raw_advs:
+                self.raw_advs.append(raw_adv)
+        coord.listened_raw_advs.clear()
+        return _ActionResult(ph={"advs": _format_advs(self.raw_advs)})
+
+
+class BleAdvConfigHandler:
+    """Handle configs."""
+
+    def __init__(self, configs: dict[str, list[_CodecConfig]] | None = None) -> None:
+        self._configs: dict[str, list[_CodecConfig]] = {} if configs is None else configs
+        self._selected_adapter_id: str | None = None
+        self._selected_config: int = 0
+
+    def __repr__(self) -> str:
+        return repr(self._configs)
+
+    def reset_selected(self) -> None:
+        """Clear selection."""
+        self._selected_config = 0
+        self._selected_adapter_id = None
+
+    @property
+    def adapters(self) -> list[str]:
+        """Return the list of adapter_id."""
+        return list(self._configs.keys())
+
+    def selected_adapter(self) -> str:
+        """Return the selected adapter if any, else the first one. Can only be called if 'has_confs' is True."""
+        if self._selected_adapter_id in self._configs:
+            return self._selected_adapter_id
+        return self.adapters[0]
+
+    def is_empty(self) -> bool:
+        """Return True if no conf."""
+        return not bool(self._configs)
+
+    def has_next(self) -> bool:
+        """Return True if there are still conf in selected."""
+        return (self._selected_config + 1) < len(self.selected_confs())
+
+    def next(self) -> _CodecConfig:
+        """Return the next conf if any."""
+        self._selected_config += 1
+        return self.selected_confs()[self._selected_config]
+
+    def set_selected_adapter(self, adapter_id: str) -> None:
+        """Set adapter as selected."""
+        self._selected_adapter_id = adapter_id
+        self._selected_config = 0
+
+    def selected_confs(self) -> list[_CodecConfig]:
+        """Return the confs filtered by selected_adapter_id."""
+        return self._configs[self.selected_adapter()]
+
+    def selected(self) -> _CodecConfig:
+        """Return the selected conf."""
+        return self.selected_confs()[self._selected_config]
+
+    def placeholders(self) -> dict[str, str]:
+        """Return the Placeholders for the selected conf."""
+        conf = self.selected()
+        nb: str = str(self._selected_config + 1)
+        tot: str = str(len(self.selected_confs()))
+        return {"nb": nb, "tot": tot, "codec": conf.codec_id, "id": f"0x{conf.id:X}", "index": str(conf.index)}
 
 
 class BleAdvConfigFlow(ConfigFlow, domain=DOMAIN):
@@ -180,93 +331,31 @@ class BleAdvConfigFlow(ConfigFlow, domain=DOMAIN):
 
     def __init__(self) -> None:
         """Initialize the config flow."""
-        self.configs: dict[str, list[_CodecConfig]] = {}
-        self.selected_adapter_id: str = ""
-        self.selected_config: int = 0
-
-        self._progress: BleAdvMultiTaskProgress | None = None
-        self._clean_datetime = None
+        self._confs: BleAdvConfigHandler = BleAdvConfigHandler()
+        self._progress: BleAdvProgressFlowBase | None = None
 
         self._data: dict[str, Any] = {}
         self._finalize_requested: bool = False
         self._last_inject: dict[str, Any] = {CONF_RAW: "", CONF_INTERVAL: 20, CONF_REPEAT: 3}
 
-    def _selected_adapter_confs(self) -> list[_CodecConfig]:
-        return self.configs[self.selected_adapter_id]
-
-    def _selected_conf(self) -> _CodecConfig:
-        return self._selected_adapter_confs()[self.selected_config]
-
-    def _selected_conf_placeholders(self) -> dict[str, str]:
-        conf = self._selected_conf()
-        return {
-            "nb": str(self.selected_config + 1),
-            "tot": str(len(self._selected_adapter_confs())),
-            "codec": conf.codec_id,
-            "id": f"0x{conf.id:X}",
-            "index": str(conf.index),
-        }
-
     def _remote_conf_placeholders(self) -> dict[str, str]:
         conf = self._data[CONF_REMOTE]
         return {"codec": conf[CONF_CODEC_ID], "id": f"0x{conf[CONF_FORCED_ID]:X}", "index": str(conf[CONF_INDEX])}
-
-    async def _async_on_new_config(self, codec_id: str, match_id: str, adapter_id: str, config: BleAdvConfig) -> None:
-        confs = self.configs.setdefault(adapter_id, [])
-        if (match_conf := _CodecConfig(match_id, config.id, config.index)) not in confs:
-            confs.append(match_conf)
-        if (new_conf := _CodecConfig(codec_id, config.id, config.index)) not in confs:
-            confs.append(new_conf)
 
     def async_update_progress(self, progress: float) -> None:
         """Backward compatibility to avoid the need for user to upgrade their HA, as this feature is a Nice to Have."""
         if hasattr(ConfigFlow, "async_update_progress"):
             super().async_update_progress(progress)  # type: ignore[none]
 
-    async def _async_wait_for_config(self, nb_seconds: int) -> None:
-        i = 0
-        while not self.configs and i < (10 * nb_seconds):
-            if i % 10 == 0:
-                self.async_update_progress(0.01 * i)
-            i += 1
-            await asyncio.sleep(0.1)
+    def _get_device(self, name: str, adapter_id: str, config: _CodecConfig, duration: int | None = None) -> BleAdvDevice:
+        codec: BleAdvCodec = self.coordinator.codecs[config.codec_id]
+        duration = duration if duration is not None else codec.duration
+        repeat = 3 * codec.repeat
+        return BleAdvDevice(self.hass, name, name, config.codec_id, [adapter_id], repeat, codec.interval, duration, config, self.coordinator)
 
-    async def _async_start_listen_to_config(self) -> None:
-        if self._clean_datetime is None:
-            await self._coordinator.register_callback(self.flow_id, _MatchingAllCallback(self._async_on_new_config))
-            self._clean_datetime = datetime.now() + timedelta(seconds=35)
-            self.hass.async_create_task(self._async_delayed_stop())
-        else:
-            self._clean_datetime = datetime.now() + timedelta(seconds=35)
-
-    async def _async_stop_listen_to_config(self) -> None:
-        if self._clean_datetime is not None:
-            await self._coordinator.unregister_callback(self.flow_id)
-            self._clean_datetime = None
-
-    async def _async_delayed_stop(self) -> None:
-        while (self._clean_datetime is not None) and (self._clean_datetime > datetime.now()):
-            await asyncio.sleep(1)
-        await self._async_stop_listen_to_config()
-
-    def _get_device(self, name: str, config: _CodecConfig, duration: int | None = None) -> BleAdvDevice:
-        codec: BleAdvCodec = self._coordinator.codecs[config.codec_id]
-        return BleAdvDevice(
-            self.hass,
-            name,
-            name,
-            config.codec_id,
-            [self.selected_adapter_id],
-            codec.repeat,
-            codec.interval,
-            duration if duration is not None else codec.duration,
-            config,
-            self._coordinator,
-        )
-
-    async def _async_blink_light(self) -> None:
-        config = self._selected_conf()
-        tmp_device: BleAdvDevice = self._get_device("cf", config)
+    async def async_blink_light(self) -> None:
+        """Blink."""
+        tmp_device: BleAdvDevice = self._get_device("cf", self._confs.selected_adapter(), self._confs.selected())
         await tmp_device.async_start()
         on_cmd = BleAdvEntAttr([ATTR_ON], {ATTR_ON: True}, LIGHT_TYPE, 0)
         off_cmd = BleAdvEntAttr([ATTR_ON], {ATTR_ON: False}, LIGHT_TYPE, 0)
@@ -285,10 +374,12 @@ class BleAdvConfigFlow(ConfigFlow, domain=DOMAIN):
         self.async_update_progress(1)
         await tmp_device.async_stop()
 
-    async def _async_pair_all(self) -> None:
+    async def async_pair_all(self) -> None:
+        """Pair."""
         pair_cmd = BleAdvEntAttr([ATTR_CMD], {ATTR_CMD: ATTR_CMD_PAIR}, DEVICE_TYPE, 0)
-        for i, config in enumerate(self._selected_adapter_confs()):
-            tmp_device: BleAdvDevice = self._get_device(f"cf{i}", config, 300)
+        adapter_id = self._confs.selected_adapter()
+        for i, config in enumerate(self._confs.selected_confs()):
+            tmp_device: BleAdvDevice = self._get_device(f"cf{i}", adapter_id, config, 300)
             await tmp_device.async_start()
             await tmp_device.apply_change(pair_cmd)
             await asyncio.sleep(0.3)
@@ -316,21 +407,21 @@ class BleAdvConfigFlow(ConfigFlow, domain=DOMAIN):
     async def async_step_user(self, _: dict[str, Any] | None = None) -> ConfigFlowResult:
         """Handle the user step to setup a device."""
         _LOGGER.debug("Config flow 'user' started.")
-        self._coordinator: BleAdvCoordinator = await get_coordinator(self.hass)
-        if not self._coordinator.has_available_adapters():
+        self.coordinator: BleAdvCoordinator = await get_coordinator(self.hass)
+        if not self.coordinator.has_available_adapters():
             return self.async_abort(reason="no_adapters")
         return self.async_show_menu(step_id="user", menu_options=["wait_config", "manual", "pair", "tools"])
 
     async def async_step_tools(self, _: dict[str, Any] | None = None) -> ConfigFlowResult:
         """Tooling Step."""
-        return self.async_show_menu(step_id="tools", menu_options=["diag", "inject"])
+        return self.async_show_menu(step_id="tools", menu_options=["diag", "inject", "listen_raw"])
 
     async def async_step_diag(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         """Diagnostic step."""
         if user_input is not None:
             return self.async_external_step_done(next_step_id="tools")
 
-        diag = await self._coordinator.full_diagnostic_dump()
+        diag = await self.coordinator.full_diagnostic_dump()
         return self.async_external_step(url=self._create_api_json_view("ble_adv_diag", diag))
 
     async def async_step_inject(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
@@ -338,12 +429,12 @@ class BleAdvConfigFlow(ConfigFlow, domain=DOMAIN):
         if user_input is not None:
             self._last_inject = user_input
             qi = BleAdvQueueItem(0, 3 * user_input[CONF_REPEAT], 0, user_input[CONF_INTERVAL], bytes.fromhex(user_input[CONF_RAW]))
-            await self._coordinator.advertise(user_input[CONF_ADAPTER_ID], "man", qi)
+            await self.coordinator.advertise(user_input[CONF_ADAPTER_ID], "man", qi)
             return await self.async_step_inject_res()
 
         data_schema = vol.Schema(
             {
-                vol.Required(CONF_ADAPTER_ID, default=self._last_inject.get(CONF_ADAPTER_ID, None)): vol.In(self._coordinator.get_adapter_ids()),
+                vol.Required(CONF_ADAPTER_ID, default=self._last_inject.get(CONF_ADAPTER_ID, None)): vol.In(self.coordinator.get_adapter_ids()),
                 vol.Required(CONF_RAW, default=self._last_inject[CONF_RAW]): selector.TextSelector(selector.TextSelectorConfig()),
                 vol.Optional(CONF_INTERVAL, default=self._last_inject[CONF_INTERVAL]): selector.NumberSelector(
                     selector.NumberSelectorConfig(step=10, min=10, max=150, mode=selector.NumberSelectorMode.BOX)
@@ -360,19 +451,33 @@ class BleAdvConfigFlow(ConfigFlow, domain=DOMAIN):
         """Manual injection result step."""
         return self.async_show_menu(step_id="inject_res", menu_options=["inject", "tools"])
 
+    async def async_step_listen_raw(self, _: dict[str, Any] | None = None) -> ConfigFlowResult:
+        """Listen to all BLE ADV messages."""
+        if self._progress is None:
+            self._progress = BleAdvWaitRawAdvProgress(self, "listen_raw", WAIT_MAX_SECONDS)
+        if (flow_res := self._progress.next()) is not None:
+            return flow_res
+        self._raw_advs = cast("BleAdvWaitRawAdvProgress", self._progress).raw_advs
+        self._progress = None
+        return self.async_show_progress_done(next_step_id="listen_raw_res")
+
+    async def async_step_listen_raw_res(self, _: dict[str, Any] | None = None) -> ConfigFlowResult:
+        """Listen to all BLE ADV messages result step."""
+        return self.async_show_menu(
+            step_id="listen_raw_res", menu_options=["listen_raw", "tools"], description_placeholders={"advs": _format_advs(self._raw_advs)}
+        )
+
     async def async_step_manual(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         """Manual input step."""
         if user_input is not None:
-            self.selected_adapter_id = user_input[CONF_ADAPTER_ID]
-            self.configs[self.selected_adapter_id] = [
-                _CodecConfig(user_input[CONF_CODEC_ID], int(f"0x{user_input[CONF_FORCED_ID]}", 16), int(user_input[CONF_INDEX]))
-            ]
+            codec = _CodecConfig(user_input[CONF_CODEC_ID], int(f"0x{user_input[CONF_FORCED_ID]}", 16), int(user_input[CONF_INDEX]))
+            self._confs = BleAdvConfigHandler({user_input[CONF_ADAPTER_ID]: [codec]})
             return await self.async_step_blink()
 
         data_schema = vol.Schema(
             {
-                vol.Required(CONF_ADAPTER_ID): vol.In(self._coordinator.get_adapter_ids()),
-                vol.Required(CONF_CODEC_ID): vol.In(list(self._coordinator.codecs.keys())),
+                vol.Required(CONF_ADAPTER_ID): vol.In(self.coordinator.get_adapter_ids()),
+                vol.Required(CONF_CODEC_ID): vol.In(list(self.coordinator.codecs.keys())),
                 vol.Required(CONF_FORCED_ID): selector.TextSelector(selector.TextSelectorConfig(prefix="0x")),
                 vol.Required(CONF_INDEX): selector.NumberSelector(
                     selector.NumberSelectorConfig(step=1, min=0, max=255, mode=selector.NumberSelectorMode.BOX)
@@ -386,20 +491,26 @@ class BleAdvConfigFlow(ConfigFlow, domain=DOMAIN):
         """Pair Step."""
         if user_input is not None:
             gen_id = randint(0xFF, 0xFFF5)
-            self.selected_adapter_id = user_input[CONF_ADAPTER_ID]
-            self.configs.setdefault(self.selected_adapter_id, []).clear()
-            for codec_id in PHONE_APPS[user_input[CONF_PHONE_APP]]:
-                self.configs[self.selected_adapter_id].append(_CodecConfig(codec_id, gen_id, 1))
-            await self._async_pair_all()
-            return await self.async_step_confirm_pair()
+            codecs = [_CodecConfig(codec_id, gen_id, 1) for codec_id in PHONE_APPS[user_input[CONF_PHONE_APP]]]
+            self._confs = BleAdvConfigHandler({user_input[CONF_ADAPTER_ID]: codecs})
+            return await self.async_step_wait_pair()
 
         data_schema = vol.Schema(
             {
-                vol.Required(CONF_ADAPTER_ID): vol.In(self._coordinator.get_adapter_ids()),
+                vol.Required(CONF_ADAPTER_ID): vol.In(self.coordinator.get_adapter_ids()),
                 vol.Required(CONF_PHONE_APP): vol.In(list(PHONE_APPS.keys())),
             }
         )
         return self.async_show_form(step_id="pair", data_schema=data_schema)
+
+    async def async_step_wait_pair(self, _: dict[str, Any] | None = None) -> ConfigFlowResult:
+        """Effective Pair Step."""
+        if self._progress is None:
+            self._progress = BleAdvPairProgressFlow(self, "wait_pair", {})
+        if (flow_res := self._progress.next()) is not None:
+            return flow_res
+        self._progress = None
+        return self.async_show_progress_done(next_step_id="confirm_pair")
 
     async def async_step_confirm_pair(self, _: dict[str, Any] | None = None) -> ConfigFlowResult:
         """Handle the confirm that pair worked OK."""
@@ -408,15 +519,12 @@ class BleAdvConfigFlow(ConfigFlow, domain=DOMAIN):
     async def async_step_wait_config(self, _: dict[str, Any] | None = None) -> ConfigFlowResult:
         """Wait for listened config Step."""
         if self._progress is None:
-            self._progress = BleAdvMultiTaskProgress(self, "wait_config")
-            self._progress.add_task("wait_config", self._async_wait_for_config(WAIT_MAX_SECONDS), {"max_seconds": str(WAIT_MAX_SECONDS)})
-            self._progress.add_task("agg_config", asyncio.sleep(3.0), {})
-            await self._async_start_listen_to_config()
+            self._progress = BleAdvWaitConfigProgress(self, "wait_config", 3)
         if (flow_res := self._progress.next()) is not None:
             return flow_res
-        await self._async_stop_listen_to_config()
+        self._confs = BleAdvConfigHandler(cast("BleAdvWaitConfigProgress", self._progress).configs)
         self._progress = None
-        return self.async_show_progress_done(next_step_id="no_config" if not self.configs else "choose_adapter")
+        return self.async_show_progress_done(next_step_id="no_config" if self._confs.is_empty() else "choose_adapter")
 
     async def async_step_no_config(self, _: dict[str, Any] | None = None) -> ConfigFlowResult:
         """No Config found, abort or retry."""
@@ -429,23 +537,21 @@ class BleAdvConfigFlow(ConfigFlow, domain=DOMAIN):
     async def async_step_choose_adapter(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         """Choose adapter."""
         if user_input is None:
-            _LOGGER.info(f"Configs listened: {self.configs}")
-        if len(self.configs) != 1:
+            _LOGGER.info(f"Configs listened: {self._confs}")
+        if len(self._confs.adapters) != 1:
             if user_input is not None:
-                self.selected_adapter_id = user_input[CONF_ADAPTER_ID]
+                self._confs.set_selected_adapter(user_input[CONF_ADAPTER_ID])
                 return await self.async_step_blink()
 
-            data_schema = vol.Schema({vol.Required(CONF_ADAPTER_ID): vol.In(list(self.configs.keys()))})
+            data_schema = vol.Schema({vol.Required(CONF_ADAPTER_ID): vol.In(self._confs.adapters)})
             return self.async_show_form(step_id="choose_adapter", data_schema=data_schema)
 
-        self.selected_adapter_id = next(iter(self.configs))
         return await self.async_step_blink()
 
     async def async_step_blink(self, _: dict[str, Any] | None = None) -> ConfigFlowResult:
         """Blink Step."""
         if self._progress is None:
-            self._progress = BleAdvMultiTaskProgress(self, "blink")
-            self._progress.add_task("blink", self._async_blink_light(), self._selected_conf_placeholders())
+            self._progress = BleAdvBlinkProgressFlow(self, "blink", self._confs.placeholders())
         if (flow_res := self._progress.next()) is not None:
             return flow_res
         self._progress = None
@@ -453,24 +559,21 @@ class BleAdvConfigFlow(ConfigFlow, domain=DOMAIN):
 
     async def async_step_confirm(self, _: dict[str, Any] | None = None) -> ConfigFlowResult:
         """Confirm choice Step."""
-        nb_confs = len(self._selected_adapter_confs())
-        opts = ["confirm_yes", "confirm_no_abort" if self.selected_config == (nb_confs - 1) else "confirm_no_another", "confirm_retry_last"]
-        if nb_confs > 1:
-            opts.append("confirm_retry_all")
-        return self.async_show_menu(step_id="confirm", menu_options=opts, description_placeholders=self._selected_conf_placeholders())
+        opts = ["confirm_yes", "confirm_no_another" if self._confs.has_next() else "confirm_no_abort", "confirm_retry_last", "confirm_retry_all"]
+        return self.async_show_menu(step_id="confirm", menu_options=opts, description_placeholders=self._confs.placeholders())
 
     async def async_step_confirm_yes(self, _: dict[str, Any] | None = None) -> ConfigFlowResult:
         """Confirm YES Step."""
-        conf = self._selected_conf()
+        conf = self._confs.selected()
         await self.async_set_unique_id(f"{conf.codec_id}##0x{conf.id:X}##{conf.index:d}", raise_on_progress=False)
         self._abort_if_unique_id_configured()
-        codec: BleAdvCodec = self._coordinator.codecs[conf.codec_id]
+        codec: BleAdvCodec = self.coordinator.codecs[conf.codec_id]
         self._data = {
             CONF_DEVICE: {CONF_CODEC_ID: conf.codec_id, CONF_FORCED_ID: conf.id, CONF_INDEX: conf.index},
             CONF_LIGHTS: [{}] * CONF_MAX_ENTITY_NB,
             CONF_FANS: [{}] * CONF_MAX_ENTITY_NB,
             CONF_TECHNICAL: {
-                CONF_ADAPTER_IDS: [self.selected_adapter_id],
+                CONF_ADAPTER_IDS: [self._confs.selected_adapter()],
                 CONF_DURATION: codec.duration,
                 CONF_INTERVAL: codec.interval,
                 CONF_REPEAT: codec.repeat,
@@ -480,7 +583,7 @@ class BleAdvConfigFlow(ConfigFlow, domain=DOMAIN):
 
     async def async_step_confirm_no_another(self, _: dict[str, Any] | None = None) -> ConfigFlowResult:
         """Confirm NO, try another Step."""
-        self.selected_config = self.selected_config + 1
+        self._confs.next()
         return await self.async_step_blink()
 
     async def async_step_confirm_no_abort(self, _: dict[str, Any] | None = None) -> ConfigFlowResult:
@@ -493,16 +596,13 @@ class BleAdvConfigFlow(ConfigFlow, domain=DOMAIN):
 
     async def async_step_confirm_retry_all(self, _: dict[str, Any] | None = None) -> ConfigFlowResult:
         """Confirm Retry ALL Step."""
-        self.selected_config = 0
-        self.selected_adapter_id = ""
+        self._confs.reset_selected()
         return await self.async_step_choose_adapter()
 
     async def async_step_configure(self, _: dict[str, Any] | None = None) -> ConfigFlowResult:
         """Configure choice Step."""
-        return self.async_show_menu(
-            step_id="configure",
-            menu_options=["config_entities", "config_remote", "config_technical", "finalize"],
-        )
+        opts = ["config_entities", "config_remote", "config_technical", "finalize"]
+        return self.async_show_menu(step_id="configure", menu_options=opts)
 
     def _has_one_entity(self) -> bool:
         return any(x.get(CONF_TYPE, CONF_TYPE_NONE) != CONF_TYPE_NONE for x in [*self._data[CONF_LIGHTS], *self._data[CONF_FANS]])
@@ -519,7 +619,7 @@ class BleAdvConfigFlow(ConfigFlow, domain=DOMAIN):
                 return await self.async_step_configure()
             errors["base"] = "missing_entity"
 
-        codec: BleAdvCodec = self._coordinator.codecs[self._data[CONF_DEVICE][CONF_CODEC_ID]]
+        codec: BleAdvCodec = self.coordinator.codecs[self._data[CONF_DEVICE][CONF_CODEC_ID]]
         sections: dict[str, tuple[dict[vol.Schemable, Any], bool]] = {}
 
         # Build one section for each Light supported by the codec
@@ -570,36 +670,31 @@ class BleAdvConfigFlow(ConfigFlow, domain=DOMAIN):
 
     async def async_step_config_remote(self, _: dict[str, Any] | None = None) -> ConfigFlowResult:
         """Configure Remote."""
-        self.configs.clear()
-        self.selected_config = 0
-        self.selected_adapter_id = ""
         self._progress = None
         if CONF_REMOTE in self._data and CONF_CODEC_ID in self._data[CONF_REMOTE]:
             return self.async_show_menu(
                 step_id="config_remote",
-                menu_options=["config_remote_delete", "config_remote_update", "config_remote_new", "configure"],
+                menu_options=["config_remote_delete", "config_remote_update", "wait_config_remote", "configure"],
                 description_placeholders=self._remote_conf_placeholders(),
             )
-        return await self.async_step_config_remote_new()
+        return await self.async_step_wait_config_remote()
 
     async def async_step_config_remote_delete(self, _: dict[str, Any] | None = None) -> ConfigFlowResult:
         """Remove Remote."""
-        self._data[CONF_REMOTE].clear()
+        self._data.pop(CONF_REMOTE)
         return await self.async_step_configure()
 
-    async def async_step_config_remote_new(self, _: dict[str, Any] | None = None) -> ConfigFlowResult:
+    async def async_step_wait_config_remote(self, _: dict[str, Any] | None = None) -> ConfigFlowResult:
         """Configure New Remote."""
         if self._progress is None:
-            self._progress = BleAdvMultiTaskProgress(self, "config_remote_new")
-            self._progress.add_task("wait_config_remote", self._async_wait_for_config(WAIT_MAX_SECONDS), {"max_seconds": str(WAIT_MAX_SECONDS)})
-            await self._async_start_listen_to_config()
+            self._progress = BleAdvWaitConfigProgress(self, "wait_config_remote", WAIT_MAX_SECONDS)
         if (flow_res := self._progress.next()) is not None:
             return flow_res
-        await self._async_stop_listen_to_config()
+        self._confs = BleAdvConfigHandler(cast("BleAdvWaitConfigProgress", self._progress).configs)
         self._progress = None
-        if not self.configs:
+        if self._confs.is_empty():
             return self.async_show_progress_done(next_step_id="configure")
-        config = self.configs[next(iter(self.configs))][0]  # get the first found adapter/config
+        config = self._confs.selected()  # get the first found adapter/config
         self._data[CONF_REMOTE] = {CONF_CODEC_ID: config.codec_id, CONF_FORCED_ID: config.id, CONF_INDEX: config.index}
         return self.async_show_progress_done(next_step_id="config_remote_update")
 
@@ -624,7 +719,7 @@ class BleAdvConfigFlow(ConfigFlow, domain=DOMAIN):
             errors["base"] = "missing_adapter"
 
         def_tech = self._data[CONF_TECHNICAL]
-        avail_adapters = self._coordinator.get_adapter_ids()
+        avail_adapters = self.coordinator.get_adapter_ids()
         def_adapters = [adapt for adapt in def_tech[CONF_ADAPTER_IDS] if adapt in avail_adapters]
         data_schema = vol.Schema(
             {
@@ -658,7 +753,7 @@ class BleAdvConfigFlow(ConfigFlow, domain=DOMAIN):
 
     async def async_step_reconfigure(self, _: dict[str, Any] | None = None) -> ConfigFlowResult:
         """Reconfigure Step."""
-        self._coordinator = await get_coordinator(self.hass)
+        self.coordinator = await get_coordinator(self.hass)
         self._data = {**self._get_reconfigure_entry().data}
         return await self.async_step_configure()
 

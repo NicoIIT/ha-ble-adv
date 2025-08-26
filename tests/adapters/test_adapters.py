@@ -26,7 +26,7 @@ def adv_ext_msg(interval: int, data: bytes) -> list[tuple[str, int, bytes]]:
     inter = int(interval * 1.6).to_bytes(2, "little")
     return [
         ("op_call", 0x39, b"\x00\x01\x01\x00\x00\x00"),  # DISABLE ADV EXT
-        ("op_call", 0x36, b"\x01\x11\x00" + inter + b"\x00" + inter + b"\x00\x07\x00\x00\x00\x00\x00\x00\x00\x00\x00\x7f\x01\x00\x01\x00\x00"),
+        ("op_call", 0x36, b"\x01\x13\x00" + inter + b"\x00" + inter + b"\x00\x07\x00\x00\x00\x00\x00\x00\x00\x00\x00\x7f\x01\x00\x01\x00\x00"),
         ("op_call", 0x37, b"\x01\x03\x01" + b"\x1f" + data + bytes([0] * (31 - len(data)))),  # SET ADV DATA EXT
         ("op_call", 0x39, b"\x01\x01\x01\x00\x00\x00"),  # ENABLE ADV EXT
         ("op_call", 0x39, b"\x00\x01\x01\x00\x00\x00"),  # DISABLE ADV EXT
@@ -60,6 +60,7 @@ DEVICE_MAC_INT = list(reversed(bytes.fromhex(DEVICE_MAC_STR.replace(":", ""))))
 
 async def test_split_queue() -> None:
     qi = BleAdvQueueItem(0, 10, 0, 10, b"qi")
+    assert hash(qi) != 0
     qi.split_repeat(60)
     assert qi.repeat == 2
     assert qi.adapter_repeat == 6

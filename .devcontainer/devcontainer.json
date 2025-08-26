@@ -46,7 +46,6 @@
                 "[python]": {
                     "editor.defaultFormatter": "charliermarsh.ruff"
                 },
-                "explorer.excludeGitIgnore": true,
                 "tasks": {
                     "version": "2.0.0",
                     "tasks": [

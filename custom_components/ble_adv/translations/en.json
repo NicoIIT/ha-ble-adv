@@ -16,11 +16,23 @@
         "description": "Tooling section",
         "menu_options": {
           "diag": "Diagnostic Dump",
-          "inject": "Inject Raw"
+          "inject": "Inject Raw",
+          "listen_raw": "Listen to BLE ADV"
         }
       },
       "diag": {
         "title": "Diagnostic Dump"
+      },
+      "listen_raw": {
+        "title": "Listen to BLE ADV"
+      },
+      "listen_raw_res": {
+        "title": "Listen to BLE ADV",
+        "description": "Received BLE Advertising:\n{advs}",
+        "menu_options": {
+          "listen_raw": "Retry",
+          "tools": "Back to Tools"
+        }
       },
       "inject": {
         "title": "Manual Injection",
@@ -71,6 +83,9 @@
           "adapter_id": "BLE ADV Adapter",
           "phone_app": "Phone Application"
         }
+      },
+      "wait_pair": {
+        "title": "Pairing"
       },
       "confirm_pair": {
         "description": "Was Pairing successful? Usually if it is the case the light blinked, but it depends on the light type...",
@@ -183,11 +198,11 @@
         "menu_options": {
           "config_remote_delete": "Delete the linked controller",
           "config_remote_update": "Modify the linked controller Options",
-          "config_remote_new": "Replace the linked controller",
+          "wait_config_remote": "Replace the linked controller",
           "configure": "Back"
         }
       },
-      "config_remote_new": {
+      "wait_config_remote": {
         "title": "Configure new Linked Controller"
       },
       "config_remote_update": {
@@ -213,6 +228,8 @@
       }
     },
     "progress": {
+      "listen_raw": "Listening to BLE Advertising\n{advs}",
+      "wait_pair": "Pairing in progress...",
       "wait_config": "Please press any button (preferably Pair) on the phone app controlling your device within {max_seconds}s.",
       "agg_config": "Aggregating configuration data.",
       "blink": "Making the light blink with configuration {nb}/{tot}:\n\n    Codec: {codec}\n    Id: {id}\n    Index: {index}",

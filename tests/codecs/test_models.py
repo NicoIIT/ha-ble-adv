@@ -65,6 +65,7 @@ def test_adv() -> None:
     raw_with_ble = "1B.16." + raw_msg
     adv_str = _from_dotted("02.01.19." + raw_with_ble)
     adv = BleAdvAdvertisement.FromRaw(adv_str)
+    assert hash(adv) != 0
     assert adv is not None, "Adv is not None"
     assert as_hex(adv.raw) == raw_msg
     assert adv.ble_type == 0x16
@@ -94,6 +95,7 @@ def test_ent_attr() -> None:
     assert ent_attr.attrs == attrs
     assert ent_attr.id == (FAN_TYPE, 0)
     assert ent_attr.get_attr_as_float(ATTR_SPEED) == 6.0
+    assert hash(ent_attr) != 0
 
 
 def test_config() -> None:
