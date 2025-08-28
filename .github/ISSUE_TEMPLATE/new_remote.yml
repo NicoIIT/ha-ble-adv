@@ -5,7 +5,7 @@ labels: ["enhancement"]
 body:
 - type: markdown
   attributes:
-    value: Before you open a new "Support New Physical Remote" request, search through the existing feature requests to see if others have requested it already. If your remote is recognized but only partially works please open a Bug Report.
+    value: Before you open a new "Support New Physical Remote" request, search through the existing feature requests to see if others have requested it already. If your remote is recognized but only partially works please open a Bug Report. You can check if your remote is using BLE Advertising and how to capture them in the [How To](https://github.com/NicoIIT/ha-ble-adv/wiki/How-to-know-if-my-Physical-Remote-is-using-BLE-Advertising-to-control-my-device).
 - type: checkboxes
   attributes:
     label: Checklist
@@ -19,40 +19,24 @@ body:
 
 - type: textarea
   attributes:
-    label: "Describe ALL buttons"
-    description: "Describe all buttons, what happens on the device when you press them once (and a second time if the result differs), and at what time exactly ('second' precision) you pressed them so that we can correlate this info with the logs."
+    label: "Describe ALL buttons and capture the BLE Advertising they trigger."
+    description: "Describe all buttons, what happens on the device when you press them once (and a second time if the result differs), and the BLE Advertising it produces using `Add Device -> Tools and Helpers -> Listen BLE ADV`."
     value: |
-      1. Button "Fan ON/OFF":
-        * At 15:32:51 I pressed the button and the Fan started
-        * At 15:32:55 I pressed again the button and the Fan stopped
-      2. Button "Main Light Brightness+"
-        * At 15:33:11 I pressed the button and the light brightness increased by 15 % (6 press to go from minimum to maximum brightness)
-      3. Button ...
+      1. Button "Fan ON/OFF" First press (the Fan Started):
+        0201021B16F00810003DDFBAAA5AF24C485BA97C9C67CF5A40924D5F12D701
+        1EFF5655188752B65F2B5E00FC315194509A68440A9FFC7BA939DFB27E6057
+
+      2. Button "Fan ON/OFF" Second press (the Fan Stopped):
+        1EFF5655188752B65F2B5E00FC315154509A08240A5FFC0DDF68A92AB56057
+        0201021B16F0081000C535BA5703138743A14BF467D86570D5AE89622B1BDD
+
+      3. Button "Main Light Brightness+" (the brightness of the main lamp increased by around 15 %  - 6 press to go from minimum to maximum brightness)
+        0201021B16F008100095264B21E4F5AB437AA3135353C76E87CBB2B63063B0
+        1EFF5655188752B65F2B5E00FC31515C509A08240ADFD494467F30EACE6057
+        1EFF5655188752B65F2B5E00FC31515C509A08240A2FD444962EE02A8C6057
+        0201021B16F0081000623801C652B33F9100BE021791E7EE032E70059777CA
+
+      4. Button ...
       ...
-  validations:
-    required: true
-
-- type: textarea
-  attributes:
-    label: "Debug logs"
-    description: |
-      To enable debug logs add this to your [configuration.yaml](https://www.home-assistant.io/docs/configuration/), and restart your HA:
-      ```
-      ble_adv:
-
-      logger:
-        default: info
-        logs:
-          custom_components.ble_adv: debug
-      ```
-      More details in [logger](https://www.home-assistant.io/integrations/logger/) component.
-
-      This **needs** to include all logs generated when you pressed buttons, in particular the `BLE ADV received` ones:
-      ```
-      2025-04-30 08:43:28.981 DEBUG (MainThread) [custom_components.ble_adv.coordinator] [hci/48:45:20:37:67:BF] BLE ADV received - Type: 0xFF, raw: FF.FF.C4.8B.78.8E.07.E2
-      ```
-
-      If not provided, the issue will be Closed immediately.
-    render: text
   validations:
     required: true

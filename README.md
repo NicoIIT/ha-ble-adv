@@ -35,6 +35,11 @@ This integration **does not support any specific device type or brand**, but pro
 * [LE Light Pro / 乐智光Pro](https://openapi.lelight.top/dl/cqan) (not available on Play Store) (BETA)
 * Other (Legacy), removed app from play store: 'FanLamp', 'ControlSwitch', 'Lamp Smart Pro - Soft Lighting / Smart Lighting'
 
+## Supported Physical Remote
+There are lots of different Physical Remote so it is impossible to know if a Physical Remote is supported witout testing it. Some of them are using the same protocols than the Phone Apps, others are using their own protocol, or even RF or IR...
+
+If your remote is not recognized by the integration then you can check if it could be supported and request for its support, see [How To](https://github.com/NicoIIT/ha-ble-adv/wiki/How-to-know-if-my-Physical-Remote-is-using-BLE-Advertising-to-control-my-device).
+
 ## Installing the component
 This component is an [HACS](https://www.hacs.xyz/) Custom Repository. With HACS installed, the repository installation procedure can be found [here](https://www.hacs.xyz/docs/faq/custom_repositories/), with parameters:
 * **Repository**: "NicoIIT/ha-ble-adv"
