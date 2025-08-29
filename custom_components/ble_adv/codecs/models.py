@@ -36,6 +36,8 @@ class BleAdvAdvertisement:
         rem_data = raw_adv
         while len(rem_data) > 2:
             part_len = rem_data[0]
+            if part_len > len(rem_data):
+                break
             part_type = rem_data[1]
             if part_type in [0x03, 0x16, 0xFF]:
                 ble_type = part_type
@@ -297,6 +299,11 @@ class Trans:
     def __repr__(self) -> str:
         return f"{self.ent} / {self.enc} / {self._copies}"
 
+    @property
+    def direct(self) -> bool:
+        """Return if direct mode supported."""
+        return self._direct
+
     def copy(self, attr_ent: str, attr_enc: str, factor: float = 1.0) -> Self:
         """Apply copy from attr_ent to attr_enc, with factor."""
         self._copies.append((attr_ent, attr_enc, factor))
@@ -422,7 +429,7 @@ class BleAdvCodec(ABC):
         return self
 
     def get_supported_features(self, base_type: str) -> list[dict[str, set[Any]]]:
-        """Get the features supported by the translators.
+        """Get the features supported by the translators in DIRECT mode only.
 
         Builds a list of all potential attribute values if fixed (not floats / int / None):
            [
@@ -432,6 +439,8 @@ class BleAdvCodec(ABC):
         """
         capa: list[dict[str, set[Any]]] = []
         for trans in self._translators:
+            if not trans.direct:
+                continue
             (bt, ind, feats) = trans.ent.get_supported_features()
             if bt == base_type:
                 missing = ind - len(capa) + 1

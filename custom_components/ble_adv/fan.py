@@ -123,9 +123,10 @@ class BleAdvFan(BleAdvEntity, FanEntity):
         """Apply the attributes to this Entity."""
         super().apply_attrs(ent_attr)
         if ATTR_DIR in ent_attr.chg_attrs:
-            self._attr_direction = DIRECTION_FORWARD if ent_attr.attrs[ATTR_DIR] else DIRECTION_REVERSE
+            new_val = self.change_bool(self._attr_direction == DIRECTION_FORWARD, ent_attr.attrs[ATTR_DIR])
+            self._attr_direction = DIRECTION_FORWARD if new_val else DIRECTION_REVERSE
         if ATTR_OSC in ent_attr.chg_attrs:
-            self._attr_oscillating = ent_attr.attrs[ATTR_OSC]  # type: ignore[none]
+            self._attr_oscillating = self.change_bool(self._attr_oscillating, ent_attr.attrs[ATTR_OSC])
         if ATTR_SPEED in ent_attr.chg_attrs:
             self._attr_preset_mode = None
             recv_speed_count = self._get_speed_count_from_type(ent_attr.attrs[ATTR_SUB_TYPE])

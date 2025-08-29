@@ -58,11 +58,12 @@ class _TestEncoderFull:
     def test_decode_reencode(self, enc_name: str, raw: str, enc_str: str, conf_str: str, ent_str: str) -> None:
         """Validate a decoding / re-encoding."""
         adv = BleAdvAdvertisement.FromRaw(_from_dotted(raw))
-        assert adv is not None
         codec = CODECS[enc_name]
         enc_cmd, conf = codec.decode_adv(adv)
-        assert enc_cmd is not None and repr(enc_cmd) == enc_str
-        assert conf is not None and repr(conf) == conf_str
+        assert enc_cmd is not None
+        assert repr(enc_cmd) == enc_str
+        assert conf is not None
+        assert repr(conf) == conf_str
         ent_attrs = codec.enc_to_ent(enc_cmd)
         assert len(ent_attrs) == 1
         assert repr(ent_attrs[0]) == ent_str

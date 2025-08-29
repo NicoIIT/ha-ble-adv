@@ -7,8 +7,13 @@ from .const import (
     ATTR_BLUE_F,
     ATTR_BR,
     ATTR_CMD,
+    ATTR_CMD_BR_DOWN,
+    ATTR_CMD_BR_UP,
+    ATTR_CMD_CT_DOWN,
+    ATTR_CMD_CT_UP,
     ATTR_CMD_PAIR,
     ATTR_CMD_TIMER,
+    ATTR_CMD_TOGGLE,
     ATTR_CMD_UNPAIR,
     ATTR_COLD,
     ATTR_CT_REV,
@@ -20,6 +25,7 @@ from .const import (
     ATTR_PRESET_BREEZE,
     ATTR_RED_F,
     ATTR_SPEED,
+    ATTR_STEP,
     ATTR_TIME,
     ATTR_WARM,
 )
@@ -103,7 +109,7 @@ class ZhimeiEncoderV1(BleAdvCodec):
         """Decrypt / unwhiten an incoming raw buffer into a readable buffer."""
         if not self.is_eq_buf(self.PADDING, buffer[-len(self.PADDING) :], "Padding"):
             return None
-        decoded = self._unapply_matrix(buffer[: -len(self.PADDING)], 6)
+        decoded = self._unapply_matrix(buffer[self._header_start_pos : -len(self.PADDING)], 6)
         if not self.is_eq(self._crc16(decoded[:-3]), int.from_bytes(decoded[-2:], "little"), "CRC"):
             return None
         decoded = decoded[:-2]
@@ -113,6 +119,7 @@ class ZhimeiEncoderV1(BleAdvCodec):
             not self.is_eq(decoded[2], decoded[10], "Dupe 2/10")
             or not self.is_eq(0xFF, decoded[0], "0 not FF")
             or not self.is_eq(0xFF, decoded[9], "9 not FF")
+            or not self.is_eq_buf(buffer[: self._header_start_pos], decoded[2 : 2 + self._header_start_pos], "Dupe Pre header")
         ):
             return None
         return decoded
@@ -122,7 +129,8 @@ class ZhimeiEncoderV1(BleAdvCodec):
         if buffer[7] != 0xB4:
             buffer = buffer[:9] + self._apply_matrix(buffer[9:], 10)
         buffer += self._crc16(buffer[:-1]).to_bytes(2, "little")
-        return self._apply_matrix(buffer, 6) + self.PADDING
+        buf_matrix = self._apply_matrix(buffer, 6) + self.PADDING
+        return buffer[2 : 2 + self._header_start_pos] + buf_matrix
 
     def convert_to_enc(self, decoded: bytes) -> tuple[BleAdvEncCmd | None, BleAdvConfig | None]:
         """Convert a readable buffer into an encoder command and a config."""
@@ -276,6 +284,31 @@ TRANS_FAN_COMMON = [
     Trans(CTLightCmd().eq(ATTR_COLD, 1).eq(ATTR_WARM, 1), EncCmd(0xA7).eq("arg0", 3)).no_direct(),
 ]
 
+TRANS_REMOTE = [
+    Trans(DeviceCmd().act(ATTR_ON, False), EncCmd(0x10)).no_direct(),
+    Trans(DeviceCmd().act(ATTR_CMD, ATTR_CMD_TIMER).eq(ATTR_TIME, 60 * 60), EncCmd(0x12)).no_direct(),
+    Trans(DeviceCmd().act(ATTR_CMD, ATTR_CMD_TIMER).eq(ATTR_TIME, 2 * 60 * 60), EncCmd(0x14)).no_direct(),
+    Trans(LightCmd().act(ATTR_ON, ATTR_CMD_TOGGLE), EncCmd(0x04)),
+    Trans(LightCmd().act(ATTR_ON, True), EncCmd(0x04)).no_reverse(),
+    Trans(LightCmd().act(ATTR_ON, False), EncCmd(0x04)).no_reverse(),
+    Trans(CTLightCmd().act(ATTR_CMD, ATTR_CMD_CT_UP).eq(ATTR_STEP, 0.625), EncCmd(0x0B)).no_direct(),
+    Trans(CTLightCmd().act(ATTR_CMD, ATTR_CMD_CT_DOWN).eq(ATTR_STEP, 0.625), EncCmd(0x09)).no_direct(),
+    Trans(CTLightCmd().act(ATTR_CMD, ATTR_CMD_BR_UP).eq(ATTR_STEP, 0.625), EncCmd(0x13)).no_direct(),
+    Trans(CTLightCmd().act(ATTR_CMD, ATTR_CMD_BR_DOWN).eq(ATTR_STEP, 0.625), EncCmd(0x0C)).no_direct(),
+    Trans(CTLightCmd().eq(ATTR_COLD, 0.1).eq(ATTR_WARM, 0.1), EncCmd(0x07)).no_direct(),  # night mode (toogle?)
+    Trans(FanCmd().act(ATTR_DIR, ATTR_CMD_TOGGLE), EncCmd(0x02)).no_direct(),
+    Trans(FanCmd().act(ATTR_DIR, True), EncCmd(0x02)).no_reverse(),
+    Trans(FanCmd().act(ATTR_DIR, False), EncCmd(0x02)).no_reverse(),
+    Trans(FanCmd().act(ATTR_PRESET, ATTR_PRESET_BREEZE), EncCmd(0x11)),  # Breeze mode
+    Trans(Fan6SpeedCmd().act(ATTR_ON, False), EncCmd(0x0E)),
+    Trans(Fan6SpeedCmd().act(ATTR_ON, True).act(ATTR_SPEED, 1), EncCmd(0x03)),
+    Trans(Fan6SpeedCmd().act(ATTR_ON, True).act(ATTR_SPEED, 2), EncCmd(0x05)),
+    Trans(Fan6SpeedCmd().act(ATTR_ON, True).act(ATTR_SPEED, 3), EncCmd(0x08)),
+    Trans(Fan6SpeedCmd().act(ATTR_ON, True).act(ATTR_SPEED, 4), EncCmd(0x0A)),
+    Trans(Fan6SpeedCmd().act(ATTR_ON, True).act(ATTR_SPEED, 5), EncCmd(0x0D)),
+    Trans(Fan6SpeedCmd().act(ATTR_ON, True).act(ATTR_SPEED, 6), EncCmd(0x0F)),
+]
+
 TRANS_FAN_V1 = [
     *TRANS_FAN_COMMON,
     Trans(RGBLightCmd(1).act(ATTR_RED_F).act(ATTR_GREEN_F).act(ATTR_BLUE_F), EncCmd(0xCA))
@@ -291,6 +324,7 @@ CODECS = [
     ZhimeiEncoderV1().id("zhimei_v1").header([0x48, 0x46, 0x4B, 0x4A]).ble(0x1A, 0x03).add_translators(TRANS_V1),
     ZhimeiEncoderV2().id("zhimei_v2").header([0xF9, 0x08, 0x49]).ble(0x1A, 0x03).prefix([0x33, 0xAA, 0x55]).add_translators(TRANS_V2),
     # Zhi Mei Remotes
-    ZhimeiEncoderV1().fid("zhimei_fan_vr1", "zhimei_fan_v1").header([0x1F, 0x61, 0x3E, 0x48, 0x46, 0x4B, 0x4A]).ble(0x1A, 0xFF).add_translators(TRANS_FAN_V1),
+    ZhimeiEncoderV0().fid("zhimei_fan_vr0", "zhimei_fan_v0").header([0x55]).ble(0, 0).add_translators(TRANS_REMOTE),
+    ZhimeiEncoderV1().fid("zhimei_fan_vr1", "zhimei_fan_v1").header([0x48, 0x46, 0x4B, 0x4A], 3).ble(0x1A, 0xFF).add_translators(TRANS_REMOTE),
     ZhimeiEncoderV1().fid("zhimei_v1b", "zhimei_v1").header([0x58, 0x55, 0x18, 0x48, 0x46, 0x4B, 0x4A]).ble(0x1A, 0xFF).add_translators(TRANS_V1),
 ]  # fmt: skip

@@ -277,6 +277,7 @@ def test_codec() -> None:
             .copy(ATTR_RED_F, "arg0", 255)
             .copy(ATTR_GREEN_F, "arg1", 255)
             .copy(ATTR_BLUE_F, "arg2", 255),
+            Trans(CTLightCmd(1).act(ATTR_COLD).act(ATTR_WARM), EncCmd(0x23)).no_direct(),
         ]
     )
     assert codec.get_supported_features(LIGHT_TYPE) == [
