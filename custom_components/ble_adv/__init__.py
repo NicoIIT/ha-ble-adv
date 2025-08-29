@@ -2,9 +2,11 @@
 
 import logging
 
+import voluptuous as vol
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_DEVICE, CONF_NAME
-from homeassistant.core import HomeAssistant
+from homeassistant.core import HomeAssistant, ServiceCall
+from homeassistant.helpers.selector import NumberSelector, NumberSelectorConfig
 from homeassistant.helpers.singleton import singleton
 from homeassistant.helpers.typing import ConfigType
 
@@ -16,6 +18,7 @@ from .const import (
     CONF_APPLE_INC_UUIDS,
     CONF_CODEC_ID,
     CONF_COORDINATOR_ID,
+    CONF_DEVICE_QUEUE,
     CONF_DURATION,
     CONF_FANS,
     CONF_FORCED_ID,
@@ -25,6 +28,7 @@ from .const import (
     CONF_LAST_VERSION,
     CONF_LIGHTS,
     CONF_MAX_ENTITY_NB,
+    CONF_RAW,
     CONF_REFRESH_DIR_ON_START,
     CONF_REFRESH_ON_START,
     CONF_REFRESH_OSC_ON_START,
@@ -40,6 +44,18 @@ from .coordinator import BleAdvCoordinator
 from .device import BleAdvDevice, BleAdvRemote
 
 _LOGGER = logging.getLogger(__name__)
+
+INJECT_RAW_SERVICE_NAME = "inject_raw"
+INJECT_RAW_SCHEMA = vol.Schema(
+    {
+        vol.Required(CONF_ADAPTER_ID): str,
+        vol.Required(CONF_RAW): str,
+        vol.Optional(CONF_INTERVAL, default=20): NumberSelector(NumberSelectorConfig(min=10, max=150)),
+        vol.Optional(CONF_REPEAT, default=3): NumberSelector(NumberSelectorConfig(min=1, max=20)),
+        vol.Optional(CONF_DEVICE_QUEUE, default="device"): str,
+        vol.Optional(CONF_DURATION, default=800): NumberSelector(NumberSelectorConfig(min=100, max=2000)),
+    }
+)
 
 
 @singleton(f"{DOMAIN}/{CONF_COORDINATOR_ID}")
@@ -64,7 +80,14 @@ async def async_setup(hass: HomeAssistant, conf: ConfigType) -> bool:
     _LOGGER.debug(f"BLE ADV: Setting component with conf {ble_adv_conf}")
     hass.data.setdefault(DOMAIN, {})
     hass.data[DOMAIN][CONF_COORDINATOR_ID] = ble_adv_conf
-    await get_coordinator(hass)
+    coord = await get_coordinator(hass)
+
+    async def inject_raw(call: ServiceCall) -> None:
+        if errors := await coord.inject_raw(call.data):
+            msg = "/".join([f"Invalid {field} - {reason}" for field, reason in errors.items()])
+            raise vol.Invalid(msg)
+
+    hass.services.async_register(DOMAIN, INJECT_RAW_SERVICE_NAME, inject_raw, INJECT_RAW_SCHEMA)
     return True
 
 
