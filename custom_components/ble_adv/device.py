@@ -136,10 +136,16 @@ class BleAdvEntity(RestoreEntity):
         """Get the attrs."""
         return {ATTR_ON: self._attr_is_on, ATTR_SUB_TYPE: self._sub_type}
 
+    def change_bool(self, cur: bool | None, new: bool | str) -> bool:
+        """Help function for bool attributes working with Toggle."""
+        if isinstance(new, str) and new == ATTR_CMD_TOGGLE:
+            return not cur if cur is not None else True
+        return bool(new)
+
     def apply_attrs(self, ent_attr: BleAdvEntAttr) -> None:
         """Apply Attributes to the Entity."""
         if ATTR_ON in ent_attr.chg_attrs:
-            self._attr_is_on = ent_attr.attrs.get(ATTR_ON)
+            self._attr_is_on = self.change_bool(self._attr_is_on, ent_attr.attrs.get(ATTR_ON, False))
         if ATTR_CMD in ent_attr.chg_attrs and ent_attr.attrs.get(ATTR_CMD) == ATTR_CMD_TOGGLE:
             self._attr_is_on = not self._attr_is_on
 
@@ -308,7 +314,7 @@ class BleAdvDevice(BleAdvMatchingDevice):
                 ent = self.entities.get(ent_attr.id)
                 if ent is not None and (
                     ent.is_on
-                    or (ATTR_ON in ent_attr.chg_attrs and ent_attr.attrs[ATTR_ON])
+                    or (ATTR_ON in ent_attr.chg_attrs and ent.change_bool(ent.is_on, ent_attr.attrs[ATTR_ON]))
                     or (ATTR_CMD in ent_attr.chg_attrs and ent_attr.attrs[ATTR_CMD] == ATTR_CMD_TOGGLE)
                 ):
                     ent.apply_attrs(ent_attr)

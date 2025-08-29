@@ -1,4 +1,4 @@
-"""FanLamp pro Unit Tests."""
+"""Zhi Mei pro Unit Tests."""
 
 import pytest
 
@@ -11,7 +11,9 @@ from . import _TestEncoderBase, _TestEncoderFull
         ("zhimei_fan_v0", 0x03, "55.02.01.02.C0.B4.AA.66.55.33"),
         ("zhimei_v2", 0x03, "F9.08.49.B2.CE.2C.81.3B.6B.90.08.CE.EF.3D.6F.C8.10.11.12.13.14.15.16.17.18.19"),
         ("zhimei_v1b", 0xFF, "58.55.18.48.46.4B.4A.1C.AB.1F.B8.0E.B7.E1.7D.98.82.31.A5.7E.7E.DB.68.10.11.12.13.14.15"),
+        ("zhimei_fan_vr0", 0x00, "55.FF.63.01.6A.10.00.00.00.32"),
         ("zhimei_fan_vr1", 0xFF, "1F.61.3E.48.46.4B.4A.16.77.19.1F.72.BD.E7.D5.77.36.70.52.67.23.79.0C.10.11.12.13.14.15"),
+        ("zhimei_fan_vr1", 0xFF, "5D.01.6A.48.46.4B.4A.7B.38.FC.5C.09.58.82.66.DC.29.CB.51.76.58.A0.9A.10.11.12.13.14.15"),
     ],
 )
 class TestEncoderZhimei(_TestEncoderBase):
@@ -587,3 +589,293 @@ class TestEncoderZhimeiNoReverse(_TestEncoderFull):
     """Zhi Mei Fan Encoder / Decoder No Reverse tests."""
 
     _with_reverse = False
+
+
+@pytest.mark.parametrize(
+    _TestEncoderFull.PARAM_NAMES,
+    [
+        # ALL OFF
+        (
+            "zhimei_fan_vr0",
+            "55.FF.63.01.6A.10.00.00.00.32",
+            "cmd: 0x10, param: 0x00, args: [0,0,0]",
+            "id: 0x00006A01, index: 255, tx: 99, seed: 0x0000",
+            "device_0: ['on'] / {'on': False}",
+        ),
+        (
+            "zhimei_fan_vr1",
+            "1E.FF.63.01.6A.48.46.4B.4A.16.BB.7D.BF.BE.BD.E7.BF.77.6A.F0.5E.33.0F.86.76.10.11.12.13.14.15",
+            "cmd: 0x10, param: 0x00, args: [0,0,0]",
+            "id: 0x00006A01, index: 255, tx: 99, seed: 0x0064",
+            "device_0: ['on'] / {'on': False}",
+        ),
+        # Main Light Toogle
+        (
+            "zhimei_fan_vr0",
+            "55.FF.5D.01.6A.04.00.00.00.20",
+            "cmd: 0x04, param: 0x00, args: [0,0,0]",
+            "id: 0x00006A01, index: 255, tx: 93, seed: 0x0000",
+            "light_0: ['on'] / {'on': 'toggle'}",
+        ),
+        (
+            "zhimei_fan_vr1",
+            "1E.FF.5D.01.6A.48.46.4B.4A.7B.38.FC.5C.09.58.82.66.DC.29.CB.51.76.58.A0.9A.10.11.12.13.14.15",
+            "cmd: 0x04, param: 0x00, args: [0,0,0]",
+            "id: 0x00006A01, index: 255, tx: 93, seed: 0x005E",
+            "light_0: ['on'] / {'on': 'toggle'}",
+        ),
+        # BR +
+        (
+            "zhimei_fan_vr0",
+            "55.FF.04.01.6A.13.00.00.00.D6",
+            "cmd: 0x13, param: 0x00, args: [0,0,0]",
+            "id: 0x00006A01, index: 255, tx: 4, seed: 0x0000",
+            "light_0: ['cmd'] / {'sub_type': 'cww', 'cmd': 'B+', 'step': 0.625}",
+        ),
+        (
+            "zhimei_fan_vr1",
+            "1E.FF.04.01.6A.48.46.4B.4A.B2.B6.7C.23.62.21.4B.24.13.6D.5A.1F.34.74.31.62.10.11.12.13.14.15",
+            "cmd: 0x13, param: 0x00, args: [0,0,0]",
+            "id: 0x00006A01, index: 255, tx: 4, seed: 0x0005",
+            "light_0: ['cmd'] / {'sub_type': 'cww', 'cmd': 'B+', 'step': 0.625}",
+        ),
+        # BR -
+        (
+            "zhimei_fan_vr0",
+            "55.FF.07.01.6A.0C.00.00.00.D2",
+            "cmd: 0x0C, param: 0x00, args: [0,0,0]",
+            "id: 0x00006A01, index: 255, tx: 7, seed: 0x0000",
+            "light_0: ['cmd'] / {'sub_type': 'cww', 'cmd': 'B-', 'step': 0.625}",
+        ),
+        (
+            "zhimei_fan_vr1",
+            "1E.FF.07.01.6A.48.46.4B.4A.1C.49.17.B9.A4.B7.E1.C5.7D.85.03.1B.20.E4.69.A6.10.11.12.13.14.15",
+            "cmd: 0x0C, param: 0x00, args: [0,0,0]",
+            "id: 0x00006A01, index: 255, tx: 7, seed: 0x0008",
+            "light_0: ['cmd'] / {'sub_type': 'cww', 'cmd': 'B-', 'step': 0.625}",
+        ),
+        # K+
+        (
+            "zhimei_fan_vr0",
+            "55.FF.15.01.6A.0B.00.00.00.DF",
+            "cmd: 0x0B, param: 0x00, args: [0,0,0]",
+            "id: 0x00006A01, index: 255, tx: 21, seed: 0x0000",
+            "light_0: ['cmd'] / {'sub_type': 'cww', 'cmd': 'K+', 'step': 0.625}",
+        ),
+        (
+            "zhimei_fan_vr1",
+            "1E.FF.15.01.6A.48.46.4B.4A.E1.96.5E.F6.6F.F2.1C.0B.42.7A.9C.2C.21.87.87.0E.10.11.12.13.14.15",
+            "cmd: 0x0B, param: 0x00, args: [0,0,0]",
+            "id: 0x00006A01, index: 255, tx: 21, seed: 0x0016",
+            "light_0: ['cmd'] / {'sub_type': 'cww', 'cmd': 'K+', 'step': 0.625}",
+        ),
+        # K-
+        (
+            "zhimei_fan_vr0",
+            "55.FF.0D.01.6A.09.00.00.00.D5",
+            "cmd: 0x09, param: 0x00, args: [0,0,0]",
+            "id: 0x00006A01, index: 255, tx: 13, seed: 0x0000",
+            "light_0: ['cmd'] / {'sub_type': 'cww', 'cmd': 'K-', 'step': 0.625}",
+        ),
+        (
+            "zhimei_fan_vr1",
+            "1E.FF.0D.01.6A.48.46.4B.4A.9E.CD.8F.37.26.35.5F.3E.FF.9B.F3.21.06.EE.6E.38.10.11.12.13.14.15",
+            "cmd: 0x09, param: 0x00, args: [0,0,0]",
+            "id: 0x00006A01, index: 255, tx: 13, seed: 0x000E",
+            "light_0: ['cmd'] / {'sub_type': 'cww', 'cmd': 'K-', 'step': 0.625}",
+        ),
+        # Night Mode (TOGGLE?)
+        (
+            "zhimei_fan_vr0",
+            "55.FF.19.01.6A.07.00.00.00.DF",
+            "cmd: 0x07, param: 0x00, args: [0,0,0]",
+            "id: 0x00006A01, index: 255, tx: 25, seed: 0x0000",
+            "light_0: [] / {'sub_type': 'cww', 'cold': 0.1, 'warm': 0.1}",
+        ),
+        (
+            "zhimei_fan_vr1",
+            "1E.FF.19.01.6A.48.46.4B.4A.7B.FC.C0.5C.09.58.82.69.DC.29.2F.51.76.58.08.1A.10.11.12.13.14.15",
+            "cmd: 0x07, param: 0x00, args: [0,0,0]",
+            "id: 0x00006A01, index: 255, tx: 25, seed: 0x001A",
+            "light_0: [] / {'sub_type': 'cww', 'cold': 0.1, 'warm': 0.1}",
+        ),
+        # Fan DIR TOGGLE
+        (
+            "zhimei_fan_vr0",
+            "55.FF.1C.01.6A.02.00.00.00.DD",
+            "cmd: 0x02, param: 0x00, args: [0,0,0]",
+            "id: 0x00006A01, index: 255, tx: 28, seed: 0x0000",
+            "fan_0: ['dir'] / {'dir': 'toggle'}",
+        ),
+        (
+            "zhimei_fan_vr1",
+            "1E.FF.1C.01.6A.48.46.4B.4A.51.11.D5.86.FF.82.AC.92.B2.E0.B5.46.BB.B1.5B.09.10.11.12.13.14.15",
+            "cmd: 0x02, param: 0x00, args: [0,0,0]",
+            "id: 0x00006A01, index: 255, tx: 28, seed: 0x001D",
+            "fan_0: ['dir'] / {'dir': 'toggle'}",
+        ),
+        # Timer 1H
+        (
+            "zhimei_fan_vr0",
+            "55.FF.2D.01.6A.12.00.00.00.FE",
+            "cmd: 0x12, param: 0x00, args: [0,0,0]",
+            "id: 0x00006A01, index: 255, tx: 45, seed: 0x0000",
+            "device_0: ['cmd'] / {'cmd': 'timer', 's': 3600}",
+        ),
+        (
+            "zhimei_fan_vr1",
+            "1E.FF.2D.01.6A.48.46.4B.4A.51.3E.06.86.FF.82.AC.82.B2.F0.B6.B6.AB.E1.05.40.10.11.12.13.14.15",
+            "cmd: 0x12, param: 0x00, args: [0,0,0]",
+            "id: 0x00006A01, index: 255, tx: 45, seed: 0x002E",
+            "device_0: ['cmd'] / {'cmd': 'timer', 's': 3600}",
+        ),
+        # Timer 2H
+        (
+            "zhimei_fan_vr0",
+            "55.FF.2F.01.6A.14.00.00.00.02",
+            "cmd: 0x14, param: 0x00, args: [0,0,0]",
+            "id: 0x00006A01, index: 255, tx: 47, seed: 0x0000",
+            "device_0: ['cmd'] / {'cmd': 'timer', 's': 7200}",
+        ),
+        (
+            "zhimei_fan_vr1",
+            "1E.FF.2F.01.6A.48.46.4B.4A.07.56.1A.D0.8D.CC.F6.F2.68.32.3A.B8.6D.87.B4.FD.10.11.12.13.14.15",
+            "cmd: 0x14, param: 0x00, args: [0,0,0]",
+            "id: 0x00006A01, index: 255, tx: 47, seed: 0x0030",
+            "device_0: ['cmd'] / {'cmd': 'timer', 's': 7200}",
+        ),
+    ],
+)
+class TestEncoderZhimeiFanRemoteNoDirect(_TestEncoderFull):
+    """Zhi Mei Fan Encoder / Decoder Fan Remote No Direct tests."""
+
+    _with_reverse = False
+
+
+@pytest.mark.parametrize(
+    _TestEncoderFull.PARAM_NAMES,
+    [
+        # Fan OFF
+        (
+            "zhimei_fan_vr0",
+            "55.FF.6B.01.6A.0E.00.00.00.38",
+            "cmd: 0x0E, param: 0x00, args: [0,0,0]",
+            "id: 0x00006A01, index: 255, tx: 107, seed: 0x0000",
+            "fan_0: ['on'] / {'sub_type': '6speed', 'on': False}",
+        ),
+        (
+            "zhimei_fan_vr1",
+            "1E.FF.6B.01.6A.48.46.4B.4A.E4.75.33.F1.6C.EF.19.0B.45.55.DF.DB.50.24.31.8A.10.11.12.13.14.15",
+            "cmd: 0x0E, param: 0x00, args: [0,0,0]",
+            "id: 0x00006A01, index: 255, tx: 107, seed: 0x006C",
+            "fan_0: ['on'] / {'sub_type': '6speed', 'on': False}",
+        ),
+        # Fan Speed 1
+        (
+            "zhimei_fan_vr0",
+            "55.FF.20.01.6A.03.00.00.00.E2",
+            "cmd: 0x03, param: 0x00, args: [0,0,0]",
+            "id: 0x00006A01, index: 255, tx: 32, seed: 0x0000",
+            "fan_0: ['on', 'speed'] / {'sub_type': '6speed', 'on': True, 'speed': 1}",
+        ),
+        (
+            "zhimei_fan_vr1",
+            "1E.FF.20.01.6A.48.46.4B.4A.07.47.0B.D0.8D.CC.F6.E1.68.9F.1A.CB.00.DA.70.37.10.11.12.13.14.15",
+            "cmd: 0x03, param: 0x00, args: [0,0,0]",
+            "id: 0x00006A01, index: 255, tx: 32, seed: 0x0021",
+            "fan_0: ['on', 'speed'] / {'sub_type': '6speed', 'on': True, 'speed': 1}",
+        ),
+        # Fan Speed 2
+        (
+            "zhimei_fan_vr0",
+            "55.FF.22.01.6A.05.00.00.00.E6",
+            "cmd: 0x05, param: 0x00, args: [0,0,0]",
+            "id: 0x00006A01, index: 255, tx: 34, seed: 0x0000",
+            "fan_0: ['on', 'speed'] / {'sub_type': '6speed', 'on': True, 'speed': 2}",
+        ),
+        (
+            "zhimei_fan_vr1",
+            "1E.FF.22.01.6A.48.46.4B.4A.23.6D.31.B4.B1.B0.DA.BF.84.AF.0C.FB.F0.C2.AD.6B.10.11.12.13.14.15",
+            "cmd: 0x05, param: 0x00, args: [0,0,0]",
+            "id: 0x00006A01, index: 255, tx: 34, seed: 0x0023",
+            "fan_0: ['on', 'speed'] / {'sub_type': '6speed', 'on': True, 'speed': 2}",
+        ),
+        # Fan Speed 3
+        (
+            "zhimei_fan_vr0",
+            "55.FF.24.01.6A.08.00.00.00.EB",
+            "cmd: 0x08, param: 0x00, args: [0,0,0]",
+            "id: 0x00006A01, index: 255, tx: 36, seed: 0x0000",
+            "fan_0: ['on', 'speed'] / {'sub_type': '6speed', 'on': True, 'speed': 3}",
+        ),
+        (
+            "zhimei_fan_vr1",
+            "1E.FF.24.01.6A.48.46.4B.4A.E1.A9.6D.F6.6F.F2.1C.0C.42.EA.1B.BC.B1.17.7D.E3.10.11.12.13.14.15",
+            "cmd: 0x08, param: 0x00, args: [0,0,0]",
+            "id: 0x00006A01, index: 255, tx: 36, seed: 0x0025",
+            "fan_0: ['on', 'speed'] / {'sub_type': '6speed', 'on': True, 'speed': 3}",
+        ),
+        # Fan Speed 4
+        (
+            "zhimei_fan_vr0",
+            "55.FF.27.01.6A.0A.00.00.00.F0",
+            "cmd: 0x0A, param: 0x00, args: [0,0,0]",
+            "id: 0x00006A01, index: 255, tx: 39, seed: 0x0000",
+            "fan_0: ['on', 'speed'] / {'sub_type': '6speed', 'on': True, 'speed': 4}",
+        ),
+        (
+            "zhimei_fan_vr1",
+            "1E.FF.27.01.6A.48.46.4B.4A.E4.B1.6F.F1.6C.EF.19.07.45.1C.DA.0C.81.DD.E8.16.10.11.12.13.14.15",
+            "cmd: 0x0A, param: 0x00, args: [0,0,0]",
+            "id: 0x00006A01, index: 255, tx: 39, seed: 0x0028",
+            "fan_0: ['on', 'speed'] / {'sub_type': '6speed', 'on': True, 'speed': 4}",
+        ),
+        # Fan Speed 5
+        (
+            "zhimei_fan_vr0",
+            "55.FF.29.01.6A.0D.00.00.00.F5",
+            "cmd: 0x0D, param: 0x00, args: [0,0,0]",
+            "id: 0x00006A01, index: 255, tx: 41, seed: 0x0000",
+            "fan_0: ['on', 'speed'] / {'sub_type': '6speed', 'on': True, 'speed': 5}",
+        ),
+        (
+            "zhimei_fan_vr1",
+            "1E.FF.29.01.6A.48.46.4B.4A.1C.67.2D.B9.A4.B7.E1.C4.7D.2B.57.8D.72.5E.D3.E7.10.11.12.13.14.15",
+            "cmd: 0x0D, param: 0x00, args: [0,0,0]",
+            "id: 0x00006A01, index: 255, tx: 41, seed: 0x002A",
+            "fan_0: ['on', 'speed'] / {'sub_type': '6speed', 'on': True, 'speed': 5}",
+        ),
+        # Fan Speed 6
+        (
+            "zhimei_fan_vr0",
+            "55.FF.2B.01.6A.0F.00.00.00.F9",
+            "cmd: 0x0F, param: 0x00, args: [0,0,0]",
+            "id: 0x00006A01, index: 255, tx: 43, seed: 0x0000",
+            "fan_0: ['on', 'speed'] / {'sub_type': '6speed', 'on': True, 'speed': 6}",
+        ),
+        (
+            "zhimei_fan_vr1",
+            "1E.FF.2B.01.6A.48.46.4B.4A.9E.EB.AD.37.26.35.5F.44.FF.A8.D6.10.F5.D1.09.27.10.11.12.13.14.15",
+            "cmd: 0x0F, param: 0x00, args: [0,0,0]",
+            "id: 0x00006A01, index: 255, tx: 43, seed: 0x002C",
+            "fan_0: ['on', 'speed'] / {'sub_type': '6speed', 'on': True, 'speed': 6}",
+        ),
+        # Fan Breeze
+        (
+            "zhimei_fan_vr0",
+            "55.FF.1E.01.6A.11.00.00.00.EE",
+            "cmd: 0x11, param: 0x00, args: [0,0,0]",
+            "id: 0x00006A01, index: 255, tx: 30, seed: 0x0000",
+            "fan_0: ['preset'] / {'preset': 'breeze'}",
+        ),
+        (
+            "zhimei_fan_vr1",
+            "1E.FF.1E.01.6A.48.46.4B.4A.9E.DC.A2.37.26.35.5F.56.FF.CB.D2.F1.D6.BE.4A.7B.10.11.12.13.14.15",
+            "cmd: 0x11, param: 0x00, args: [0,0,0]",
+            "id: 0x00006A01, index: 255, tx: 30, seed: 0x001F",
+            "fan_0: ['preset'] / {'preset': 'breeze'}",
+        ),
+    ],
+)
+class TestEncoderZhimeiFanRemote(_TestEncoderFull):
+    """Zhi Mei Fan Encoder / Decoder Fan Remote tests."""
