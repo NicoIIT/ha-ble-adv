@@ -23,7 +23,6 @@ from homeassistant.helpers.http import HomeAssistantView
 from homeassistant.helpers.json import ExtendedJSONEncoder
 
 from . import get_coordinator
-from .adapters import BleAdvQueueItem
 from .codecs import PHONE_APPS
 from .codecs.const import (
     ATTR_CMD,
@@ -45,6 +44,7 @@ from .const import (
     CONF_ADAPTER_ID,
     CONF_ADAPTER_IDS,
     CONF_CODEC_ID,
+    CONF_DEVICE_QUEUE,
     CONF_DURATION,
     CONF_EFFECTS,
     CONF_FANS,
@@ -414,7 +414,7 @@ class BleAdvConfigFlow(ConfigFlow, domain=DOMAIN):
 
     async def async_step_tools(self, _: dict[str, Any] | None = None) -> ConfigFlowResult:
         """Tooling Step."""
-        return self.async_show_menu(step_id="tools", menu_options=["diag", "inject", "listen_raw"])
+        return self.async_show_menu(step_id="tools", menu_options=["diag", "inject", "listen_raw", "decode_raw"])
 
     async def async_step_diag(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         """Diagnostic step."""
@@ -426,11 +426,11 @@ class BleAdvConfigFlow(ConfigFlow, domain=DOMAIN):
 
     async def async_step_inject(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         """Manual injection step."""
+        errors: dict[str, str] = {}
         if user_input is not None:
             self._last_inject = user_input
-            qi = BleAdvQueueItem(0, 3 * user_input[CONF_REPEAT], 0, user_input[CONF_INTERVAL], bytes.fromhex(user_input[CONF_RAW]))
-            await self.coordinator.advertise(user_input[CONF_ADAPTER_ID], "man", qi)
-            return await self.async_step_inject_res()
+            if not (errors := await self.coordinator.inject_raw({**user_input, CONF_DURATION: 800, CONF_DEVICE_QUEUE: "man"})):
+                return await self.async_step_inject_res()
 
         data_schema = vol.Schema(
             {
@@ -445,7 +445,7 @@ class BleAdvConfigFlow(ConfigFlow, domain=DOMAIN):
             }
         )
 
-        return self.async_show_form(step_id="inject", data_schema=data_schema)
+        return self.async_show_form(step_id="inject", data_schema=data_schema, errors=errors)
 
     async def async_step_inject_res(self, _: dict[str, Any] | None = None) -> ConfigFlowResult:
         """Manual injection result step."""
@@ -466,6 +466,19 @@ class BleAdvConfigFlow(ConfigFlow, domain=DOMAIN):
         return self.async_show_menu(
             step_id="listen_raw_res", menu_options=["listen_raw", "tools"], description_placeholders={"advs": _format_advs(self._raw_advs)}
         )
+
+    async def async_step_decode_raw(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
+        """Decode Raw BLE ADV messages."""
+        if user_input is not None:
+            self._decode_res = await self.coordinator.decode_raw(user_input[CONF_RAW])
+            return await self.async_step_decode_raw_res()
+        data_schema = vol.Schema({vol.Required(CONF_RAW, default=self._last_inject[CONF_RAW]): selector.TextSelector(selector.TextSelectorConfig())})
+        return self.async_show_form(step_id="decode_raw", data_schema=data_schema)
+
+    async def async_step_decode_raw_res(self, _: dict[str, Any] | None = None) -> ConfigFlowResult:
+        """Decode BLE ADV messages result step."""
+        conf = '\n    ("' + '",\n    "'.join(self._decode_res) + '")'
+        return self.async_show_menu(step_id="decode_raw_res", menu_options=["decode_raw", "tools"], description_placeholders={"conf": conf})
 
     async def async_step_manual(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         """Manual input step."""
@@ -681,7 +694,7 @@ class BleAdvConfigFlow(ConfigFlow, domain=DOMAIN):
 
     async def async_step_config_remote_delete(self, _: dict[str, Any] | None = None) -> ConfigFlowResult:
         """Remove Remote."""
-        self._data.pop(CONF_REMOTE)
+        self._data[CONF_REMOTE] = {}
         return await self.async_step_configure()
 
     async def async_step_wait_config_remote(self, _: dict[str, Any] | None = None) -> ConfigFlowResult:

@@ -1,0 +1,38 @@
+inject_raw:
+  fields:
+    adapter_id:
+      required: true
+      example: "esp-proxy"
+      selector:
+        text:
+    raw:
+      required: true
+      example: "0201021b16f0081000358aeb8144550be3da13b3f3c764ce9baf121666e3c0"
+      selector:
+        text:
+    interval:
+      example: "20"
+      default: 20
+      selector:
+        number:
+          min: 10
+          max: 150
+    repeat:
+      example: 3
+      default: 3
+      selector:
+        number:
+          min: 1
+          max: 20
+    device_queue:
+      example: "device room 2"
+      default: "device"
+      selector:
+        text:
+    duration:
+      example: 1000
+      default: 800
+      selector:
+        number:
+          min: 100
+          max: 2000

@@ -17,7 +17,8 @@
         "menu_options": {
           "diag": "Diagnostic Dump",
           "inject": "Inject Raw",
-          "listen_raw": "Listen to BLE ADV"
+          "listen_raw": "Listen to BLE ADV",
+          "decode_raw": "Decode Raw BLE ADV"
         }
       },
       "diag": {
@@ -49,6 +50,20 @@
         "description": "Injection Done.",
         "menu_options": {
           "inject": "Inject New Raw",
+          "tools": "Back to Tools"
+        }
+      },
+      "decode_raw": {
+        "title": "Decoding Raw BLE ADV",
+        "data": {
+          "raw": "Raw Data"
+        }
+      },
+      "decode_raw_res": {
+        "title": "Decoding Raw BLE ADV Result",
+        "description": "{conf}",
+        "menu_options": {
+          "decode_raw": "Decode New Raw",
           "tools": "Back to Tools"
         }
       },
@@ -344,6 +359,38 @@
               "rgbk": "RGBK Cycle"
             }
           }
+        }
+      }
+    }
+  },
+  "services": {
+    "inject_raw": {
+      "name": "Inject Raw BLE ADV",
+      "description": "Inject raw BLE ADV in binary hex format.",
+      "fields": {
+        "adapter_id": {
+          "name": "Adapter ID",
+          "description": "The name of the adapter to be used."
+        },
+        "raw": {
+          "name": "Raw BLE ADV",
+          "description": "The raw BLE Advertisement to be sent."
+        },
+        "interval": {
+          "name": "Interval",
+          "description": "The interval in between 2 advertisements, in ms."
+        },
+        "repeat": {
+          "name": "Repeat",
+          "description": "The advertisement will be sent 3 * Repeat times."
+        },
+        "device_queue": {
+          "name": "Device Queue Name",
+          "description": "The targetted device queue name, not corresponding to any ID: it is used to discriminate advertisements between different devices and apply proper Queue Handling."
+        },
+        "duration": {
+          "name": "Minumum Duration",
+          "description": "The minimum duration before which another advertisement can be sent with the same Adapter/Device, in ms."
         }
       }
     }

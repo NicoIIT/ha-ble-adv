@@ -66,7 +66,6 @@ def test_adv() -> None:
     adv_str = _from_dotted("02.01.19." + raw_with_ble)
     adv = BleAdvAdvertisement.FromRaw(adv_str)
     assert hash(adv) != 0
-    assert adv is not None, "Adv is not None"
     assert as_hex(adv.raw) == raw_msg
     assert adv.ble_type == 0x16
     assert adv.to_raw() == _from_dotted(raw_with_ble)
@@ -74,7 +73,8 @@ def test_adv() -> None:
     assert adv == BleAdvAdvertisement(0x16, _from_dotted(raw_msg))
     adv.ad_flag = 0x19
     adv = BleAdvAdvertisement.FromRaw(_from_dotted(raw_msg))
-    assert adv is None
+    assert adv.ble_type == 0
+    assert adv.to_raw() == _from_dotted(raw_msg)
 
 
 def test_enc_cmd() -> None:

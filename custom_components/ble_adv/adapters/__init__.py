@@ -27,9 +27,9 @@ class AdapterError(Exception):
 class BleAdvQueueItem:
     """MultiQueue Item."""
 
-    def __init__(self, key: int, repeat: int, delay: int, interval: int, data: bytes) -> None:
+    def __init__(self, key: int | None, repeat: int, delay: int, interval: int, data: bytes) -> None:
         """Init MultiQueue Item."""
-        self.key: int = key
+        self.key: int | None = key
         self.repeat: int = repeat
         self.delay_after: int = delay
         self.interval: int = interval
@@ -146,7 +146,8 @@ class BleAdvAdapter(ABC):
                 self._locked_tasks.append(None)
                 self._qlen += 1
             else:
-                self._queues[tq_ind] = [x for x in self._queues[tq_ind] if x.key != item.key]
+                if item.key is not None:
+                    self._queues[tq_ind] = [x for x in self._queues[tq_ind] if x.key != item.key]
                 self._queues[tq_ind].append(item)
             self._add_event.set()
 

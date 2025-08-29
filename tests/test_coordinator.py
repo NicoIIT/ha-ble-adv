@@ -6,6 +6,7 @@ from unittest import mock
 
 from ble_adv.adapters import BleAdvQueueItem
 from ble_adv.codecs.models import BleAdvAdvertisement, BleAdvCodec, BleAdvConfig, BleAdvEntAttr
+from ble_adv.const import CONF_ADAPTER_ID, CONF_DEVICE_QUEUE, CONF_DURATION, CONF_INTERVAL, CONF_RAW, CONF_REPEAT
 from ble_adv.coordinator import (
     BleAdvCoordinator,
     MatchingCallback,
@@ -94,6 +95,37 @@ async def test_ign_mac(hass: HomeAssistant) -> None:
     raw_adv = bytes([0x03, 0xFF, 0x12, 0x34])
     await coord.handle_raw_adv("aaa", "mac1", raw_adv)
     assert coord.listened_raw_advs == []
+
+
+async def test_inject_raw(hass: HomeAssistant) -> None:
+    """Test Raw Injection."""
+    coord = BleAdvCoordinator(hass, {}, ["hci"], 20000, [], [])
+    await coord.async_init()
+    coord.advertise = mock.AsyncMock()
+    t1 = MockEspProxy(hass, "esp-test")
+    await t1.setup()
+    assert coord.get_adapter_ids() == ["esp-test"]
+    params = {CONF_DURATION: 100, CONF_REPEAT: 1, CONF_INTERVAL: 10, CONF_DEVICE_QUEUE: "test"}
+    errors = await coord.inject_raw({CONF_RAW: "1234", CONF_ADAPTER_ID: "esp-test", **params})
+    assert errors == {}
+    coord.advertise.assert_awaited_once_with("esp-test", "test", BleAdvQueueItem(None, 1, 100, 10, bytes([0x12, 0x34])))
+    errors = await coord.inject_raw({CONF_RAW: "123", CONF_ADAPTER_ID: "esp-test", **params})
+    assert errors == {CONF_RAW: "Cannot convert to bytes"}
+    errors = await coord.inject_raw({CONF_RAW: "123a", CONF_ADAPTER_ID: "not exists", **params})
+    assert errors == {CONF_ADAPTER_ID: "Should be in ['esp-test']"}
+    await coord.async_final()
+
+
+async def test_decode_raw(hass: HomeAssistant) -> None:
+    """Test Raw Decoding."""
+    coord = BleAdvCoordinator(hass, {"cod1": _Codec()}, ["hci"], 20000, [], [])
+    res = await coord.decode_raw("123")
+    assert res == ["Cannot convert to bytes"]
+    res = await coord.decode_raw("1234")
+    assert res == ["cod1", "12.34", "16", "id: 0x00000001, index: 0, tx: 0, seed: 0x0000", ""]
+    coord.codecs.clear()
+    res = await coord.decode_raw("1234")
+    assert res == ["Could not be decoded by any known codec"]
 
 
 async def test_full_diagnostics(hass: HomeAssistant) -> None:

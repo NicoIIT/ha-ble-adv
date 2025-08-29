@@ -30,7 +30,7 @@ class BleAdvAdvertisement:
     """Model and Advertisement."""
 
     @classmethod
-    def FromRaw(cls, raw_adv: bytes) -> Self | None:  # noqa: N802
+    def FromRaw(cls, raw_adv: bytes) -> Self:  # noqa: N802
         """Build an Advertisement from raw."""
         ble_type = 0x00
         rem_data = raw_adv
@@ -42,7 +42,7 @@ class BleAdvAdvertisement:
                 raw_data = rem_data[2 : part_len + 1]
             rem_data = rem_data[part_len + 1 :]
         if ble_type == 0:
-            return None
+            raw_data = raw_adv
         return cls(ble_type, raw_data)
 
     def __init__(self, ble_type: int, raw: bytes, ad_flag: int = 0) -> None:
@@ -62,7 +62,7 @@ class BleAdvAdvertisement:
 
     def to_raw(self) -> bytes:
         """Get the raw buffer."""
-        full_raw = bytearray([len(self.raw) + 1, self.ble_type]) + self.raw
+        full_raw = bytearray([len(self.raw) + 1, self.ble_type]) + self.raw if self.ble_type != 0 else self.raw
         return full_raw if self.ad_flag == 0 else bytearray([0x02, 0x01, self.ad_flag]) + full_raw
 
 
@@ -367,6 +367,7 @@ class BleAdvCodec(ABC):
         self.codec_id: str = ""
         self.match_id: str = ""
         self._header: bytearray = bytearray()  # header is excluded from the data sent to the child encoder
+        self._header_start_pos: int = 0
         self._prefix: bytearray = bytearray()  # prefix is included in the data sent to the child encoder
         self._ble_type: int = 0
         self._ad_flag: int = 0
@@ -398,9 +399,10 @@ class BleAdvCodec(ABC):
         """Set match_id and codec_id from id and sub_id if any."""
         return self.fid(f"{match_id}/{sub_id}" if sub_id is not None else match_id, match_id)
 
-    def header(self, header: list[int]) -> Self:
+    def header(self, header: list[int], start_pos: int = 0) -> Self:
         """Set header."""
         self._header = bytearray(header)
+        self._header_start_pos = start_pos
         return self
 
     def prefix(self, prefix: list[int]) -> Self:
@@ -452,12 +454,12 @@ class BleAdvCodec(ABC):
         """Decode Adv into Encoder Attributes / Config."""
         if (
             not self.is_eq(self._ble_type, adv.ble_type, "BLE Type")
-            or not self.is_eq(self._len, len(adv.raw) - len(self._header), "Length")
-            or not self.is_eq_buf(self._header, adv.raw, "Header")
+            or not self.is_eq(self._len, len(adv.raw) - len(self._header) - self._header_start_pos, "Length")
+            or not self.is_eq_buf(self._header, adv.raw[self._header_start_pos :], "Header")
         ):
             return None, None
         self.log_buffer(adv.raw, "Decode/Full")
-        read_buffer = self.decrypt(adv.raw[len(self._header) :])
+        read_buffer = self.decrypt(adv.raw[: self._header_start_pos] + adv.raw[self._header_start_pos + len(self._header) :])
         if read_buffer is None or not self.is_eq_buf(self._prefix, read_buffer, "Prefix"):
             return None, None
         read_buffer = read_buffer[len(self._prefix) :]
@@ -471,7 +473,8 @@ class BleAdvCodec(ABC):
             conf.app_restart_count = (conf.app_restart_count + 1) % 255
         read_buffer = self.convert_from_enc(enc_cmd, conf)
         self.log_buffer(read_buffer, "Encode/Decrypted")
-        encrypted = self._header + self.encrypt(self._prefix + read_buffer)
+        encrypted = self.encrypt(self._prefix + read_buffer)
+        encrypted = encrypted[: self._header_start_pos] + self._header + encrypted[self._header_start_pos :]
         self.log_buffer(encrypted, "Encode/Full")
         return BleAdvAdvertisement(self._ble_type, encrypted, self._ad_flag)
 
