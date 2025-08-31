@@ -1,5 +1,6 @@
 """Models."""
 
+import copy
 import logging
 from abc import ABC, abstractmethod
 from binascii import hexlify
@@ -292,17 +293,12 @@ class Trans:
         self.ent = ent
         self.enc = enc
         self._copies = []
-        self._direct = True
-        self._reverse = True
+        self.direct = True
+        self.reverse = True
         self._scopy = None
 
     def __repr__(self) -> str:
         return f"{self.ent} / {self.enc} / {self._copies}"
-
-    @property
-    def direct(self) -> bool:
-        """Return if direct mode supported."""
-        return self._direct
 
     def copy(self, attr_ent: str, attr_enc: str, factor: float = 1.0) -> Self:
         """Apply copy from attr_ent to attr_enc, with factor."""
@@ -316,21 +312,21 @@ class Trans:
 
     def no_direct(self) -> Self:
         """Do not consider this translator for direct translation."""
-        self._direct = False
+        self.direct = False
         return self
 
     def no_reverse(self) -> Self:
         """Do not consider this translator for reverse translation."""
-        self._reverse = False
+        self.reverse = False
         return self
 
     def matches_ent(self, ent_attr: BleAdvEntAttr) -> bool:
         """Check if the translator matches the entity attributes."""
-        return self._direct and self.ent.matches(ent_attr)
+        return self.direct and self.ent.matches(ent_attr)
 
     def matches_enc(self, enc_cmd: BleAdvEncCmd) -> bool:
         """Check if the translator matches the encoder command."""
-        return self._reverse and self.enc.matches(enc_cmd)
+        return self.reverse and self.enc.matches(enc_cmd)
 
     def ent_to_enc(self, ent_attr: BleAdvEntAttr) -> BleAdvEncCmd:
         """Apply transformations to Encoder Attributes: direct."""
@@ -426,6 +422,11 @@ class BleAdvCodec(ABC):
     def add_translators(self, translators: list[Trans]) -> Self:
         """Add Translators."""
         self._translators.extend(translators)
+        return self
+
+    def add_rev_only_trans(self, translators: list[Trans]) -> Self:
+        """Add Reverse Only Translators."""
+        self._translators.extend([copy.copy(trans).no_direct() for trans in translators if trans.reverse])
         return self
 
     def get_supported_features(self, base_type: str) -> list[dict[str, set[Any]]]:

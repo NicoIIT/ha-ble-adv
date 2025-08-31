@@ -125,7 +125,7 @@ class BleAdvCoordinator:
         if dt[CONF_ADAPTER_ID] not in self.get_adapter_ids():
             return {CONF_ADAPTER_ID: f"Should be in {self.get_adapter_ids()}"}
         try:
-            raw = bytes.fromhex(dt[CONF_RAW])
+            raw = bytes.fromhex(dt[CONF_RAW].replace(".", ""))
         except ValueError:
             return {CONF_RAW: "Cannot convert to bytes"}
         qi: BleAdvQueueItem = BleAdvQueueItem(None, 3 * dt[CONF_REPEAT], dt[CONF_DURATION], dt[CONF_INTERVAL], raw)
@@ -135,7 +135,7 @@ class BleAdvCoordinator:
     async def decode_raw(self, raw_adv_str: str) -> list[str]:
         """Decode a Raw ADV."""
         try:
-            raw_adv = bytes.fromhex(raw_adv_str)
+            raw_adv = bytes.fromhex(raw_adv_str.replace(".", ""))
         except ValueError:
             return ["Cannot convert to bytes"]
         adv = BleAdvAdvertisement.FromRaw(raw_adv)

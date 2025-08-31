@@ -279,11 +279,18 @@ def test_codec() -> None:
             .copy(ATTR_BLUE_F, "arg2", 255),
             Trans(CTLightCmd(1).act(ATTR_COLD).act(ATTR_WARM), EncCmd(0x23)).no_direct(),
         ]
+    ).add_rev_only_trans(
+        [
+            Trans(CTLightCmd(1).act(ATTR_COLD).act(ATTR_WARM), EncCmd(0x24)),
+            Trans(CTLightCmd(1).act(ATTR_COLD).act(ATTR_WARM), EncCmd(0x25)).no_reverse(),
+        ]
     )
     assert codec.get_supported_features(LIGHT_TYPE) == [
         {ATTR_ON: {False, True}, ATTR_SUB_TYPE: {LIGHT_TYPE_ONOFF, LIGHT_TYPE_CWW, LIGHT_TYPE_RGB}},
         {ATTR_ON: {False, True}, ATTR_SUB_TYPE: {LIGHT_TYPE_ONOFF}},
     ]
+    assert len([trans for trans in codec._translators if trans.enc._cmd == 0x24]) == 1  # noqa: SLF001
+    assert len([trans for trans in codec._translators if trans.enc._cmd == 0x25]) == 0  # noqa: SLF001
     conf = BleAdvConfig()
     assert repr(codec.encode_adv(BleAdvEncCmd(0x10), conf)) == "Type: 0x16, raw: 55.56.74.65.73.74"
     assert conf.tx_count == 1

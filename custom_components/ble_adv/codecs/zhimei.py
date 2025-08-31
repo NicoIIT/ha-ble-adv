@@ -288,7 +288,7 @@ TRANS_REMOTE = [
     Trans(DeviceCmd().act(ATTR_ON, False), EncCmd(0x10)).no_direct(),
     Trans(DeviceCmd().act(ATTR_CMD, ATTR_CMD_TIMER).eq(ATTR_TIME, 60 * 60), EncCmd(0x12)).no_direct(),
     Trans(DeviceCmd().act(ATTR_CMD, ATTR_CMD_TIMER).eq(ATTR_TIME, 2 * 60 * 60), EncCmd(0x14)).no_direct(),
-    Trans(LightCmd().act(ATTR_ON, ATTR_CMD_TOGGLE), EncCmd(0x04)),
+    Trans(LightCmd().act(ATTR_ON, ATTR_CMD_TOGGLE), EncCmd(0x04)).no_direct(),
     Trans(LightCmd().act(ATTR_ON, True), EncCmd(0x04)).no_reverse(),
     Trans(LightCmd().act(ATTR_ON, False), EncCmd(0x04)).no_reverse(),
     Trans(CTLightCmd().act(ATTR_CMD, ATTR_CMD_CT_UP).eq(ATTR_STEP, 0.625), EncCmd(0x0B)).no_direct(),
@@ -319,8 +319,8 @@ TRANS_FAN_V1 = [
 
 CODECS = [
     # Zhi Mei standard Android App
-    ZhimeiEncoderV0().id("zhimei_fan_v0").header([0x55]).ble(0x19, 0x03).add_translators(TRANS_FAN_COMMON),
-    ZhimeiEncoderV1().id("zhimei_fan_v1").header([0x48, 0x46, 0x4B, 0x4A]).ble(0x1A, 0x03).add_translators(TRANS_FAN_V1),
+    ZhimeiEncoderV0().id("zhimei_fan_v0").header([0x55]).ble(0x19, 0x03).add_translators(TRANS_FAN_COMMON).add_rev_only_trans(TRANS_REMOTE),
+    ZhimeiEncoderV1().id("zhimei_fan_v1").header([0x48, 0x46, 0x4B, 0x4A]).ble(0x1A, 0x03).add_translators(TRANS_FAN_V1).add_rev_only_trans(TRANS_REMOTE),
     ZhimeiEncoderV1().id("zhimei_v1").header([0x48, 0x46, 0x4B, 0x4A]).ble(0x1A, 0x03).add_translators(TRANS_V1),
     ZhimeiEncoderV2().id("zhimei_v2").header([0xF9, 0x08, 0x49]).ble(0x1A, 0x03).prefix([0x33, 0xAA, 0x55]).add_translators(TRANS_V2),
     # Zhi Mei Remotes
