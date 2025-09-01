@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import logging
-from abc import ABC, abstractmethod
 from collections.abc import MutableMapping
 from datetime import datetime, timedelta
 from typing import Any
@@ -14,7 +13,6 @@ from homeassistant.helpers.event import async_track_point_in_utc_time
 from homeassistant.helpers.restore_state import RestoreEntity
 from homeassistant.util import dt as dt_util
 
-from .adapters import BleAdvQueueItem
 from .codecs.const import (
     ATTR_CMD,
     ATTR_CMD_PAIR,
@@ -26,14 +24,9 @@ from .codecs.const import (
     ATTR_TIME,
     DEVICE_TYPE,
 )
-from .codecs.models import (
-    BleAdvAdvertisement,
-    BleAdvCodec,
-    BleAdvConfig,
-    BleAdvEntAttr,
-)
+from .codecs.models import BleAdvConfig, BleAdvEntAttr
 from .const import DOMAIN
-from .coordinator import BleAdvCoordinator, MatchingCallback
+from .coordinator import BleAdvBaseDevice, BleAdvCoordinator
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -168,67 +161,7 @@ class BleAdvEntity(RestoreEntity):
                 self.set_state_attribute(state_attr.name, state_attr.default)
 
 
-class BleAdvMatchingDevice(MatchingCallback, ABC):
-    """Base Matching Device."""
-
-    def __init__(
-        self,
-        reg_name: str,
-        coordinator: BleAdvCoordinator,
-        codec_id: str,
-        adapter_ids: list[str],
-        config: BleAdvConfig,
-    ) -> None:
-        self.coordinator: BleAdvCoordinator = coordinator
-        self.codec: BleAdvCodec = self.coordinator.codecs[codec_id]
-        self.adapter_ids: set[str] = set(adapter_ids)
-        self.config: BleAdvConfig = config
-        self.reg_name: str = reg_name
-
-    @property
-    def available(self) -> bool:
-        """Return True if the device is available: if one of the adapters is available."""
-        return any(adapter_id in self.coordinator.get_adapter_ids() for adapter_id in self.adapter_ids)
-
-    async def register(self) -> None:
-        """Register to coordinator."""
-        await self.coordinator.register_callback(self.reg_name, self)
-
-    async def unregister(self) -> None:
-        """Unregister."""
-        await self.coordinator.unregister_callback(self.reg_name)
-
-    async def handle(self, _: str, match_id: str, adapter_id: str, config: BleAdvConfig, ent_attrs: list[BleAdvEntAttr]) -> bool:
-        """Handle the callback."""
-        if (
-            (match_id != self.codec.match_id)
-            or (adapter_id not in self.adapter_ids)
-            or (config.id != self.config.id)
-            or (config.index != self.config.index)
-        ):
-            return False
-        await self.async_on_command(ent_attrs)
-        return True
-
-    @abstractmethod
-    async def async_on_command(self, ent_attrs: list[BleAdvEntAttr]) -> None:
-        """Call on matching command received."""
-
-
-class BleAdvRemote(BleAdvMatchingDevice):
-    """Class representing a remote."""
-
-    def __init__(self, name: str, codec_id: str, adapter_ids: list[str], config: BleAdvConfig, coordinator: BleAdvCoordinator) -> None:
-        super().__init__(name, coordinator, codec_id, adapter_ids, config)
-        self.device: BleAdvDevice | None = None
-
-    async def async_on_command(self, ent_attrs: list[BleAdvEntAttr]) -> None:
-        """Call on matching command received."""
-        if self.device is not None:
-            await self.device.async_on_command(ent_attrs)
-
-
-class BleAdvDevice(BleAdvMatchingDevice):
+class BleAdvDevice(BleAdvBaseDevice):
     """Class to control the device."""
 
     def __init__(
@@ -244,16 +177,11 @@ class BleAdvDevice(BleAdvMatchingDevice):
         config: BleAdvConfig,
         coordinator: BleAdvCoordinator,
     ) -> None:
-        super().__init__(unique_id, coordinator, codec_id, adapter_ids, config)
+        super().__init__(coordinator, unique_id, codec_id, adapter_ids, int(repeat), int(interval), int(duration), config)
         self.hass: HomeAssistant = hass
-        self.unique_id: str = unique_id
         self.name: str = name
-        self.repeat: int = int(repeat)
-        self.interval: int = int(interval)
-        self.duration: int = int(duration)
         self.entities: dict[Any, BleAdvEntity] = {}
         self._timer_cancel: CALLBACK_TYPE | None = None
-        self.remotes: list[BleAdvRemote] = []
         self.logger = _DeviceLoggingAdapter(_LOGGER, {"name": self.name})
 
     @property
@@ -263,7 +191,7 @@ class BleAdvDevice(BleAdvMatchingDevice):
             identifiers={(DOMAIN, self.unique_id)},
             name=self.name,
             hw_version=", ".join(self.adapter_ids),
-            model=self.codec.codec_id,
+            model=self.codec_id,
             model_id=f"0x{self.config.id:X} / {self.config.index}",
         )
 
@@ -271,35 +199,12 @@ class BleAdvDevice(BleAdvMatchingDevice):
         """Add entity to this device."""
         self.entities[ent.id] = ent
 
-    def link_remote(self, remote: BleAdvRemote) -> None:
-        """Link a remote to this device."""
-        remote.device = self
-        self.remotes.append(remote)
-
-    async def async_start(self) -> None:
-        """Start the Device: register to coordinator."""
-        await self.register()
-        for remote in self.remotes:
-            await remote.register()
-
-    async def async_stop(self) -> None:
-        """Stop the device: unregister."""
-        for remote in self.remotes:
-            await remote.unregister()
-        await self.unregister()
-
     async def apply_change(self, ent_attr: BleAdvEntAttr) -> None:
         """Apply changes."""
         self.logger.info(f"Applying Changes: {ent_attr}")
         await self._async_cancel_timer()
         try:
-            enc_cmds = self.codec.ent_to_enc(ent_attr)
-            for enc_cmd in enc_cmds:
-                self.logger.debug(f"Cmd: {enc_cmd}")
-                adv: BleAdvAdvertisement = self.codec.encode_adv(enc_cmd, self.config)
-                qi: BleAdvQueueItem = BleAdvQueueItem(enc_cmd.cmd, self.repeat, self.duration, self.interval, adv.to_raw())
-                for adapter_id in self.adapter_ids:
-                    await self.coordinator.advertise(adapter_id, self.unique_id, qi)
+            await self.advertise(ent_attr)
         except Exception:
             self.logger.exception("Exception applying changes")
 

@@ -6,9 +6,9 @@ import logging
 import socket
 import struct
 from abc import ABC, abstractmethod
-from binascii import hexlify
 from collections import deque
 from collections.abc import Awaitable, Callable, Coroutine, MutableMapping
+from dataclasses import dataclass
 from datetime import datetime
 from math import ceil
 from typing import Any, Self
@@ -24,26 +24,51 @@ class AdapterError(Exception):
     """Adapter Exception."""
 
 
+@dataclass
+class BleAdvAdapterAdvItem:
+    """Item to be used for Adapter Advertising."""
+
+    interval: int
+    repeat: int
+    data: bytes
+    ign_duration: int
+
+    def __repr__(self) -> str:
+        return f"duration: {self.interval}ms, repeat: {self.repeat}, {self.data.hex().upper()}"
+
+
 class BleAdvQueueItem:
     """MultiQueue Item."""
 
-    def __init__(self, key: int | None, repeat: int, delay: int, interval: int, data: bytes) -> None:
+    def __init__(self, key: int | None, repeat: int, delay_after: int, interval: int, data: list[bytes], ign_duration: int) -> None:
         """Init MultiQueue Item."""
         self.key: int | None = key
-        self.repeat: int = repeat
-        self.delay_after: int = delay
-        self.interval: int = interval
-        self.data: bytes = data
-        self.adapter_repeat: int = 1
+        self.delay_after: int = delay_after
+        self.data: list[bytes] = data
+        self.ign_duration = ign_duration
+        self._repeat: int = repeat if len(data) == 1 else 1
+        self._interval: int = interval
+        self._adv_items: list[BleAdvAdapterAdvItem] = []
 
     def split_repeat(self, adapter_bunch_time: int) -> None:
         """Split the initial repeat based on adapter capacity."""
-        self.adapter_repeat = max(1, min(int(adapter_bunch_time / self.interval), self.repeat))
-        self.repeat = max(1, ceil(self.repeat / self.adapter_repeat))
+        adapter_repeat = max(1, min(int(adapter_bunch_time / self._interval), self._repeat))
+        repeat = max(1, ceil(self._repeat / adapter_repeat))
+        self._adv_items = [BleAdvAdapterAdvItem(self._interval, adapter_repeat, data, self.ign_duration) for data in self.data] * repeat
+
+    def has_next(self) -> bool:
+        """Return True if some items remains."""
+        return bool(self._adv_items)
+
+    def get_next(self) -> BleAdvAdapterAdvItem | None:
+        """Get the next item to be advertised directly by the adapter."""
+        if not self._adv_items:
+            return None
+        return self._adv_items.pop(0)
 
     def __hash__(self) -> int:
         """Hash."""
-        return hash((self.key, self.data))
+        return hash((self.key, *self.data))
 
     def __eq__(self, comp: Self) -> bool:
         """Equality."""
@@ -132,7 +157,7 @@ class BleAdvAdapter(ABC):
         """Close the adapter."""
 
     @abstractmethod
-    async def _advertise(self, interval: int, repeat: int, data: bytes) -> None:
+    async def _advertise(self, item: BleAdvAdapterAdvItem) -> None:
         """Advertise the msg."""
 
     async def enqueue(self, queue_id: str, item: BleAdvQueueItem) -> None:
@@ -164,7 +189,7 @@ class BleAdvAdapter(ABC):
     async def _dequeue(self) -> None:
         while self._processing:
             try:
-                item = None
+                item: BleAdvAdapterAdvItem | None = None
                 lock_delay = 0
                 self._advertise_on_going = False
                 await self._add_event.wait()
@@ -176,18 +201,16 @@ class BleAdvAdapter(ABC):
                         tq = self._queues[self._cur_ind]
                         if len(tq) > 0:
                             self._advertise_on_going = True
-                            item = tq[0]
-                            if item.repeat > 1:
-                                tq[0].repeat -= 1
-                            else:
+                            qi = tq[0]
+                            item = qi.get_next()
+                            if not qi.has_next():
                                 tq.pop(0)
-                                lock_delay = item.delay_after
+                                lock_delay = qi.delay_after
                             break
                     self._add_event.clear()
                 if item is not None:
-                    self.logger.debug(f"Advertising {hexlify(item.data, '.').upper()}")
-                    await asyncio.wait_for(self._advertise(item.interval, item.adapter_repeat, item.data), self.MAX_ADV_WAIT)
-                    self.logger.debug(f"End Advertising {hexlify(item.data, '.').upper()}")
+                    self.logger.debug(f"Advertising - {item}")
+                    await asyncio.wait_for(self._advertise(item), self.MAX_ADV_WAIT)
                     await self._lock_queue_for(self._cur_ind, lock_delay)
                     self._add_event.set()
             except Exception:
@@ -341,13 +364,13 @@ class BluetoothHCIAdapter(BleAdvAdapter):
     async def _set_scan_enable(self, *, enabled: bool = True) -> None:
         await self._send_hci_cmd(self.OCF_LE_SET_SCAN_ENABLE, bytearray([0x01 if enabled else 0x00, 0x00]))
 
-    async def _advertise(self, interval: int, repeat: int, data: bytes) -> None:
+    async def _advertise(self, item: BleAdvAdapterAdvItem) -> None:
         """Advertise the 'data' for the given interval."""
         # Patch the adv data to have full len 31
-        patched_data = bytearray(data) + bytearray([0x00] * (31 - len(data)))
+        patched_data = bytearray(item.data) + bytearray([0x00] * (31 - len(item.data)))
         async with self._adv_lock:
-            min_adv = max(0x20, int(interval * 1.6))
-            duration = float(0.0009 * repeat * interval)
+            min_adv = max(0x20, int(item.interval * 1.6))
+            duration = float(0.0009 * item.repeat * item.interval)
             if self._use_ext_adv:
                 await self._hci_ext_advertise(min_adv, duration, patched_data)
             elif self._use_mgmt_adv:
