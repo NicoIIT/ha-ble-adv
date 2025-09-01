@@ -27,13 +27,13 @@ class _TestEncoderBase:
         enc_cmd, conf = codec.decode_adv(adv)
         assert conf is not None
         assert enc_cmd is not None
-        reenc = codec.encode_adv(enc_cmd, conf)
+        reenc = codec.encode_advs(enc_cmd, conf)[0]
         assert reenc == adv
         conf.seed = 0
         conf.id += 0x01
         conf.index = (conf.index + 1) % 256
         conf.tx_count = (conf.tx_count + 10) % 125
-        reenc2 = codec.encode_adv(enc_cmd, conf)
+        reenc2 = codec.encode_advs(enc_cmd, conf)[0]
         enc_cmd2, conf2 = codec.decode_adv(reenc2)
         assert conf2 is not None
         assert enc_cmd2 is not None
@@ -48,6 +48,24 @@ class _TestEncoderBase:
                     enc_cmd, conf = codec.decode_adv(adv)
                     assert conf is None
                     assert enc_cmd is None
+
+
+class _TestMultiEncoderBase:
+    PARAM_NAMES: tuple[str, str, str] = ("enc_name", "ble_type", "data")
+
+    def test_encoding(self, enc_name: str, ble_type: int, data: str) -> None:
+        adv = BleAdvAdvertisement(ble_type, _from_dotted(data))
+        codec = CODECS[enc_name]
+        codec.debug_mode = True
+        enc_cmd, conf = codec.decode_adv(adv)
+        assert conf is not None
+        assert enc_cmd is not None
+        reencs = codec.encode_advs(enc_cmd, conf)
+        assert adv in reencs
+        conf.id += 0x01
+        reencs2 = codec.encode_advs(enc_cmd, conf)
+        for reenc in reencs2:
+            assert repr(codec.decode_adv(reenc)) == repr((enc_cmd, conf))
 
 
 class _TestEncoderFull:
@@ -71,4 +89,4 @@ class _TestEncoderFull:
         if self._with_reverse:
             assert len(enc_cmds) == 1
             assert enc_cmds[0] == enc_cmd
-            assert codec.encode_adv(enc_cmd, conf) == adv
+            assert adv in codec.encode_advs(enc_cmd, conf)

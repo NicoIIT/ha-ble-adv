@@ -365,6 +365,8 @@ class BleAdvCodec(ABC):
     duration: int = 750
     interval: int = 30
     repeat: int = 3
+    ign_duration: int = 12000
+    multi_advs: bool = False
 
     def __init__(self) -> None:
         self.codec_id: str = ""
@@ -391,6 +393,11 @@ class BleAdvCodec(ABC):
     @abstractmethod
     def convert_from_enc(self, enc_cmd: BleAdvEncCmd, conf: BleAdvConfig) -> bytes:
         """Convert an encoder command and a config into a readable buffer."""
+
+    def convert_multi_from_enc(self, enc_cmd: BleAdvEncCmd, conf: BleAdvConfig) -> list[bytes]:
+        """Convert an encoder command and a config into a list of readable buffers."""
+        # Call the single buffer encoder by default for standard encoders
+        return [self.convert_from_enc(enc_cmd, conf)]
 
     def fid(self, codec_id: str, match_id: str) -> Self:
         """Set codec id / match id."""
@@ -476,17 +483,19 @@ class BleAdvCodec(ABC):
         self.log_buffer(read_buffer, "Decode/Decrypted")
         return self.convert_to_enc(read_buffer)
 
-    def encode_adv(self, enc_cmd: BleAdvEncCmd, conf: BleAdvConfig) -> BleAdvAdvertisement:
-        """Encode an Encoder Command with Config into an Adv."""
+    def encode_advs(self, enc_cmd: BleAdvEncCmd, conf: BleAdvConfig) -> list[BleAdvAdvertisement]:
+        """Encode an Encoder Command with Config into a list of Adv."""
         conf.tx_count = (conf.tx_count + self._tx_step) % self._tx_max
         if conf.tx_count == 0:
             conf.app_restart_count = (conf.app_restart_count + 1) % 255
-        read_buffer = self.convert_from_enc(enc_cmd, conf)
-        self.log_buffer(read_buffer, "Encode/Decrypted")
-        encrypted = self.encrypt(self._prefix + read_buffer)
-        encrypted = encrypted[: self._header_start_pos] + self._header + encrypted[self._header_start_pos :]
-        self.log_buffer(encrypted, "Encode/Full")
-        return BleAdvAdvertisement(self._ble_type, encrypted, self._ad_flag)
+        advs: list[BleAdvAdvertisement] = []
+        for read_buffer in self.convert_multi_from_enc(enc_cmd, conf):
+            self.log_buffer(read_buffer, "Encode/Decrypted")
+            encrypted = self.encrypt(self._prefix + read_buffer)
+            encrypted = encrypted[: self._header_start_pos] + self._header + encrypted[self._header_start_pos :]
+            self.log_buffer(encrypted, "Encode/Full")
+            advs.append(BleAdvAdvertisement(self._ble_type, encrypted, self._ad_flag))
+        return advs
 
     def is_eq(self, ref: int, comp: int, msg: str) -> bool:
         """Check equal and log if not."""

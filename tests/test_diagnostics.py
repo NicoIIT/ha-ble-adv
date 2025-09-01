@@ -23,7 +23,7 @@ async def test_diagnostics(hass: HomeAssistant) -> None:
             "hci": {"adapters": {}, "ids": {}, "logs": [], "supported_by_host": True},
             "codec_ids": list(get_codecs().keys()),
             "ign_adapters": [],
-            "ign_duration": 20000,
+            "ign_duration": 60000,
             "ign_cids": list({*CONF_GOOGLE_LCC_UUIDS, *CONF_APPLE_INC_UUIDS}),
             "ign_macs": [],
         },

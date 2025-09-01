@@ -70,8 +70,7 @@ from .const import (
     CONF_USE_OSC,
     DOMAIN,
 )
-from .coordinator import BleAdvCoordinator
-from .device import BleAdvDevice
+from .coordinator import BleAdvBaseDevice, BleAdvCoordinator
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -201,7 +200,7 @@ class BleAdvWaitProgress(BleAdvProgressFlowBase):
 
     @abstractmethod
     def _evaluate(self) -> _ActionResult:
-        """Evaluate of the updated name / placeholders. Called every 0.1s to compute the updated _ActionResult."""
+        """Evaluate the updated name / placeholders. Called every 0.1s to compute the updated _ActionResult."""
 
     async def _action_task(self) -> None:
         """Task for Evaluation every 0.1s. Return if name / placeholders changed."""
@@ -347,43 +346,39 @@ class BleAdvConfigFlow(ConfigFlow, domain=DOMAIN):
         if hasattr(ConfigFlow, "async_update_progress"):
             super().async_update_progress(progress)  # type: ignore[none]
 
-    def _get_device(self, name: str, adapter_id: str, config: _CodecConfig, duration: int | None = None) -> BleAdvDevice:
+    def _get_device(self, name: str, adapter_id: str, config: _CodecConfig, duration: int | None = None) -> BleAdvBaseDevice:
         codec: BleAdvCodec = self.coordinator.codecs[config.codec_id]
         duration = duration if duration is not None else codec.duration
         repeat = 3 * codec.repeat
-        return BleAdvDevice(self.hass, name, name, config.codec_id, [adapter_id], repeat, codec.interval, duration, config, self.coordinator)
+        return BleAdvBaseDevice(self.coordinator, name, config.codec_id, [adapter_id], repeat, codec.interval, duration, config)
 
     async def async_blink_light(self) -> None:
         """Blink."""
-        tmp_device: BleAdvDevice = self._get_device("cf", self._confs.selected_adapter(), self._confs.selected())
-        await tmp_device.async_start()
+        tmp_device: BleAdvBaseDevice = self._get_device("cf", self._confs.selected_adapter(), self._confs.selected())
         on_cmd = BleAdvEntAttr([ATTR_ON], {ATTR_ON: True}, LIGHT_TYPE, 0)
         off_cmd = BleAdvEntAttr([ATTR_ON], {ATTR_ON: False}, LIGHT_TYPE, 0)
         self.async_update_progress(0)
-        await tmp_device.apply_change(on_cmd)
+        await tmp_device.advertise(on_cmd)
         await asyncio.sleep(1)
         self.async_update_progress(0.25)
-        await tmp_device.apply_change(off_cmd)
+        await tmp_device.advertise(off_cmd)
         await asyncio.sleep(1)
         self.async_update_progress(0.50)
-        await tmp_device.apply_change(on_cmd)
+        await tmp_device.advertise(on_cmd)
         await asyncio.sleep(1)
         self.async_update_progress(0.75)
-        await tmp_device.apply_change(off_cmd)
+        await tmp_device.advertise(off_cmd)
         await asyncio.sleep(1)
         self.async_update_progress(1)
-        await tmp_device.async_stop()
 
     async def async_pair_all(self) -> None:
         """Pair."""
         pair_cmd = BleAdvEntAttr([ATTR_CMD], {ATTR_CMD: ATTR_CMD_PAIR}, DEVICE_TYPE, 0)
         adapter_id = self._confs.selected_adapter()
         for i, config in enumerate(self._confs.selected_confs()):
-            tmp_device: BleAdvDevice = self._get_device(f"cf{i}", adapter_id, config, 300)
-            await tmp_device.async_start()
-            await tmp_device.apply_change(pair_cmd)
+            tmp_device: BleAdvBaseDevice = self._get_device(f"cf{i}", adapter_id, config, 300)
+            await tmp_device.advertise(pair_cmd)
             await asyncio.sleep(0.3)
-            await tmp_device.async_stop()
         await asyncio.sleep(2)
 
     def _create_api_view(self, response: web.Response) -> str:

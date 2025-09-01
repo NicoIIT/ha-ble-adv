@@ -14,7 +14,7 @@ from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.event import async_track_state_change_event
 
-from .adapters import AdvRecvCallback, BleAdvAdapter, BleAdvBtManager
+from .adapters import AdvRecvCallback, BleAdvAdapter, BleAdvAdapterAdvItem, BleAdvBtManager
 from .const import DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
@@ -64,12 +64,13 @@ class BleAdvEsphomeAdapter(BleAdvAdapter):
     async def _on_error(self, message: str) -> None:
         await self.manager.reset_adapter(self.name, f"Unhandled error: {message}")
 
-    async def _advertise(self, interval: int, repeat: int, data: bytes) -> None:
+    async def _advertise(self, item: BleAdvAdapterAdvItem) -> None:
         """Advertise the msg."""
+        duration = item.repeat * item.interval
         await self.manager.hass.services.async_call(
-            ESPHOME_DOMAIN, self._conf[CONF_ATTR_PUBLISH_ADV_SVC], {CONF_ATTR_RAW: data.hex(), CONF_ATTR_DURATION: repeat * interval}
+            ESPHOME_DOMAIN, self._conf[CONF_ATTR_PUBLISH_ADV_SVC], {CONF_ATTR_RAW: item.data.hex(), CONF_ATTR_DURATION: duration}
         )
-        await asyncio.sleep(0.0009 * repeat * interval)
+        await asyncio.sleep(0.0009 * duration)
 
 
 class BleAdvEsphomeService:
@@ -131,17 +132,17 @@ class BleAdvEsphomeAdapterV2(BleAdvAdapter):
     async def _on_error(self, message: str) -> None:
         await self.manager.reset_adapter(self.name, f"Unhandled error: {message}")
 
-    async def _advertise(self, interval: int, repeat: int, data: bytes) -> None:
+    async def _advertise(self, item: BleAdvAdapterAdvItem) -> None:
         """Advertise the msg."""
         params = {
-            CONF_ATTR_RAW: data.hex(),
-            CONF_ATTR_DURATION: interval,
-            CONF_ATTR_REPEAT: repeat,
-            CONF_ATTR_IGN_DURATION: int(1.5 * interval * repeat),
-            CONF_ATTR_IGN_ADVS: [data.hex()],
+            CONF_ATTR_RAW: item.data.hex(),
+            CONF_ATTR_DURATION: item.interval,
+            CONF_ATTR_REPEAT: item.repeat,
+            CONF_ATTR_IGN_DURATION: item.ign_duration,
+            CONF_ATTR_IGN_ADVS: [item.data.hex()],
         }
         await self._adv_svc_.call(params)
-        await asyncio.sleep(0.0009 * repeat * interval)
+        await asyncio.sleep(0.0009 * item.repeat * item.interval)
 
 
 class BleAdvEspBtManager(BleAdvBtManager):

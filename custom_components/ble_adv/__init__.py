@@ -41,7 +41,7 @@ from .const import (
     PLATFORMS,
 )
 from .coordinator import BleAdvCoordinator
-from .device import BleAdvDevice, BleAdvRemote
+from .device import BleAdvDevice
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -66,7 +66,7 @@ async def get_coordinator(hass: HomeAssistant) -> BleAdvCoordinator:
         hass,
         get_codecs(),
         conf.get("ignored_adapters", []),
-        conf.get("ignored_duration", 20000),
+        conf.get("ignored_duration", 60000),
         conf.get("ignored_cids", [*CONF_GOOGLE_LCC_UUIDS, *CONF_APPLE_INC_UUIDS]),
         conf.get("ignored_macs", []),
     )
@@ -165,27 +165,20 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     )
     if CONF_REMOTE in entry.data and CONF_CODEC_ID in entry.data[CONF_REMOTE]:
         remote_conf = entry.data[CONF_REMOTE]
-        remote = BleAdvRemote(
-            f"{entry.unique_id}_remote",
-            remote_conf[CONF_CODEC_ID],
-            tech_conf[CONF_ADAPTER_IDS],
-            BleAdvConfig(remote_conf[CONF_FORCED_ID], remote_conf[CONF_INDEX]),
-            coordinator,
-        )
-        device.link_remote(remote)
+        device.add_listener(remote_conf[CONF_CODEC_ID], BleAdvConfig(remote_conf[CONF_FORCED_ID], remote_conf[CONF_INDEX]))
 
     hass.data[DOMAIN][entry.entry_id] = device
+    coordinator.add_device(device)
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
 
-    await device.async_start()
     return True
 
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Unload a config entry."""
     _LOGGER.debug(f"Unloading entry {entry.unique_id}")
-    await hass.data[DOMAIN][entry.entry_id].async_stop()
     unload_ok = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
     if unload_ok:
-        hass.data[DOMAIN].pop(entry.entry_id)
+        coordinator = await get_coordinator(hass)
+        coordinator.remove_device(hass.data[DOMAIN].pop(entry.entry_id))
     return unload_ok

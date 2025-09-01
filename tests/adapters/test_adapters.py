@@ -5,7 +5,7 @@ import asyncio
 from unittest import mock
 
 import pytest
-from ble_adv.adapters import AdapterError, BleAdvBtHciManager, BleAdvQueueItem, BluetoothHCIAdapter
+from ble_adv.adapters import AdapterError, BleAdvAdapterAdvItem, BleAdvBtHciManager, BleAdvQueueItem, BluetoothHCIAdapter
 
 from .conftest import _AsyncSocketMock
 
@@ -59,19 +59,30 @@ DEVICE_MAC_INT = list(reversed(bytes.fromhex(DEVICE_MAC_STR.replace(":", ""))))
 
 
 async def test_split_queue() -> None:
-    qi = BleAdvQueueItem(0, 10, 0, 10, b"qi")
+    qi = BleAdvQueueItem(0, 10, 0, 10, [b"qi"], 2)
     assert hash(qi) != 0
     qi.split_repeat(60)
-    assert qi.repeat == 2
-    assert qi.adapter_repeat == 6
-    qi = BleAdvQueueItem(0, 10, 0, 10, b"qi")
+    assert qi._adv_items == [BleAdvAdapterAdvItem(interval=10, repeat=6, data=b"qi", ign_duration=2)] * 2
+    qi = BleAdvQueueItem(0, 10, 0, 10, [b"qi"], 2)
     qi.split_repeat(150)
-    assert qi.repeat == 1
-    assert qi.adapter_repeat == 10
-    qi = BleAdvQueueItem(0, 10, 0, 10, b"qi")
+    assert qi._adv_items == [BleAdvAdapterAdvItem(interval=10, repeat=10, data=b"qi", ign_duration=2)]
+    qi = BleAdvQueueItem(0, 10, 0, 10, [b"qi"], 2)
     qi.split_repeat(5)
-    assert qi.repeat == 10
-    assert qi.adapter_repeat == 1
+    assert qi._adv_items == [BleAdvAdapterAdvItem(interval=10, repeat=1, data=b"qi", ign_duration=2)] * 10
+    qi = BleAdvQueueItem(0, 10, 0, 10, [b"qi1", b"qi2", b"qi3"], 2)
+    qi.split_repeat(60)
+    assert qi._adv_items == [
+        BleAdvAdapterAdvItem(interval=10, repeat=1, data=b"qi1", ign_duration=2),
+        BleAdvAdapterAdvItem(interval=10, repeat=1, data=b"qi2", ign_duration=2),
+        BleAdvAdapterAdvItem(interval=10, repeat=1, data=b"qi3", ign_duration=2),
+    ]
+    qi = BleAdvQueueItem(0, 10, 0, 100, [b"qi1", b"qi2", b"qi3"], 2)
+    qi.split_repeat(60)
+    assert qi._adv_items == [
+        BleAdvAdapterAdvItem(interval=100, repeat=1, data=b"qi1", ign_duration=2),
+        BleAdvAdapterAdvItem(interval=100, repeat=1, data=b"qi2", ign_duration=2),
+        BleAdvAdapterAdvItem(interval=100, repeat=1, data=b"qi3", ign_duration=2),
+    ]
 
 
 async def test_adapter(mock_socket: _AsyncSocketMock) -> None:
@@ -93,13 +104,13 @@ async def test_adapter(mock_socket: _AsyncSocketMock) -> None:
     mock_socket.simulate_recv(bytearray([0x04, 0x3E, 0x00, 0x0D, 0x01, 0x03, 0x00, 0x01] + DEVICE_MAC_INT + [0x10] * 50))
     await asyncio.sleep(0.1)
     hci_adapter._on_adv_recv.assert_called_once_with("hci0", DEVICE_MAC_STR, bytearray([0x10] * 0x10))
-    await hci_adapter.enqueue("q1", BleAdvQueueItem(20, 1, 150, 60, b"msg01"))
-    await hci_adapter.enqueue("q1", BleAdvQueueItem(30, 2, 100, 60, b"msg02"))
+    await hci_adapter.enqueue("q1", BleAdvQueueItem(20, 1, 150, 60, [b"msg01"], 2))
+    await hci_adapter.enqueue("q1", BleAdvQueueItem(30, 2, 100, 60, [b"msg02"], 2))
     await hci_adapter.drain()
     assert mock_socket.get_calls() == [*adv_msg(60, b"msg01"), *adv_msg(60, b"msg02"), *adv_msg(60, b"msg02")]
     await hci_adapter.async_final()
     with pytest.raises(AdapterError):
-        await hci_adapter._advertise(20, 3, b"")
+        await hci_adapter._advertise(BleAdvAdapterAdvItem(20, 3, b"", 2))
 
 
 INIT_CALLS_EXT_ADV = [
@@ -120,8 +131,8 @@ async def test_adapter_ext_adv(mock_socket: _AsyncSocketMock) -> None:
     await hci_adapter.async_init()
     assert mock_socket.get_calls() == INIT_CALLS_EXT_ADV
     assert hci_adapter.available, "HCI Adapter available"
-    await hci_adapter.enqueue("q1", BleAdvQueueItem(20, 1, 150, 60, b"msg01"))
-    await hci_adapter.enqueue("q1", BleAdvQueueItem(30, 2, 100, 60, b"msg02"))
+    await hci_adapter.enqueue("q1", BleAdvQueueItem(20, 1, 150, 60, [b"msg01"], 2))
+    await hci_adapter.enqueue("q1", BleAdvQueueItem(30, 2, 100, 60, [b"msg02"], 2))
     await hci_adapter.drain()
     assert mock_socket.get_calls() == [*adv_ext_msg(60, b"msg01"), *adv_ext_msg(60, b"msg02"), *adv_ext_msg(60, b"msg02")]
     await hci_adapter.async_final()
@@ -138,8 +149,8 @@ async def test_adapter_mgmt_adv(mock_socket: _AsyncSocketMock) -> None:
     assert hci_adapter_adv_mgmt.available, "HCI Adapter available"
     await hci_adapter_adv_mgmt.open()  # already opened, ignored
     assert mock_socket.get_calls() == []
-    await hci_adapter_adv_mgmt.enqueue("q1", BleAdvQueueItem(20, 1, 150, 60, b"msg01"))
-    await hci_adapter_adv_mgmt.enqueue("q1", BleAdvQueueItem(30, 2, 100, 60, b"msg02"))
+    await hci_adapter_adv_mgmt.enqueue("q1", BleAdvQueueItem(20, 1, 150, 60, [b"msg01"], 2))
+    await hci_adapter_adv_mgmt.enqueue("q1", BleAdvQueueItem(30, 2, 100, 60, [b"msg02"], 2))
     await hci_adapter_adv_mgmt.drain()
     mock_mgmt_cmd.assert_has_calls([*adv_mgmt_msg(b"msg01"), *adv_mgmt_msg(b"msg02"), *adv_mgmt_msg(b"msg02")])
     await hci_adapter_adv_mgmt.async_final()
@@ -210,7 +221,7 @@ async def test_btmanager_hci_error(bt_manager: BleAdvBtHciManager) -> None:
     assert bt_manager._mgmt_sock.get_calls() == MGMT_OPEN_CALLS  # type: ignore[none]
     assert bt_manager.adapters[HCI_NAME]._async_socket.get_calls() == INIT_CALLS  # type: ignore[none]
     # simulate rto by adapter on advertising
-    await bt_manager.adapters[HCI_NAME].enqueue("q1", BleAdvQueueItem(30, 2, 100, 20, b"force_rto"))
+    await bt_manager.adapters[HCI_NAME].enqueue("q1", BleAdvQueueItem(30, 2, 100, 20, [b"force_rto"], 2))
     await asyncio.sleep(0.4)  # wait for final / init
     assert bt_manager._mgmt_sock.get_calls() == MGMT_OPEN_CALLS  # type: ignore[none]
     assert bt_manager.adapters[HCI_NAME]._async_socket.get_calls() == INIT_CALLS  # type: ignore[none]
