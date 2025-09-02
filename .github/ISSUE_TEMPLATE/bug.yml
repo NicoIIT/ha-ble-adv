@@ -1,6 +1,6 @@
 ---
 name: "Bug report"
-description: "Report a bug on an existing feature of the integration."
+description: "Report a bug on an existing feature of a created integration."
 labels: ["bug"]
 body:
 - type: markdown
@@ -45,8 +45,6 @@ body:
           custom_components.ble_adv: debug
       ```
       More details in [logger](https://www.home-assistant.io/integrations/logger/) component.
-
-      This **needs** to include _everything_ from startup of Home Assistant to the point where you encounter the issue.
   validations:
     required: true
 
@@ -54,8 +52,7 @@ body:
   attributes:
     label: "Diagnostics dump"
     description: |
-      If the integration was created: Drag the integration [diagnostic dump](https://www.home-assistant.io/integrations/diagnostics/) file here.
-      If the bug is in config flow phase: Drag the diagnostic dump from the config flow menu -> Tools and Helpers -> Diagnostic Dump
+      Drag the integration [diagnostic dump](https://www.home-assistant.io/integrations/diagnostics/) file here.
   validations:
     required: true
 
@@ -63,7 +60,7 @@ body:
   attributes:
     label: Checklist
     options:
-      - label: I checked the [troubleshooting guide](https://github.com/NicoIIT/ha-ble-adv/wiki/Troubleshooting-Guide) and it did not solve my issue
+      - label: I checked the [troubleshooting guide](https://github.com/NicoIIT/ha-ble-adv/wiki/Troubleshooting-Guide) and the [configuration guide](https://github.com/NicoIIT/ha-ble-adv/wiki/Configuration-Guide) and it did not solve my issue
         required: true
       - label: I provided ALL mandatory info and in the requested format.
         required: true

@@ -307,11 +307,13 @@ class BleAdvCoordinator:
         return {
             "hci": self._hci_bt_manager.diagnostic_dump(),
             "esp": self._esp_bt_manager.diagnostic_dump(),
-            "codec_ids": list(self.codecs.keys()),
             "ign_adapters": self.ign_adapters,
             "ign_duration": self.ign_duration,
             "ign_cids": list(self.ign_cids),
             "ign_macs": list(self.ign_macs),
+            "last_emitted": {x.hex().upper(): y for x, y in self._emit_last_advs.items()},
+            "last_unk_raw": {x.hex().upper(): y for x, y in self._raw_last_advs.items()},
+            "last_dec_raw": {x.hex().upper(): y for x, y in self._dec_last_advs.items()},
         }
 
     async def full_diagnostic_dump(self) -> dict[str, Any]:
