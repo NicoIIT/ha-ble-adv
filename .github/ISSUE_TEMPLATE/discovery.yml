@@ -1,11 +1,13 @@
 ---
 name: "Config Flow Discovery Issue"
-description: "Report an issue occuring while trying to discover or confirm a configuration (no configuration discovered, the light does not blink). If you managed to make the light blink and create the integration please use a Bug Report instead."
+description: "Report an issue occuring while trying to discover or confirm a configuration (no configuration discovered, the light does not blink, ...)."
 labels: ["bug"]
 body:
 - type: markdown
   attributes:
     value:  |
+      If you managed to make the light blink and create the integration please use a Bug Report instead.
+      
       **If some of the mandatory info is not provided (or not provided in the requested format) then the issue will be rejected, and future requests may not even be considered.**
 
       I spent several months working on this component, you can spend several minutes providing the mandatory info I need to investigate your issue.
