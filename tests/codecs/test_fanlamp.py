@@ -2,7 +2,22 @@
 
 import pytest
 
-from . import _TestEncoderBase, _TestEncoderFull
+from . import _TestEncoderBase, _TestEncoderFull, _TestMultiEncoderBase
+
+
+@pytest.mark.parametrize(
+    _TestMultiEncoderBase.PARAM_NAMES,
+    [
+        ("fanlamp_pro_v1/r0", 0xFF, "F0.FF.B6.5F.2B.5E.00.FC.31.51.D0.7E.99.08.24.CB.3B.FC.31.A3.F4.55.E8.CF.A7.52"),  # Light ON
+        ("fanlamp_pro_v1/r0", 0xFF, "F0.FF.B6.5F.2B.5E.00.FC.31.51.D0.7E.99.08.24.CB.BB.FC.70.67.F4.55.E8.4F.D0.7D"),  # Light ON
+        ("fanlamp_pro_v1/r0", 0xFF, "F0.FF.B6.5F.2B.5E.00.FC.31.51.D0.7E.99.08.24.CB.7B.FC.70.67.F4.55.28.CF.61.9D"),  # Light ON
+        ("fanlamp_pro_v1/r0", 0xFF, "F0.FF.B6.5F.2B.5E.00.FC.31.51.D0.7E.99.08.24.CB.FB.FC.70.67.F4.55.A8.CF.4F.DA"),  # Light ON
+        ("fanlamp_pro_v1/r0", 0xFF, "F0.FF.B6.5F.2B.5E.00.FC.31.51.2E.7E.99.08.24.CB.BB.FC.70.67.F4.55.E8.4F.07.2A"),  # ALL OFF
+        ("fanlamp_pro_v1/r0", 0xFF, "F0.FF.B6.5F.2B.5E.00.FC.31.51.D8.7E.99.08.24.CB.BB.FC.70.67.F4.55.E8.4F.B3.92"),  # Fan OFF / Pair
+    ],
+)
+class TestMultiEncoderFanlampV0(_TestMultiEncoderBase):
+    """FanlampV0 Multi Encoder tests."""
 
 
 @pytest.mark.parametrize(

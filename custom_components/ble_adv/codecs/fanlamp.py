@@ -53,34 +53,29 @@ from .utils import reverse_all, whiten
 class FanLampEncoder(BleAdvCodec):
     """Base Fanlamp encoder."""
 
+    _len = 24
+
     def _crc16(self, buffer: bytes, seed: int) -> int:
         """CRC16 CCITT computing."""
         return crc_hqx(buffer, seed)
 
 
-class FanLampEncoderV1(FanLampEncoder):
-    """FanLamp V1 encoder."""
+class FanLampEncoderV1Base(FanLampEncoder):
+    """FanLamp V1 Base encoder."""
 
-    def __init__(self, arg2: int, arg2_only_on_pair: bool = True, xor1: bool = False, supp_prefix: int = 0, forced_crc2: int = 0) -> None:
+    def __init__(self, supp_prefix: int = 0, forced_crc2: int = 0) -> None:
         """Init with args."""
         super().__init__()
         self._prefix = bytearray([0xAA, 0x98, 0x43, 0xAF, 0x0B, 0x46, 0x46, 0x46])
-        self._len = 24
         if supp_prefix != 0:
             self._prefix.insert(0, supp_prefix)
         self._crc2_seed = self._crc16(self._prefix[1:6], 0xFFFF)
-        self._arg2 = arg2
-        self._arg2_only_on_pair = arg2_only_on_pair
-        self._xor1 = xor1
         self._forced_crc2 = forced_crc2
         self._with_crc2 = (self._forced_crc2 != 0) or (supp_prefix == 0)
 
     def _crc2(self, buffer: bytes) -> int:
         """Compute CRC 2 as ccitt crc16."""
         return self._forced_crc2 if self._forced_crc2 != 0 else self._crc16(buffer, self._crc2_seed)
-
-    def _get_arg2(self, cmd: int, arg2: int) -> int:
-        return arg2 if cmd == 0x22 else self._arg2 if (cmd == 0x28 or (not self._arg2_only_on_pair and cmd not in [0x12, 0x13, 0x1E, 0x1F])) else 0
 
     def decrypt(self, buffer: bytes) -> bytes | None:
         """Decrypt / unwhiten an incoming raw buffer into a readable buffer."""
@@ -89,6 +84,59 @@ class FanLampEncoderV1(FanLampEncoder):
     def encrypt(self, buffer: bytes) -> bytes:
         """Encrypt / whiten a readable buffer."""
         return whiten(reverse_all(buffer), 0x6F)
+
+
+class FanLampEncoderV1b(FanLampEncoderV1Base):
+    """FanLamp V1b encoder."""
+
+    ign_duration = 1500
+    multi_advs = True
+
+    def convert_to_enc(self, decoded: bytes) -> tuple[BleAdvEncCmd | None, BleAdvConfig | None]:
+        """Convert a readable buffer into an encoder command and a config."""
+        if not self.is_eq(self._crc2(decoded[:-2]), int.from_bytes(decoded[14:16]), "CRC2"):
+            return None, None
+
+        conf = BleAdvConfig()
+        conf.id = int.from_bytes(decoded[1:3], "little")
+
+        enc_cmd = BleAdvEncCmd(decoded[0])
+        enc_cmd.param = decoded[7]
+        enc_cmd.arg0 = decoded[3]
+        enc_cmd.arg1 = decoded[4]
+        enc_cmd.arg2 = decoded[5]
+        return enc_cmd, conf
+
+    def convert_from_enc(self, _: BleAdvEncCmd, __: BleAdvConfig) -> bytes:
+        """Convert an encoder command and a config into a readable buffer."""
+        return b""
+
+    def convert_multi_from_enc(self, enc_cmd: BleAdvEncCmd, conf: BleAdvConfig) -> list[bytes]:
+        """Convert an encoder command and a config into a list of readable buffers."""
+        uid = conf.id.to_bytes(2, "little")
+        rev_uid = conf.id.to_bytes(2, "big")
+        base_buffer = [enc_cmd.cmd, *uid, enc_cmd.arg0, enc_cmd.arg1, enc_cmd.arg2]
+        buffers = [
+            bytes([*base_buffer, 0x00, enc_cmd.param, 0x02, 0x00, 0x00, 0x00, 0x01, 0x00]),
+            bytes([*base_buffer, 0x01, enc_cmd.param, *rev_uid, 0x00, 0x00, 0x01, 0x01]),
+            bytes([*base_buffer, 0x02, enc_cmd.param, *rev_uid, 0x00, 0x00, 0x02, 0x00]),
+            bytes([*base_buffer, 0x03, enc_cmd.param, *rev_uid, 0x00, 0x00, 0x03, 0x00]),
+        ]
+        return [buf + self._crc2(buf).to_bytes(2) for buf in buffers]
+
+
+class FanLampEncoderV1(FanLampEncoderV1Base):
+    """FanLamp V1 encoder."""
+
+    def __init__(self, arg2: int, arg2_only_on_pair: bool = True, xor1: bool = False, supp_prefix: int = 0, forced_crc2: int = 0) -> None:
+        """Init with args."""
+        super().__init__(supp_prefix, forced_crc2)
+        self._arg2 = arg2
+        self._arg2_only_on_pair = arg2_only_on_pair
+        self._xor1 = xor1
+
+    def _get_arg2(self, cmd: int, arg2: int) -> int:
+        return arg2 if cmd == 0x22 else self._arg2 if (cmd == 0x28 or (not self._arg2_only_on_pair and cmd not in [0x12, 0x13, 0x1E, 0x1F])) else 0
 
     def convert_to_enc(self, decoded: bytes) -> tuple[BleAdvEncCmd | None, BleAdvConfig | None]:
         """Convert a readable buffer into an encoder command and a config."""
@@ -118,7 +166,6 @@ class FanLampEncoderV1(FanLampEncoder):
                 enc_cmd.arg2 = decoded[5]
         elif not self.is_eq(conf.id & 0xFF, decoded[3], "Pair Arg0") or not self.is_eq((conf.id >> 8) & 0xF0, decoded[4], "Pair Arg1"):
             return None, None
-
         return enc_cmd, conf
 
     def convert_from_enc(self, enc_cmd: BleAdvEncCmd, conf: BleAdvConfig) -> bytes:
@@ -162,7 +209,6 @@ class FanLampEncoderV2(FanLampEncoder):
     def __init__(self, device_type: int, with_sign: bool) -> None:
         """Init with args."""
         super().__init__()
-        self._len = 24
         self._device_type = device_type
         self._with_sign = with_sign
 
@@ -310,6 +356,7 @@ TRANS_FANLAMP_V1_COMMON = [
     *_get_rgb_translators(),
     Trans(FanCmd().act(ATTR_ON, False), EncCmd(0x31).eq("arg1", 0).eq("arg0", 0)),
     Trans(Fan6SpeedCmd().act(ATTR_ON, True).act(ATTR_SPEED), EncCmd(0x32).eq("arg1", 6).min("arg0", 1)).copy(ATTR_SPEED, "arg0"),
+    Trans(Fan6SpeedCmd().act(ATTR_ON, True).act(ATTR_SPEED), EncCmd(0x32).eq("arg1", 0).min("arg0", 1)).copy(ATTR_SPEED, "arg0").no_direct(),
     Trans(Fan3SpeedCmd().act(ATTR_ON, True).act(ATTR_SPEED), EncCmd(0x31).eq("arg1", 0).min("arg0", 1)).copy(ATTR_SPEED, "arg0"),
     *_get_fan_translators(),
     *_get_device_translators(),
@@ -357,6 +404,7 @@ FLCODECS = [
     FanLampEncoderV2(0x0400, True).fid("fanlamp_pro_vi3/s3", FLV3).header([0xF0, 0x08]).prefix([0x30, 0x83, 0x00]).ble(0x19, 0x03).add_translators(TRANS_FANLAMP_V2),
     # FanLamp remotes
     FanLampEncoderV1(0x83, False, True, 0x00, 0x9372).fid("remote_v1", FLV1).header([0x56, 0x55, 0x18, 0x87, 0x52]).ble(0x00, 0xFF).add_translators(TRANS_FANLAMP_VR1),
+    FanLampEncoderV1b().id(FLV1, "r0").header([0xF0, 0xFF]).ble(0x19,0xFF).add_translators(TRANS_FANLAMP_V1),
     FanLampEncoderV2(0x0400, False).fid("remote_v2", FLV2).header([0xF0, 0x08]).prefix([0x10, 0x00, 0x56]).ble(0x02, 0x16).add_translators(TRANS_FANLAMP_VR2),
     FanLampEncoderV2(0x0400, True).fid("remote_v3", FLV3).header([0xF0, 0x08]).prefix([0x10, 0x00, 0x56]).ble(0x02, 0x16).add_translators(TRANS_FANLAMP_VR2),
 ]  # fmt: skip

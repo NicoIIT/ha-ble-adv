@@ -283,10 +283,10 @@ TRANS_FAN_COMMON = [
     Trans(CTLightCmd().eq(ATTR_COLD, 0).eq(ATTR_WARM, 1), EncCmd(0xA7).eq("arg0", 2)).no_direct(),
     Trans(CTLightCmd().eq(ATTR_COLD, 1).eq(ATTR_WARM, 1), EncCmd(0xA7).eq("arg0", 3)).no_direct(),
     # Standard Remote buttons, only reverse
-    Trans(CTLightCmd().act(ATTR_CMD, ATTR_CMD_BR_UP), EncCmd(0xB5).eq("arg0", 1)).split_copy(ATTR_STEP, ["arg2", "arg1"], 1000.0).no_direct(),
-    Trans(CTLightCmd().act(ATTR_CMD, ATTR_CMD_BR_DOWN), EncCmd(0xB5).eq("arg0", 2)).split_copy(ATTR_STEP, ["arg2", "arg1"], 1000.0).no_direct(),
-    Trans(CTLightCmd().act(ATTR_CMD, ATTR_CMD_CT_UP), EncCmd(0xB7).eq("arg0", 1)).split_copy(ATTR_STEP, ["arg2", "arg1"], 1000.0).no_direct(),
-    Trans(CTLightCmd().act(ATTR_CMD, ATTR_CMD_CT_DOWN), EncCmd(0xB7).eq("arg0", 2)).split_copy(ATTR_STEP, ["arg2", "arg1"], 1000.0).no_direct(),
+    Trans(CTLightCmd().act(ATTR_CMD, ATTR_CMD_BR_UP).eq(ATTR_STEP, 0.166), EncCmd(0xB5).eq("arg0", 1)).no_direct(),
+    Trans(CTLightCmd().act(ATTR_CMD, ATTR_CMD_BR_DOWN).eq(ATTR_STEP, 0.166), EncCmd(0xB5).eq("arg0", 2)).no_direct(),
+    Trans(CTLightCmd().act(ATTR_CMD, ATTR_CMD_CT_UP).eq(ATTR_STEP, 0.166), EncCmd(0xB7).eq("arg0", 2)).no_direct(),
+    Trans(CTLightCmd().act(ATTR_CMD, ATTR_CMD_CT_DOWN).eq(ATTR_STEP, 0.166), EncCmd(0xB7).eq("arg0", 1)).no_direct(),
 ]
 
 TRANS_REMOTE = [
@@ -296,10 +296,10 @@ TRANS_REMOTE = [
     Trans(LightCmd().act(ATTR_ON, ATTR_CMD_TOGGLE), EncCmd(0x04)).no_direct(),
     Trans(LightCmd().act(ATTR_ON, True), EncCmd(0x04)).no_reverse(),
     Trans(LightCmd().act(ATTR_ON, False), EncCmd(0x04)).no_reverse(),
-    Trans(CTLightCmd().act(ATTR_CMD, ATTR_CMD_CT_UP).eq(ATTR_STEP, 0.625), EncCmd(0x0B)).no_direct(),
-    Trans(CTLightCmd().act(ATTR_CMD, ATTR_CMD_CT_DOWN).eq(ATTR_STEP, 0.625), EncCmd(0x09)).no_direct(),
-    Trans(CTLightCmd().act(ATTR_CMD, ATTR_CMD_BR_UP).eq(ATTR_STEP, 0.625), EncCmd(0x13)).no_direct(),
-    Trans(CTLightCmd().act(ATTR_CMD, ATTR_CMD_BR_DOWN).eq(ATTR_STEP, 0.625), EncCmd(0x0C)).no_direct(),
+    Trans(CTLightCmd().act(ATTR_CMD, ATTR_CMD_CT_UP).eq(ATTR_STEP, 0.166), EncCmd(0x0B)).no_direct(),
+    Trans(CTLightCmd().act(ATTR_CMD, ATTR_CMD_CT_DOWN).eq(ATTR_STEP, 0.166), EncCmd(0x09)).no_direct(),
+    Trans(CTLightCmd().act(ATTR_CMD, ATTR_CMD_BR_UP).eq(ATTR_STEP, 0.166), EncCmd(0x13)).no_direct(),
+    Trans(CTLightCmd().act(ATTR_CMD, ATTR_CMD_BR_DOWN).eq(ATTR_STEP, 0.166), EncCmd(0x0C)).no_direct(),
     Trans(CTLightCmd().eq(ATTR_COLD, 0.1).eq(ATTR_WARM, 0.1), EncCmd(0x07)).no_direct(),  # night mode (toogle?)
     Trans(FanCmd().act(ATTR_DIR, ATTR_CMD_TOGGLE), EncCmd(0x02)).no_direct(),
     Trans(FanCmd().act(ATTR_DIR, True), EncCmd(0x02)).no_reverse(),
