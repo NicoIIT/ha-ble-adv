@@ -14,6 +14,7 @@ from . import _TestEncoderBase, _TestEncoderFull
         ("zhimei_fan_vr0", 0x00, "55.FF.63.01.6A.10.00.00.00.32"),
         ("zhimei_fan_vr1", 0xFF, "1F.61.3E.48.46.4B.4A.16.77.19.1F.72.BD.E7.D5.77.36.70.52.67.23.79.0C.10.11.12.13.14.15"),
         ("zhimei_fan_vr1", 0xFF, "5D.01.6A.48.46.4B.4A.7B.38.FC.5C.09.58.82.66.DC.29.CB.51.76.58.A0.9A.10.11.12.13.14.15"),
+        ("zhimei_fan_v1b", 0xFF, "00000048464B4AB27A4003AA214B85136D0E1F347440D9101112131415"),
     ],
 )
 class TestEncoderZhimei(_TestEncoderBase):
@@ -57,14 +58,14 @@ class TestEncoderZhimeiWithDupes(_TestEncoderBase):
             "02.01.19.0B.03.55.02.13.02.C0.D4.02.00.00.02",
             "cmd: 0xD4, param: 0x00, args: [2,0,0]",
             "id: 0x0000C002, index: 2, tx: 19, seed: 0x0000",
-            "device_0: ['cmd'] / {'cmd': 'timer', 's': 120.0}",
+            "device_0: ['cmd'] / {'cmd': 'timer', 's': 7200.0}",
         ),
         (
             "zhimei_fan_v1",
             "02.01.19.1B.03.48.46.4B.4A.8F.F5.96.49.9B.44.6E.0A.23.37.53.75.68.22.BC.CC.10.11.12.13.14.15",
             "cmd: 0xD4, param: 0x00, args: [2,0,0]",
             "id: 0x0000C002, index: 2, tx: 19, seed: 0x0037",
-            "device_0: ['cmd'] / {'cmd': 'timer', 's': 120.0}",
+            "device_0: ['cmd'] / {'cmd': 'timer', 's': 7200.0}",
         ),
         # MAIN LIGHT OFF
         (
@@ -337,6 +338,38 @@ class TestEncoderZhimeiFanFull(_TestEncoderFull):
             "cmd: 0xA7, param: 0x00, args: [3,0,0]",
             "id: 0x0000C002, index: 2, tx: 59, seed: 0x0000",
             "light_0: [] / {'sub_type': 'cww', 'cold': 1, 'warm': 1}",
+        ),
+        # BR+
+        (
+            "zhimei_fan_v1b",
+            "1E.FF.00.00.00.48.46.4B.4A.51.02.CA.A6.07.82.AC.21.B2.F0.62.B7.AB.C5.87.34.10.11.12.13.14.15",
+            "cmd: 0xB5, param: 0x00, args: [1,0,100]",
+            "id: 0x00001221, index: 255, tx: 105, seed: 0x006A",
+            "light_0: ['cmd'] / {'sub_type': 'cww', 'cmd': 'B+', 'step': 0.1}",
+        ),
+        # BR-
+        (
+            "zhimei_fan_v1b",
+            "1E.FF.00.00.00.48.46.4B.4A.69.1B.DF.4E.EF.6A.94.C9.CA.60.F3.18.3B.D1.0C.53.10.11.12.13.14.15",
+            "cmd: 0xB5, param: 0x00, args: [2,0,80]",
+            "id: 0x00001221, index: 255, tx: 106, seed: 0x006B",
+            "light_0: ['cmd'] / {'sub_type': 'cww', 'cmd': 'B-', 'step': 0.08}",
+        ),
+        # K+
+        (
+            "zhimei_fan_v1b",
+            "1E.FF.00.00.00.48.46.4B.4A.16.AA.70.DF.46.BD.E7.64.77.C1.2E.EA.02.C8.7E.D8.10.11.12.13.14.15",
+            "cmd: 0xB7, param: 0x00, args: [1,2,16]",
+            "id: 0x00001221, index: 255, tx: 116, seed: 0x0075",
+            "light_0: ['cmd'] / {'sub_type': 'cww', 'cmd': 'K+', 'step': 0.528}",
+        ),
+        # K-
+        (
+            "zhimei_fan_v1b",
+            "1E.FF.00.00.00.48.46.4B.4A.99.3C.04.5E.DF.3A.64.F7.FA.39.B5.7F.65.FC.B7.35.10.11.12.13.14.15",
+            "cmd: 0xB7, param: 0x00, args: [2,1,212]",
+            "id: 0x00001221, index: 255, tx: 119, seed: 0x0078",
+            "light_0: ['cmd'] / {'sub_type': 'cww', 'cmd': 'K-', 'step': 0.468}",
         ),
     ],
 )

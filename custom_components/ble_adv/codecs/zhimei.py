@@ -260,13 +260,13 @@ TRANS_V2 = [
 TRANS_FAN_COMMON = [
     Trans(DeviceCmd().act(ATTR_CMD, ATTR_CMD_PAIR), EncCmd(0xB4).eq("arg0", 0xAA).eq("arg1", 0x66).eq("arg2", 0x55)),
     Trans(DeviceCmd().act(ATTR_CMD, ATTR_CMD_UNPAIR), EncCmd(0xB0)),
-    Trans(DeviceCmd().act(ATTR_CMD, ATTR_CMD_TIMER), EncCmd(0xD4)).split_copy(ATTR_TIME, ["arg0"], 1.0 / 60.0),
+    Trans(DeviceCmd().act(ATTR_CMD, ATTR_CMD_TIMER), EncCmd(0xD4)).split_copy(ATTR_TIME, ["arg0"], 1.0 / 3600.0),
     Trans(DeviceCmd().act(ATTR_ON, True), EncCmd(0xB3)),
     Trans(DeviceCmd().act(ATTR_ON, False), EncCmd(0xB2)),
     Trans(LightCmd().act(ATTR_ON, True), EncCmd(0xA6).eq("arg0", 2)),
     Trans(LightCmd().act(ATTR_ON, False), EncCmd(0xA6).eq("arg0", 1)),
-    Trans(CTLightCmd().act(ATTR_BR), EncCmd(0xB5)).split_copy(ATTR_BR, ["arg2", "arg1"], 1000.0),
-    Trans(CTLightCmd().act(ATTR_CT_REV), EncCmd(0xB7)).split_copy(ATTR_CT_REV, ["arg2", "arg1"], 1000.0),
+    Trans(CTLightCmd().act(ATTR_BR), EncCmd(0xB5).eq("arg0", 0)).split_copy(ATTR_BR, ["arg2", "arg1"], 1000.0),
+    Trans(CTLightCmd().act(ATTR_CT_REV), EncCmd(0xB7).eq("arg0", 0)).split_copy(ATTR_CT_REV, ["arg2", "arg1"], 1000.0),
     Trans(FanCmd().act(ATTR_DIR, True), EncCmd(0xD9)),  # Forward
     Trans(FanCmd().act(ATTR_DIR, False), EncCmd(0xDA)),  # Reverse
     Trans(FanCmd().act(ATTR_OSC, True), EncCmd(0xDE).eq("arg0", 1)),
@@ -282,6 +282,11 @@ TRANS_FAN_COMMON = [
     Trans(CTLightCmd().eq(ATTR_COLD, 1).eq(ATTR_WARM, 0), EncCmd(0xA7).eq("arg0", 1)).no_direct(),
     Trans(CTLightCmd().eq(ATTR_COLD, 0).eq(ATTR_WARM, 1), EncCmd(0xA7).eq("arg0", 2)).no_direct(),
     Trans(CTLightCmd().eq(ATTR_COLD, 1).eq(ATTR_WARM, 1), EncCmd(0xA7).eq("arg0", 3)).no_direct(),
+    # Standard Remote buttons, only reverse
+    Trans(CTLightCmd().act(ATTR_CMD, ATTR_CMD_BR_UP), EncCmd(0xB5).eq("arg0", 1)).split_copy(ATTR_STEP, ["arg2", "arg1"], 1000.0).no_direct(),
+    Trans(CTLightCmd().act(ATTR_CMD, ATTR_CMD_BR_DOWN), EncCmd(0xB5).eq("arg0", 2)).split_copy(ATTR_STEP, ["arg2", "arg1"], 1000.0).no_direct(),
+    Trans(CTLightCmd().act(ATTR_CMD, ATTR_CMD_CT_UP), EncCmd(0xB7).eq("arg0", 1)).split_copy(ATTR_STEP, ["arg2", "arg1"], 1000.0).no_direct(),
+    Trans(CTLightCmd().act(ATTR_CMD, ATTR_CMD_CT_DOWN), EncCmd(0xB7).eq("arg0", 2)).split_copy(ATTR_STEP, ["arg2", "arg1"], 1000.0).no_direct(),
 ]
 
 TRANS_REMOTE = [
@@ -326,5 +331,6 @@ CODECS = [
     # Zhi Mei Remotes
     ZhimeiEncoderV0().fid("zhimei_fan_vr0", "zhimei_fan_v0").header([0x55]).ble(0, 0).add_translators(TRANS_REMOTE),
     ZhimeiEncoderV1().fid("zhimei_fan_vr1", "zhimei_fan_v1").header([0x48, 0x46, 0x4B, 0x4A], 3).ble(0x1A, 0xFF).add_translators(TRANS_REMOTE),
+    ZhimeiEncoderV1().fid("zhimei_fan_v1b", "zhimei_fan_v1").header([0x00, 0x00, 0x00, 0x48, 0x46, 0x4B, 0x4A]).ble(0x1A, 0xFF).add_translators(TRANS_FAN_V1),
     ZhimeiEncoderV1().fid("zhimei_v1b", "zhimei_v1").header([0x58, 0x55, 0x18, 0x48, 0x46, 0x4B, 0x4A]).ble(0x1A, 0xFF).add_translators(TRANS_V1),
 ]  # fmt: skip
