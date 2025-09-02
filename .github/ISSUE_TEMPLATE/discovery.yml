@@ -1,0 +1,44 @@
+---
+name: "Config Flow Discovery Issue"
+description: "Report an issue occuring while trying to discover or confirm a configuration (no configuration discovered, the light does not blink). If you managed to make the light blink and create the integration please use a Bug Report instead."
+labels: ["bug"]
+body:
+- type: markdown
+  attributes:
+    value:  |
+      **If some of the mandatory info is not provided (or not provided in the requested format) then the issue will be rejected, and future requests may not even be considered.**
+
+      I spent several months working on this component, you can spend several minutes providing the mandatory info I need to investigate your issue.
+
+- type: checkboxes
+  attributes:
+    label: Checklist
+    options:
+      - label: I checked the [troubleshooting guide](https://github.com/NicoIIT/ha-ble-adv/wiki/Troubleshooting-Guide) and it did not help
+        required: true
+
+- type: textarea
+  attributes:
+    label: Describe your setup and the issue
+    description: "Describe your device, the corresponding supported Phone Application or Remote you try to duplicate, how far the components are, all the steps you followed in the troubleshouting guide..."
+    value: |
+      THIS IS AN EXAMPLE, IF YOU DO NOT REPLACE IT BY YOUR OWN SETUP THE ISSUE WILL BE REJECTED.
+
+      I have an Irelan Fan + Light device paired to the FanLamp Pro App on an Android Phone.
+      My phone is 3 meters away from my device and 2 meters away from the bluetooth adapter.
+      The device is 1 meter away from the bluetooth adapter.
+
+      When I try the recommended 'Duplicate Config' flow, 4 configurations are detected but none of them is making the light blink.
+
+      I followed the troubleshouting guide until step 3.2a.2, including the bluetooth range check, without success.
+
+  validations:
+    required: true
+
+- type: textarea
+  attributes:
+    label: "Diagnostics dump"
+    description: |
+      Drag here the diagnostic dump you downloaded during the failing configuration flow.
+  validations:
+    required: true

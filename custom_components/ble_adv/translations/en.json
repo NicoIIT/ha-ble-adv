@@ -85,7 +85,8 @@
         "description": "No configuration listened within 10s",
         "menu_options": {
           "wait_config": "Retry",
-          "abort_config": "Abort"
+          "abort_config": "Abort",
+          "open_issue": "Open Issue"
         }
       },
       "blink": {
@@ -122,10 +123,18 @@
         "description": "Testing configuration {nb}/{tot}:\n\n    Codec: {codec}\n    Id: {id}\n    Index: {index}\n\nDid the light blink?",
         "menu_options": {
           "confirm_yes": "Yes!",
-          "confirm_no_another": "No, try another.",
-          "confirm_no_abort": "No, abort.",
+          "confirm_no_another": "No, try Next.",
+          "confirm_no_abort": "No, Abort.",
+          "open_issue": "No, Open Issue",
           "confirm_retry_last": "Retry the same.",
           "confirm_retry_all": "Retry from first."
+        }
+      },
+      "open_issue": {
+        "title": "Open Issue",
+        "description": "1. Download the diagnostic dump by clicking the button below\n2. Open a Config Flow [issue](https://github.com/NicoIIT/ha-ble-adv/issues/new?template=discovery.yml) and attach the dump to it.",
+        "menu_options": {
+          "diag": "Download Diagnostic Dump"
         }
       },
       "configure": {
