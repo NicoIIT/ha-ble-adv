@@ -12,7 +12,7 @@ for codec in CODECS.values():
 
 
 def _from_dotted(data: str) -> bytes:
-    return bytes([int(x, 16) for x in data.split(".")])
+    return bytes.fromhex(data.replace(".", ""))
 
 
 class _TestEncoderBase:
