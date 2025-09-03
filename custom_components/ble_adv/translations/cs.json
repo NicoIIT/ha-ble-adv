@@ -1,0 +1,398 @@
+{
+  "title": "Zařízení ovládaná pomocí Bluetooth Low Energy reklam",
+  "config": {
+    "step": {
+      "user": {
+        "description": "Před začátkem se ujistěte, že se nacházíte ve stejné místnosti jako zařízení, které chcete ovládat!",
+        "menu_options": {
+          "manual": "Ruční vstup (expert)",
+          "wait_config": "Duplikovat konfiguraci ze spárované mobilní aplikace (doporučené)",
+          "pair": "Párování",
+          "tools": "Nástroje a pomocníci"
+        }
+      },
+      "tools": {
+        "title": "Nástroje a pomocníci",
+        "description": "Sekce nástrojů",
+        "menu_options": {
+          "diag": "Diagnostický výpis",
+          "inject": "Vložit Raw data",
+          "listen_raw": "Poslouchat BLE reklamu",
+          "decode_raw": "Dekódovat Raw BLE reklamu"
+        }
+      },
+      "diag": {
+        "title": "Diagnostický výpis"
+      },
+      "listen_raw": {
+        "title": "Poslouchat BLE reklamu"
+      },
+      "listen_raw_res": {
+        "title": "Poslouchat BLE reklamu",
+        "description": "Přijaté BLE reklamy:\n{advs}",
+        "menu_options": {
+          "listen_raw": "Zkusit znovu",
+          "tools": "Zpět na nástroje"
+        }
+      },
+      "inject": {
+        "title": "Ruční vložení",
+        "description": "Pro zkušené uživatele: vložte raw data",
+        "data": {
+          "adapter_id": "BLE ADV adaptér",
+          "raw": "Raw data",
+          "interval": "Interval",
+          "repeat": "Opakování"
+        }
+      },
+      "inject_res": {
+        "title": "Výsledek vložení",
+        "description": "Vložení dokončeno.",
+        "menu_options": {
+          "inject": "Vložit nová Raw data",
+          "tools": "Zpět na nástroje"
+        }
+      },
+      "decode_raw": {
+        "title": "Dekódování Raw BLE reklamy",
+        "data": {
+          "raw": "Raw data"
+        }
+      },
+      "decode_raw_res": {
+        "title": "Výsledek dekódování Raw BLE reklamy",
+        "description": "{conf}",
+        "menu_options": {
+          "decode_raw": "Dekódovat nová Raw data",
+          "tools": "Zpět na nástroje"
+        }
+      },
+      "manual": {
+        "title": "Ruční vstup",
+        "description": "Pro zkušené uživatele, např. při přechodu z ESPHome",
+        "data": {
+          "name": "Název zařízení",
+          "codec_id": "Kodek",
+          "adapter_id": "BLE ADV adaptér",
+          "forced_id": "Vynucené ID",
+          "index": "Index"
+        }
+      },
+      "wait_config": {
+        "title": "Poslouchání konfigurace ze spárované aplikace v telefonu."
+      },
+      "no_config": {
+        "description": "Do 10 sekund nebyla zachycena žádná konfigurace",
+        "menu_options": {
+          "wait_config": "Zkusit znovu",
+          "abort_config": "Přerušit"
+        }
+      },
+      "blink": {
+        "title": "Test konfigurace"
+      },
+      "pair": {
+        "title": "Párování",
+        "description": "Vyberte příslušný Bluetooth adaptér a aplikaci z telefonu ze seznamů níže, odpojte napájení zařízení, znovu ho připojte a stiskněte tlačítko **Odeslat** do 5 sekund (tím se odešlou párovací příkazy)",
+        "data": {
+          "adapter_id": "BLE ADV adaptér",
+          "phone_app": "Aplikace v telefonu"
+        }
+      },
+      "wait_pair": {
+        "title": "Párování"
+      },
+      "confirm_pair": {
+        "description": "Bylo párování úspešné? Obvykle to signalizuje zablikání světla, ale závisí to na typu světla...",
+        "menu_options": {
+          "pair": "Párování selhalo, zkusit znovu",
+          "confirm_no_abort": "Párování selhalo, přerušit",
+          "blink": "Párování OK, otestovat konfigurace"
+        }
+      },
+      "choose_adapter": {
+        "title": "Výběr adaptéru",
+        "description": "Zachyceno bylo více Bluetooth adaptérů, vyberte ten nejbližší k zařízení",
+        "data": {
+          "adapter_id": "BLE ADV adaptér"
+        }
+      },
+      "confirm": {
+        "title": "Ověření",
+        "description": "Testování konfigurace {nb}/{tot}:\n\n    Kodek: {codec}\n    ID: {id}\n    Index: {index}\n\nZablikalo světlo?",
+        "menu_options": {
+          "confirm_yes": "Ano!",
+          "confirm_no_another": "Ne, zkusit jinou.",
+          "confirm_no_abort": "Ne, přerušit.",
+          "confirm_retry_last": "Zkusit stejnou.",
+          "confirm_retry_all": "Začít od začátku."
+        }
+      },
+      "configure": {
+        "title": "Konfigurace",
+        "description": "Konfigurace zařízení, fyzického ovladače a technických parametrů.\nTyto parametry je možné později změnit přes možnost 'Rekonfigurovat'.",
+        "menu_options": {
+          "config_entities": "Konfigurovat světla / ventilátory",
+          "config_remote": "Přidat další ovladač (fyzický ovladač, ..)",
+          "config_technical": "Technické parametry",
+          "finalize": "Dokončit"
+        }
+      },
+      "config_entities": {
+        "title": "Ovládaná zařízení",
+        "description": "Vyberte zařízení, která se mají vytvořit, a jejich vlastnosti",
+        "sections": {
+          "light_0": {
+            "name": "Hlavní světlo",
+            "data": {
+              "type": "Typ",
+              "min_brightness": "Minimální jas",
+              "refresh_on_start": "Vynutit obnovení barvy / jasu při zapnutí",
+              "reversed": "Prohodit studená / teplá",
+              "effects": "Režimy osvětlení"
+            }
+          },
+          "light_1": {
+            "name": "Druhé světlo",
+            "data": {
+              "type": "Typ",
+              "min_brightness": "Minimální jas",
+              "refresh_on_start": "Vynutit obnovení barvy / jasu při zapnutí",
+              "reversed": "Prohodit studená / teplá",
+              "effects": "Režimy osvětlení"
+            }
+          },
+          "light_2": {
+            "name": "Třetí světlo",
+            "data": {
+              "type": "Typ",
+              "min_brightness": "Minimální jas",
+              "refresh_on_start": "Vynutit obnovení barvy / jasu při zapnutí",
+              "reversed": "Prohodit studená / teplá",
+              "effects": "Režimy osvětlení"
+            }
+          },
+          "fan_0": {
+            "name": "Hlavní ventilátor",
+            "data": {
+              "type": "Typ",
+              "direction": "Podporuje změnu směru",
+              "oscillating": "Podporuje oscilaci",
+              "refresh_dir_on_start": "Vynutit obnovení směru při zapnutí",
+              "refresh_osc_on_start": "Vynutit obnovení oscilace při zapnutí",
+              "presets": "Režimy ventilátoru"
+            }
+          },
+          "fan_1": {
+            "name": "Druhý ventilátor",
+            "data": {
+              "type": "Typ",
+              "direction": "Podporuje změnu směru",
+              "oscillating": "Podporuje oscilaci",
+              "refresh_dir_on_start": "Vynutit obnovení směru při zapnutí",
+              "refresh_osc_on_start": "Vynutit obnovení oscilace při zapnutí",
+              "presets": "Režimy ventilátoru"
+            }
+          },
+          "fan_2": {
+            "name": "Třetí ventilátor",
+            "data": {
+              "type": "Typ",
+              "direction": "Podporuje změnu směru",
+              "oscillating": "Podporuje oscilaci",
+              "refresh_dir_on_start": "Vynutit obnovení směru při zapnutí",
+              "refresh_osc_on_start": "Vynutit obnovení oscilace při zapnutí",
+              "presets": "Režimy ventilátoru"
+            }
+          }
+        }
+      },
+      "config_remote": {
+        "title": "Nastavit fyzický ovladač",
+        "description": "Připojený ovladač:\n\n    Kodek: {codec}\n    ID: {id}\n    Index: {index}",
+        "menu_options": {
+          "config_remote_delete": "Odstranit připojený ovladač",
+          "config_remote_update": "Upravit možnosti ovladače",
+          "wait_config_remote": "Nahradit připojený ovladač",
+          "configure": "Zpět"
+        }
+      },
+      "wait_config_remote": {
+        "title": "Nastavit nový připojený ovladač"
+      },
+      "config_remote_update": {
+        "title": "Nastavení možností připojeného ovladače",
+        "description": "Připojený ovladač:\n\n    Kodek: {codec}\n    ID: {id}\n    Index: {index}"
+      },
+      "config_technical": {
+        "title": "Konfigurace technických možností",
+        "description": "Každý příkaz se odešle do vybraných adaptérů (3 * 'Opakování') s daným 'Intervalem' (ms) a s minimálním časovým odstupem mezi dvěma příkazy ('Minimální trvání').\n\nUpravujte jen pokud víte, co děláte!\n\nPoužití více adaptérů se DŮRAZNĚ NEDOPORUČUJE, nebude poskytována žádná podpora.",
+        "data": {
+          "adapter_ids": "BLE ADV adaptér(y)",
+          "interval": "Interval",
+          "repeat": "Opakování",
+          "duration": "Minimální trvání"
+        }
+      },
+      "finalize": {
+        "title": "Pojmenování zařízení",
+        "description": "Toto je poslední krok!",
+        "data": {
+          "name": "Název zařízení"
+        }
+      }
+    },
+    "progress": {
+      "listen_raw": "Poslouchání BLE reklamy\n{advs}",
+      "wait_pair": "Probíhá párování...",
+      "wait_config": "Stiskněte libovolné tlačítko (ideálně Párovat) v aplikaci ovládající zařízení do {max_seconds} sekund.",
+      "agg_config": "Shromažďování konfiguračních údajů.",
+      "blink": "Blikání světla pomocí konfigurace {nb}/{tot}:\n\n    Kodek: {codec}\n    ID: {id}\n    Index: {index}",
+      "wait_config_remote": "Stiskněte libovolné tlačítko (ideálně Párovat) na ovladači do {max_seconds} sekund."
+    },
+    "abort": {
+      "no_adapters": "Nebylo nalezeno žádné Bluetooth zařízení. Přerušuji.",
+      "no_config": "Nebyla zjištěna ani úspěšně otestována žádná konfigurace.",
+      "not_implemented": "Zatím neimplementováno",
+      "reconfigure_successful": "Rekonfigurace byla úspěšná!",
+      "already_configured": "Zařízení se stejným (kodek / ID / index) je už nakonfigurováno."
+    },
+    "error": {
+      "missing_entity": "Je potřeba nakonfigurovat aspoň jeden ventilátor nebo světlo.",
+      "missing_adapter": "Je potřeba vybrat aspoň jeden adaptér."
+    }
+  },
+  "selector": {
+    "light": {
+      "options": {
+        "cww": "Studená / Teplá bílá",
+        "onoff": "Jen zapnout / vypnout",
+        "rgb": "RGB",
+        "none": "Žádné"
+      }
+    },
+    "fan": {
+      "options": {
+        "3speed": "Ventilátor se 3 úrovněmi",
+        "6speed": "Ventilátor s 6 úrovněmi",
+        "none": "Žádné"
+      }
+    },
+    "effects": {
+      "options": {
+        "rgb": "RGB cyklus",
+        "rgbk": "RGBK cyklus"
+      }
+    },
+    "presets": {
+      "options": {
+        "breeze": "Přírodní vítr",
+        "sleep": "Režim spánku"
+      }
+    }
+  },
+  "entity": {
+    "fan": {
+      "fan_0": {
+        "name": "Hlavní ventilátor",
+        "state_attributes": {
+          "preset_mode": {
+            "state": {
+              "breeze": "Přírodní vítr",
+              "sleep": "Režim spánku"
+            }
+          }
+        }
+      },
+      "fan_1": {
+        "name": "Druhý ventilátor",
+        "state_attributes": {
+          "preset_mode": {
+            "state": {
+              "breeze": "Přírodní vítr",
+              "sleep": "Režim spánku"
+            }
+          }
+        }
+      },
+      "fan_2": {
+        "name": "Třetí ventilátor",
+        "state_attributes": {
+          "preset_mode": {
+            "state": {
+              "breeze": "Přírodní vítr",
+              "sleep": "Režim spánku"
+            }
+          }
+        }
+      }
+    },
+    "light": {
+      "light_0": {
+        "name": "Hlavní světlo",
+        "state_attributes": {
+          "effect": {
+            "state": {
+              "rgb": "RGB cyklus",
+              "rgbk": "RGBK cyklus"
+            }
+          }
+        }
+      },
+      "light_1": {
+        "name": "Druhé světlo",
+        "state_attributes": {
+          "effect": {
+            "state": {
+              "rgb": "RGB cyklus",
+              "rgbk": "RGBK cyklus"
+            }
+          }
+        }
+      },
+      "light_2": {
+        "name": "Třetí světlo",
+        "state_attributes": {
+          "effect": {
+            "state": {
+              "rgb": "RGB cyklus",
+              "rgbk": "RGBK cyklus"
+            }
+          }
+        }
+      }
+    }
+  },
+  "services": {
+    "inject_raw": {
+      "name": "Vložit Raw BLE reklamu",
+      "description": "Vložit Raw BLE reklamu v binárním hex formátu.",
+      "fields": {
+        "adapter_id": {
+          "name": "ID adaptéru",
+          "description": "Název použitého adaptéru."
+        },
+        "raw": {
+          "name": "Raw BLE reklama",
+          "description": "Raw BLE reklama, která se má odeslat."
+        },
+        "interval": {
+          "name": "Interval",
+          "description": "Interval mezi dvěma reklamami v milisekundách."
+        },
+        "repeat": {
+          "name": "Opakování",
+          "description": "Reklama se odešle 3 × počet opakování."
+        },
+        "device_queue": {
+          "name": "Název fronty zařízení",
+          "description": "Cílový název fronty zařízení, který neodpovídá žádnému ID: používá se k rozlišení reklam mezi různými zařízeními a správné zpracování fronty."
+        },
+        "duration": {
+          "name": "Minimální trvání",
+          "description": "Minimální čas, po kterém lze znovu odeslat reklamu přes stejný adaptér/zařízení (v ms)."
+        }
+      }
+    }
+  }
+}
