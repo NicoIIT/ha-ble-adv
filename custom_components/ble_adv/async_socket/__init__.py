@@ -70,23 +70,23 @@ class AsyncSocketBase(ABC):
         await asyncio.wait_for(self._ready_recv_event.wait(), 1)
 
     async def _async_base_receive(self, wait_recv_callback: SocketWaitRecvCallback) -> None:
-        try:
-            self._ready_recv_event.set()
-            is_listening: bool = True
-            while is_listening:
+        self._ready_recv_event.set()
+        is_listening: bool = True
+        while is_listening:
+            try:
                 data, is_listening = await wait_recv_callback()
                 if is_listening and self._on_recv and data is not None:
-                    try:
-                        await self._on_recv(data)
-                    except Exception:
-                        _LOGGER.exception("Exception on recv")
-                        is_listening = False
-            if self._on_error and self._functional_recv_started:
-                self._functional_recv_started = False
-                await self._on_error("Socket closed by peer or Exception on recv.")
-        except asyncio.CancelledError:
-            # Task Cancelled: just return
-            pass
+                    await self._on_recv(data)
+            except asyncio.CancelledError:  # Task Cancelled: just return
+                return
+            except BrokenPipeError:  # Socket Exception
+                is_listening = False
+            except Exception:  # Unknown Exception
+                _LOGGER.exception("Exception on recv")
+                is_listening = False
+        if self._on_error and self._functional_recv_started:
+            self._functional_recv_started = False
+            await self._on_error("Socket closed by peer or Exception on recv.")
 
     @abstractmethod
     async def _async_call(self, method: str, *args) -> Any:  # noqa: ANN002, ANN401
