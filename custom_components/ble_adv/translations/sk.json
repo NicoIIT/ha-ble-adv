@@ -29,10 +29,10 @@
       },
       "listen_raw_res": {
         "title": "Počúvať BLE reklamu",
-        "description": "Received BLE Advertising:\n{advs}",
+        "description": "Prijaté BLE reklamy:\n{advs}",
         "menu_options": {
           "listen_raw": "Skúsiť znova",
-          "tools": "Back to Tools"
+          "tools": "Späť na nástroje"
         }
       },
       "inject": {
@@ -49,8 +49,8 @@
         "title": "Výsledok vloženia",
         "description": "Vloženie dokončené.",
         "menu_options": {
-          "inject": "Inject New Raw",
-          "tools": "Back to Tools"
+          "inject": "Vložiť nové Raw dáta",
+          "tools": "Späť na nástroje"
         }
       },
       "decode_raw": {
@@ -63,8 +63,8 @@
         "title": "Výsledok dekódovania Raw BLE reklamy",
         "description": "{conf}",
         "menu_options": {
-          "decode_raw": "Decode New Raw",
-          "tools": "Back to Tools"
+          "decode_raw": "Dekódovať nové Raw dáta",
+          "tools": "Späť na nástroje"
         }
       },
       "manual": {
@@ -129,7 +129,7 @@
         }
       },
       "configure": {
-        "title": "Configuration",
+        "title": "Konfigurácia",
         "description": "Konfigurácia zariadení, fyzického ovládača a technických parametrov.\nTieto parametre je možné neskôr zmeniť cez možnosť 'Rekonfigurovať'.",
         "menu_options": {
           "config_entities": "Konfigurovať svetlá / ventilátory",
@@ -225,7 +225,7 @@
         "description": "Pripojený ovládač:\n\n    Kodek: {codec}\n    ID: {id}\n    Index: {index}"
       },
       "config_technical": {
-        "title": "Configure Technical Options",
+        "title": "Konfigurácia technických možností",
         "description": "Každý príkaz sa odošle do vybraných adaptérov (3 * 'Opakovania') s daným 'Intervalom' (ms) a s minimálnym časovým odstupom medzi dvoma príkazmi ('Minimálne trvanie').\n\nUpravujte len ak viete, čo robíte!\n\nPoužitie viacerých adaptérov sa DÔRAZNE NEODPORÚČA, nebude poskytovaná žiadna podpora.",
         "data": {
           "adapter_ids": "BLE ADV adaptér(y)",
@@ -235,7 +235,7 @@
         }
       },
       "finalize": {
-        "title": "Name your Device",
+        "title": "Pomenovanie zariadenia",
         "description": "Toto je posledný krok!",
         "data": {
           "name": "Názov zariadenia"
