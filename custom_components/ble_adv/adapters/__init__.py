@@ -550,13 +550,13 @@ class BleAdvBtHciManager(BleAdvBtManager):
     async def async_init(self) -> None:
         """Init the handler: init the MGMT Socket and the discovered adapters."""
         if self._disabled:
-            _LOGGER.info("HCI Adapters disabled.")
+            self._add_diag("HCI Adapters disabled.", logging.INFO)
             return
         if self._mgmt_sock is None:
             self._mgmt_sock = create_async_socket()
         fileno = await self._mgmt_sock.async_init("mgmt", self._mgmt_recv, self._mgmt_close, True)
         await self._mgmt_sock.async_start_recv()
-        _LOGGER.info(f"MGMT Connected - fileno: {fileno}")
+        self._add_diag(f"MGMT Connected - fileno: {fileno}", logging.INFO)
         self._mgmt_opened = True
         # Controller Index List
         _, index_resp = await self.send_mgmt_cmd(0xFFFF, 0x03, b"")
@@ -610,7 +610,7 @@ class BleAdvBtHciManager(BleAdvBtManager):
         self._launch_refresh(f"MGMT Closure: {message}")
 
     def _launch_refresh(self, reason: str) -> None:
-        self._add_diag(f"Manager Refresh - {reason}")
+        self._add_diag(f"Manager Refresh - {reason}", logging.WARNING)
         if self._reconnecting:
             return
         self._reconnecting = True

@@ -75,6 +75,19 @@ async def test_socket_recv_except(socket_mock_inst: _SocketMock) -> None:
     sock.close()
 
 
+async def test_socket_recv_brokenpipe(socket_mock_inst: _SocketMock) -> None:
+    """Test AsyncSocket BrokenPipeError."""
+    sock = AsyncSocket()
+    mock_recv_callback = mock.AsyncMock()
+    mock_error_callback = mock.AsyncMock()
+    await sock.async_init("test", mock_recv_callback, mock_error_callback, False, "", "", "")
+    await sock.async_start_recv()
+    socket_mock_inst.broken_pipe_error()  # simulate BrokenPipeError
+    await asyncio.sleep(0.1)
+    mock_error_callback.assert_called()
+    sock.close()
+
+
 async def test_btsocket(btsocket_mock_inst: _SocketMock) -> None:
     """Test AsyncSocket."""
     sock = AsyncSocket()
