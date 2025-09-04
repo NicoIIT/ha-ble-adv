@@ -85,7 +85,8 @@
         "description": "Do 10 sekund nebyla zachycena žádná konfigurace",
         "menu_options": {
           "wait_config": "Zkusit znovu",
-          "abort_config": "Přerušit"
+          "abort_config": "Přerušit",
+          "open_issue": "Open Issue"
         }
       },
       "blink": {
@@ -124,8 +125,16 @@
           "confirm_yes": "Ano!",
           "confirm_no_another": "Ne, zkusit jinou.",
           "confirm_no_abort": "Ne, přerušit.",
+          "open_issue": "No, Open Issue",
           "confirm_retry_last": "Zkusit stejnou.",
           "confirm_retry_all": "Začít od začátku."
+        }
+      },
+      "open_issue": {
+        "title": "Open Issue",
+        "description": "1. Download the diagnostic dump by clicking the button below\n2. Open a Config Flow [issue](https://github.com/NicoIIT/ha-ble-adv/issues/new?template=discovery.yml) and attach the dump to it.",
+        "menu_options": {
+          "diag": "Download Diagnostic Dump"
         }
       },
       "configure": {
@@ -251,7 +260,7 @@
       "wait_config_remote": "Stiskněte libovolné tlačítko (ideálně Párovat) na ovladači do {max_seconds} sekund."
     },
     "abort": {
-      "no_adapters": "Nebylo nalezeno žádné Bluetooth zařízení. Přerušuji.",
+      "no_adapters": "Nebylo nalezeno žádné Bluetooth zařízení. Přerušuji.\nPlease check the [Troubleshooting Guide - Step 1.2](https://github.com/NicoIIT/ha-ble-adv/wiki/Troubleshooting-Guide#step-12-bluetooth-adapter).",
       "no_config": "Nebyla zjištěna ani úspěšně otestována žádná konfigurace.",
       "not_implemented": "Zatím neimplementováno",
       "reconfigure_successful": "Rekonfigurace byla úspěšná!",
