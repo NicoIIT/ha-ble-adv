@@ -260,7 +260,7 @@
       "wait_config_remote": "Please press any button (preferably Pair) on the controller within {max_seconds}s."
     },
     "abort": {
-      "no_adapters": "No Bluetooth adapter has been found. Aborting.",
+      "no_adapters": "No Bluetooth adapter has been found, Aborting.\nPlease check the [Troubleshooting Guide - Step 1.2](https://github.com/NicoIIT/ha-ble-adv/wiki/Troubleshooting-Guide#step-12-bluetooth-adapter).",
       "no_config": "No configuration has been discovered or tested successfully.",
       "not_implemented": "Not Implemented (yet)",
       "reconfigure_successful": "Reconfigure successful!",

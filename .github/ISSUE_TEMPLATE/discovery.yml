@@ -6,17 +6,31 @@ body:
 - type: markdown
   attributes:
     value:  |
-      If you managed to make the light blink and create the integration please use a Bug Report instead.
-      
-      **If some of the mandatory info is not provided (or not provided in the requested format) then the issue will be rejected, and future requests may not even be considered.**
+      If you managed to make the light blink and to create the integration please use a [Bug Report](https://github.com/NicoIIT/ha-ble-adv/issues/new?template=bug.yml) instead.
 
-      I spent several months working on this component, you can spend several minutes providing the mandatory info I need to investigate your issue.
+      As a remainder:
+      * YOU have a problem
+      * YOU are requesting the maintainer to help YOU
+      * The maintainer is working for free and has no obligation to help YOU
+
+      The maintainer may be annoyed and reluctant to help you if:
+      * the answer to your issue is already in the docs that you obviously did not carefully read, so please read the docs first
+      * some of the mandatory info is not provided (or not provided in the requested format) and then the issue CANNOT be investigated
+      * you do not fill the mandatory info by lazyness with comments such as 'not available' or 'not needed' or 'let me know if you need more info': all requested info ARE available AND needed and MUST be provided directly.
+
+      If the maintainer is annoyed:
+      * YOUR issue will be rejected
+      * YOU will have no help with YOUR problem
+
+      If the maintainer is REALLY annoyed:
+      * YOUR future issues or requests will be ignored
+      * YOU will be banned.
 
 - type: checkboxes
   attributes:
     label: Checklist
     options:
-      - label: I checked the [troubleshooting guide](https://github.com/NicoIIT/ha-ble-adv/wiki/Troubleshooting-Guide) and it did not help
+      - label: I carefully read the [troubleshooting guide](https://github.com/NicoIIT/ha-ble-adv/wiki/Troubleshooting-Guide) and it did not help.
         required: true
 
 - type: textarea
