@@ -31,3 +31,6 @@ recorder:
   exclude:
     event_types:
       - call_service
+
+automation: !include automations.yaml
+scene: !include scenes.yaml
