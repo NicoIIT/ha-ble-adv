@@ -235,11 +235,11 @@
       },
       "config_technical": {
         "title": "Konfigurace technických možností",
-        "description": "Každý příkaz se odešle do vybraných adaptérů (3 * 'Opakování') s daným 'Intervalem' (ms) a s minimálním časovým odstupem mezi dvěma příkazy ('Minimální trvání').\n\nUpravujte jen pokud víte, co děláte!\n\nPoužití více adaptérů se DŮRAZNĚ NEDOPORUČUJE, nebude poskytována žádná podpora.",
+        "description": "Každý příkaz se odešle do vybraných adaptérů 'Opakování' s daným 'Intervalem' (ms) a s minimálním časovým odstupem mezi dvěma příkazy ('Minimální trvání').\n\nUpravujte jen pokud víte, co děláte!\n\nPoužití více adaptérů se DŮRAZNĚ NEDOPORUČUJE, nebude poskytována žádná podpora.",
         "data": {
           "adapter_ids": "BLE ADV adaptér(y)",
           "interval": "Interval",
-          "repeat": "Opakování",
+          "repeats": "Opakování",
           "duration": "Minimální trvání"
         }
       },
@@ -391,7 +391,7 @@
         },
         "repeat": {
           "name": "Opakování",
-          "description": "Reklama se odešle 3 × počet opakování."
+          "description": "Reklama se odešle počet opakování."
         },
         "device_queue": {
           "name": "Název fronty zařízení",

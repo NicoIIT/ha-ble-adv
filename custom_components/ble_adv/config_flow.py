@@ -63,6 +63,7 @@ from .const import (
     CONF_REFRESH_OSC_ON_START,
     CONF_REMOTE,
     CONF_REPEAT,
+    CONF_REPEATS,
     CONF_REVERSED,
     CONF_TECHNICAL,
     CONF_TYPE_NONE,
@@ -335,7 +336,7 @@ class BleAdvConfigFlow(ConfigFlow, domain=DOMAIN):
 
         self._data: dict[str, Any] = {}
         self._finalize_requested: bool = False
-        self._last_inject: dict[str, Any] = {CONF_RAW: "", CONF_INTERVAL: 20, CONF_REPEAT: 3}
+        self._last_inject: dict[str, Any] = {CONF_RAW: "", CONF_INTERVAL: 20, CONF_REPEATS: 9}
 
         self._diags: list[str] = []
         self._return_step_after_diag: str = ""
@@ -360,8 +361,7 @@ class BleAdvConfigFlow(ConfigFlow, domain=DOMAIN):
     def _get_device(self, name: str, adapter_id: str, config: _CodecConfig, duration: int | None = None) -> BleAdvBaseDevice:
         codec: BleAdvCodec = self.coordinator.codecs[config.codec_id]
         duration = duration if duration is not None else codec.duration
-        repeat = 3 * codec.repeat
-        return BleAdvBaseDevice(self.coordinator, name, config.codec_id, [adapter_id], repeat, codec.interval, duration, config)
+        return BleAdvBaseDevice(self.coordinator, name, config.codec_id, [adapter_id], codec.repeat, codec.interval, duration, config)
 
     async def async_blink_light(self) -> None:
         """Blink."""
@@ -609,7 +609,7 @@ class BleAdvConfigFlow(ConfigFlow, domain=DOMAIN):
                 CONF_ADAPTER_IDS: [self._confs.selected_adapter()],
                 CONF_DURATION: codec.duration,
                 CONF_INTERVAL: codec.interval,
-                CONF_REPEAT: codec.repeat,
+                CONF_REPEATS: codec.repeat,
             },
         }
         return await self.async_step_configure()
@@ -763,7 +763,7 @@ class BleAdvConfigFlow(ConfigFlow, domain=DOMAIN):
                 vol.Optional(CONF_INTERVAL, default=def_tech[CONF_INTERVAL]): selector.NumberSelector(
                     selector.NumberSelectorConfig(step=10, min=10, max=150, mode=selector.NumberSelectorMode.BOX)
                 ),
-                vol.Optional(CONF_REPEAT, default=def_tech[CONF_REPEAT]): selector.NumberSelector(
+                vol.Optional(CONF_REPEATS, default=def_tech[CONF_REPEATS]): selector.NumberSelector(
                     selector.NumberSelectorConfig(step=1, min=1, max=20, mode=selector.NumberSelectorMode.BOX)
                 ),
             }

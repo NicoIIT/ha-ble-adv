@@ -235,11 +235,11 @@
       },
       "config_technical": {
         "title": "Configure Technical Options",
-        "description": "Each command is advertised to the given adapter(s) (3 * 'Repetitions') times, at given 'Interval' (ms), and respecting a delay of 'Minimum Duration' in between 2 distinct commands.\n\nModify only if you know what you are doing!\n\nMultiple adapters are SERIOUSLY DISCOURAGED, no support will be provided.",
+        "description": "Each command is advertised to the given adapter(s) 'Repetitions' times, at given 'Interval' (ms), and respecting a delay of 'Minimum Duration' in between 2 distinct commands.\n\nModify only if you know what you are doing!\n\nMultiple adapters are SERIOUSLY DISCOURAGED, no support will be provided.",
         "data": {
           "adapter_ids": "BLE ADV Adapter(s)",
           "interval": "Interval",
-          "repeat": "Repetitions",
+          "repeats": "Repetitions",
           "duration": "Minimum Duration"
         }
       },
@@ -391,7 +391,7 @@
         },
         "repeat": {
           "name": "Repeat",
-          "description": "The advertisement will be sent 3 * Repeat times."
+          "description": "The advertisement will be sent 'Repeat' times."
         },
         "device_queue": {
           "name": "Device Queue Name",
