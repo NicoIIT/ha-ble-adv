@@ -135,12 +135,12 @@ class BleAdvFan(BleAdvEntity, FanEntity):
             self._attr_percentage = 0
             self._attr_preset_mode = ent_attr.attrs[ATTR_PRESET]
 
-    async def async_turn_on(self, *_, **kwargs) -> None:  # noqa: ANN002, ANN003
+    async def async_turn_on(self, percentage: int | None = None, preset_mode: str | None = None, **kwargs) -> None:  # noqa: ANN003
         """Turn Entity on / set percentage / preset mode. Percentage is taking precedence over preset_mode."""
-        if ATTR_PERCENTAGE in kwargs and (percentage := kwargs.get(ATTR_PERCENTAGE)) is not None:
-            await self.async_set_percentage(percentage)
-        elif ATTR_PRESET_MODE in kwargs and (preset_mode := kwargs.get(ATTR_PRESET_MODE)) is not None:
-            await self.async_set_preset_mode(preset_mode)
+        if (percent := kwargs.get(ATTR_PERCENTAGE, percentage)) is not None:
+            await self.async_set_percentage(percent)
+        elif (preset := kwargs.get(ATTR_PRESET_MODE, preset_mode)) is not None:
+            await self.async_set_preset_mode(preset)
         else:
             await self._handle_state_change({ATTR_IS_ON: True})
 
