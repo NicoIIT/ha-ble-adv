@@ -364,7 +364,7 @@ class BleAdvCodec(ABC):
     debug_mode: bool = False
     duration: int = 750
     interval: int = 30
-    repeat: int = 3
+    repeat: int = 9
     ign_duration: int = 12000
     multi_advs: bool = False
 

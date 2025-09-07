@@ -235,11 +235,11 @@
       },
       "config_technical": {
         "title": "Configuration Technique",
-        "description": "Chaque commande est envoyée (3 * 'Répétitions') fois par l'adaptateur séléctionné, à 'Interval' (ms) d'interval, avec un délai minimum de 'Délai Minimum' (ms) entre 2 commandes successives.\n\nNe modifier que si vous savez ce que vous faites!\n\nLa séléction de plusieurs Adaptateurs est possible mais FORTEMENT DECONSEILLEE, aucune aide ne sera apportée dans ce cas.",
+        "description": "Chaque commande est envoyée 'Répétitions' fois par l'adaptateur séléctionné, à 'Interval' (ms) d'interval, avec un délai minimum de 'Délai Minimum' (ms) entre 2 commandes successives.\n\nNe modifier que si vous savez ce que vous faites!\n\nLa séléction de plusieurs Adaptateurs est possible mais FORTEMENT DECONSEILLEE, aucune aide ne sera apportée dans ce cas.",
         "data": {
           "adapter_ids": "Adaptateur(s) BLE ADV",
           "interval": "Interval",
-          "repeat": "Répétitions",
+          "repeats": "Répétitions",
           "duration": "Délai Minimum"
         }
       },
@@ -391,7 +391,7 @@
         },
         "repeat": {
           "name": "Répétition",
-          "description": "Le message sera répété (3 * Répétitions) fois."
+          "description": "Le message sera répété 'Répétition' fois."
         },
         "device_queue": {
           "name": "Nom de la File de l'appareil",

@@ -10,7 +10,7 @@ from collections import deque
 from collections.abc import Awaitable, Callable, Coroutine, MutableMapping
 from dataclasses import dataclass
 from datetime import datetime
-from math import ceil
+from math import floor
 from typing import Any, Self
 
 from btsocket.btmgmt_protocol import reader as btmgmt_reader
@@ -52,9 +52,11 @@ class BleAdvQueueItem:
 
     def split_repeat(self, adapter_bunch_time: int) -> None:
         """Split the initial repeat based on adapter capacity."""
-        adapter_repeat = max(1, min(int(adapter_bunch_time / self._interval), self._repeat))
-        repeat = max(1, ceil(self._repeat / adapter_repeat))
-        self._adv_items = [BleAdvAdapterAdvItem(self._interval, adapter_repeat, data, self.ign_duration) for data in self.data] * repeat
+        adapter_max_repeat = max(1, int(adapter_bunch_time / self._interval))
+        repeats = [adapter_max_repeat] * floor(self._repeat / adapter_max_repeat)
+        if (rem_repeats := self._repeat % adapter_max_repeat) > 0:
+            repeats.append(rem_repeats)
+        self._adv_items = [BleAdvAdapterAdvItem(self._interval, rep, data, self.ign_duration) for data in self.data for rep in repeats]
 
     def has_next(self) -> bool:
         """Return True if some items remains."""

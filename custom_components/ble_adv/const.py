@@ -7,7 +7,7 @@ PLATFORMS = [Platform.FAN, Platform.LIGHT]
 
 CONF_COORDINATOR_ID = "coordinator_unique_id"
 
-CONF_LAST_VERSION = 5
+CONF_LAST_VERSION = 6
 
 CONF_INDEX = "index"
 CONF_CODEC_ID = "codec_id"
@@ -20,6 +20,7 @@ CONF_RAW = "raw"
 CONF_TECHNICAL = "technical"
 CONF_INTERVAL = "interval"
 CONF_REPEAT = "repeat"
+CONF_REPEATS = "repeats"
 CONF_DURATION = "duration"
 CONF_DEVICE_QUEUE = "device_queue"
 CONF_MIN_BRIGHTNESS = "min_brightness"

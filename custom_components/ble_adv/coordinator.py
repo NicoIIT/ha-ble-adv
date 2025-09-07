@@ -70,8 +70,8 @@ class BleAdvBaseDevice:
     async def apply_cmd(self, enc_cmd: BleAdvEncCmd) -> None:
         """Apply command."""
         advs: list[BleAdvAdvertisement] = self.codec.encode_advs(enc_cmd, self.config)
-        qi = BleAdvQueueItem(enc_cmd.cmd, self.repeat, self.duration, self.interval, [x.to_raw() for x in advs], self.codec.ign_duration)
         for adapter_id in self.adapter_ids:
+            qi = BleAdvQueueItem(enc_cmd.cmd, self.repeat, self.duration, self.interval, [x.to_raw() for x in advs], self.codec.ign_duration)
             await self.coordinator.advertise(adapter_id, self.unique_id, qi)
 
     async def advertise(self, ent_attr: BleAdvEntAttr) -> None:
@@ -207,7 +207,7 @@ class BleAdvCoordinator:
         except ValueError:
             return {CONF_RAW: "Cannot convert to bytes"}
         ign_duration = 4 * dt[CONF_REPEAT] * dt[CONF_INTERVAL]
-        qi: BleAdvQueueItem = BleAdvQueueItem(None, 3 * dt[CONF_REPEAT], dt[CONF_DURATION], dt[CONF_INTERVAL], [raw], ign_duration)
+        qi: BleAdvQueueItem = BleAdvQueueItem(None, dt[CONF_REPEAT], dt[CONF_DURATION], dt[CONF_INTERVAL], [raw], ign_duration)
         await self.advertise(dt[CONF_ADAPTER_ID], dt[CONF_DEVICE_QUEUE], qi)
         return {}
 

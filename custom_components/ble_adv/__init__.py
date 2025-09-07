@@ -34,6 +34,7 @@ from .const import (
     CONF_REFRESH_OSC_ON_START,
     CONF_REMOTE,
     CONF_REPEAT,
+    CONF_REPEATS,
     CONF_TECHNICAL,
     CONF_USE_DIR,
     CONF_USE_OSC,
@@ -120,6 +121,9 @@ async def async_migrate_entry(hass: HomeAssistant, config_entry: ConfigEntry) ->
     if CONF_ADAPTER_ID in new_data[CONF_TECHNICAL]:
         new_data[CONF_TECHNICAL][CONF_ADAPTER_IDS] = [new_data[CONF_TECHNICAL].pop(CONF_ADAPTER_ID)]
         update_needed = True
+    if CONF_REPEATS not in new_data[CONF_TECHNICAL] and CONF_REPEAT in new_data[CONF_TECHNICAL]:
+        new_data[CONF_TECHNICAL][CONF_REPEATS] = 3 * new_data[CONF_TECHNICAL][CONF_REPEAT]
+        update_needed = True
 
     if config_entry.version < 2:
         coordinator = await get_coordinator(hass)
@@ -157,7 +161,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         entry.title,
         device_conf[CONF_CODEC_ID],
         tech_conf[CONF_ADAPTER_IDS],
-        3 * tech_conf[CONF_REPEAT],
+        tech_conf[CONF_REPEATS],
         tech_conf[CONF_INTERVAL],
         tech_conf[CONF_DURATION],
         BleAdvConfig(device_conf[CONF_FORCED_ID], device_conf[CONF_INDEX]),

@@ -34,7 +34,7 @@ class MantraEncoder(BleAdvCodec):
 
     duration: int = 400
     interval: int = 100
-    repeat: int = 2
+    repeat: int = 6
     _len: int = 18
     _tx_max: int = 0x0FFF
     _family = bytes([0x12, 0x34, 0x56, 0x78])
