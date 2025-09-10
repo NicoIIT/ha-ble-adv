@@ -11,6 +11,7 @@ from ble_adv.const import (
     CONF_CODEC_ID,
     CONF_DURATION,
     CONF_FANS,
+    CONF_FORCE_SEND,
     CONF_FORCED_ID,
     CONF_INDEX,
     CONF_INTERVAL,
@@ -74,7 +75,7 @@ BASE_CONF_V2 = {
 
 BASE_CONF = {
     CONF_DEVICE: BASE_DEVICE_CONF,
-    CONF_TECHNICAL: {CONF_REPEATS: 3, CONF_ADAPTER_IDS: ["adapter_id"], **BASE_TECH_CONF},
+    CONF_TECHNICAL: {CONF_REPEATS: 3, CONF_ADAPTER_IDS: ["adapter_id"], CONF_FORCE_SEND: False, **BASE_TECH_CONF},
     CONF_FANS: [{}, {}, {}],
     CONF_LIGHTS: [{}, {}, {}],
 }

@@ -238,6 +238,7 @@
         "description": "Chaque commande est envoyée 'Répétitions' fois par l'adaptateur séléctionné, à 'Interval' (ms) d'interval, avec un délai minimum de 'Délai Minimum' (ms) entre 2 commandes successives.\n\nNe modifier que si vous savez ce que vous faites!\n\nLa séléction de plusieurs Adaptateurs est possible mais FORTEMENT DECONSEILLEE, aucune aide ne sera apportée dans ce cas.",
         "data": {
           "adapter_ids": "Adaptateur(s) BLE ADV",
+          "force_send": "Forcer l'envoi des commandes même si rien n'a changé.",
           "interval": "Interval",
           "repeats": "Répétitions",
           "duration": "Délai Minimum"

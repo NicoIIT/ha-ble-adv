@@ -48,6 +48,7 @@ from .const import (
     CONF_DURATION,
     CONF_EFFECTS,
     CONF_FANS,
+    CONF_FORCE_SEND,
     CONF_FORCED_ID,
     CONF_INDEX,
     CONF_INTERVAL,
@@ -610,6 +611,7 @@ class BleAdvConfigFlow(ConfigFlow, domain=DOMAIN):
                 CONF_DURATION: codec.duration,
                 CONF_INTERVAL: codec.interval,
                 CONF_REPEATS: codec.repeat,
+                CONF_FORCE_SEND: False,
             },
         }
         return await self.async_step_configure()
@@ -760,6 +762,7 @@ class BleAdvConfigFlow(ConfigFlow, domain=DOMAIN):
                 vol.Optional(CONF_DURATION, default=def_tech[CONF_DURATION]): selector.NumberSelector(
                     selector.NumberSelectorConfig(step=50, min=100, max=2000, mode=selector.NumberSelectorMode.SLIDER)
                 ),
+                vol.Optional(CONF_FORCE_SEND, default=def_tech[CONF_FORCE_SEND]): bool,
                 vol.Optional(CONF_INTERVAL, default=def_tech[CONF_INTERVAL]): selector.NumberSelector(
                     selector.NumberSelectorConfig(step=10, min=10, max=150, mode=selector.NumberSelectorMode.BOX)
                 ),

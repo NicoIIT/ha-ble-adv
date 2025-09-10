@@ -26,6 +26,7 @@ from homeassistant.helpers import entity_registry as er
 class _Device(mock.AsyncMock):
     unique_id = "device_id"
     available = True
+    force_send = False
 
     add_entity = mock.MagicMock()
 

@@ -238,6 +238,7 @@
         "description": "Každý príkaz sa odošle do vybraných adaptérov 'Opakovania' s daným 'Intervalom' (ms) a s minimálnym časovým odstupom medzi dvoma príkazmi ('Minimálne trvanie').\n\nUpravujte len ak viete, čo robíte!\n\nPoužitie viacerých adaptérov sa DÔRAZNE NEODPORÚČA, nebude poskytovaná žiadna podpora.",
         "data": {
           "adapter_ids": "BLE ADV adaptér(y)",
+          "force_send": "Force the send of the commands even if nothing changed.",
           "interval": "Interval",
           "repeats": "Opakovania",
           "duration": "Minimálne trvanie"
