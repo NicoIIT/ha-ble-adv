@@ -55,7 +55,7 @@ async def test_device(hass: HomeAssistant) -> None:
     coord = BleAdvCoordinator(hass, {codec.codec_id: codec}, ["hci"], 2000, [], [])
     coord.advertise = mock.AsyncMock()
     conf = BleAdvConfig(0xABCDEF, 1)
-    device = BleAdvDevice(hass, "my_device", "device", codec.codec_id, ["my_adapter"], 1, 20, 100, conf, coord)
+    device = BleAdvDevice(hass, "my_device", "device", codec.codec_id, ["my_adapter"], 1, 20, 100, conf, False, coord)
     assert device.device_info == {
         "identifiers": {("ble_adv", "my_device")},
         "name": "device",

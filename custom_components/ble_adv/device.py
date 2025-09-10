@@ -101,6 +101,8 @@ class BleAdvEntity(RestoreEntity):
                     for attr_reset in state_attr.resets:
                         self.set_state_attribute(attr_reset, None)
                 forced_chg_attrs += state_attr.chg_attrs
+        if self._device.force_send:
+            chg_attrs = forced_chg_attrs
         if chg_attrs:
             attrs = self.get_attrs()
             if ATTR_ON in chg_attrs and attrs[ATTR_ON]:
@@ -175,11 +177,13 @@ class BleAdvDevice(BleAdvBaseDevice):
         interval: int,
         duration: int,
         config: BleAdvConfig,
+        force_send: bool,
         coordinator: BleAdvCoordinator,
     ) -> None:
         super().__init__(coordinator, unique_id, codec_id, adapter_ids, int(repeat), int(interval), int(duration), config)
         self.hass: HomeAssistant = hass
         self.name: str = name
+        self.force_send: bool = force_send
         self.entities: dict[Any, BleAdvEntity] = {}
         self._timer_cancel: CALLBACK_TYPE | None = None
         self.logger = _DeviceLoggingAdapter(_LOGGER, {"name": self.name})
