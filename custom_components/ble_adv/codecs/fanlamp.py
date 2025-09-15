@@ -158,14 +158,16 @@ class FanLampEncoderV1(FanLampEncoderV1Base):
         conf.seed = seed
 
         enc_cmd = BleAdvEncCmd(decoded[0])
-        enc_cmd.param = decoded[7]
         if enc_cmd.cmd != 0x28:
+            enc_cmd.param = decoded[7]
             enc_cmd.arg0 = decoded[3]
             enc_cmd.arg1 = decoded[4]
             if enc_cmd.cmd == 0x22:
                 enc_cmd.arg2 = decoded[5]
-        elif not self.is_eq(conf.id & 0xFF, decoded[3], "Pair Arg0") or not self.is_eq((conf.id >> 8) & 0xF0, decoded[4], "Pair Arg1"):
-            return None, None
+        else:
+            enc_cmd.param = 0x00 if self._arg2 == 0x00 else decoded[7]
+            if not self.is_eq(conf.id & 0xFF, decoded[3], "Pair Arg0") or not self.is_eq((conf.id >> 8) & 0xF0, decoded[4], "Pair Arg1"):
+                return None, None
         return enc_cmd, conf
 
     def convert_from_enc(self, enc_cmd: BleAdvEncCmd, conf: BleAdvConfig) -> bytes:
@@ -178,7 +180,7 @@ class FanLampEncoderV1(FanLampEncoderV1Base):
         obuf.append((conf.id >> 8) & 0xF0 if is_pair_cmd else enc_cmd.arg1)
         obuf.append(self._get_arg2(enc_cmd.cmd, enc_cmd.arg2))
         obuf.append(conf.tx_count)
-        obuf.append(enc_cmd.param)
+        obuf.append(self._header[0] if (self._arg2 == 0x00 and is_pair_cmd) else enc_cmd.param)
         seed = conf.seed if conf.seed != 0 else randint(0, 0xFFF5)
         seed8 = seed & 0xFF
         obuf.append(seed8 ^ 1 if self._xor1 else seed8 ^ ((conf.id >> 16) & 0xFF))
@@ -335,6 +337,12 @@ def _get_cww_translators(param_attr: str, cold_attr: str, warm_attr: str) -> lis
         Trans(CTLightCmd().act(ATTR_CMD, ATTR_CMD_CT_DOWN).eq(ATTR_STEP, 0.1), EncCmd(0x21).eq(param_attr, 0x24)).no_direct(),
         Trans(CTLightCmd().act(ATTR_CMD, ATTR_CMD_BR_UP).eq(ATTR_STEP, 0.1), EncCmd(0x21).eq(param_attr, 0x14)).no_direct(),
         Trans(CTLightCmd().act(ATTR_CMD, ATTR_CMD_BR_DOWN).eq(ATTR_STEP, 0.1), EncCmd(0x21).eq(param_attr, 0x28)).no_direct(),
+        Trans(
+            CTLightCmd().act(ATTR_COLD, 0.5).act(ATTR_WARM, 0.5), EncCmd(0x21).eq(param_attr, 0x01).eq(cold_attr, 127).eq(warm_attr, 127)
+        ).no_direct(),
+        Trans(
+            CTLightCmd().act(ATTR_COLD, 1.0).act(ATTR_WARM, 1.0), EncCmd(0x21).eq(param_attr, 0x02).eq(cold_attr, 255).eq(warm_attr, 255)
+        ).no_direct(),
     ]
 
 
@@ -424,6 +432,7 @@ LSCODECS = [
     FanLampEncoderV2(0x0100, True).fid("lampsmart_pro_vi3/s2", LSV3).header([0xF0, 0x08]).prefix([0x21, 0x82, 0x00]).ble(0x19, 0x03).add_translators(TRANS_FANLAMP_V2),
     FanLampEncoderV2(0x0100, True).fid("lampsmart_pro_vi3/s3", LSV3).header([0xF0, 0x08]).prefix([0x21, 0x83, 0x00]).ble(0x19, 0x03).add_translators(TRANS_FANLAMP_V2),
     # LampSmart remotes
+    FanLampEncoderV1(0x00, False, True, 0x00, 0x9372).id(LSV1, "r1").header([0x62, 0x55, 0x18, 0x87, 0x52]).ble(0x00, 0xFF).add_translators(TRANS_FANLAMP_VR1),
     FanLampEncoderV1(0x81, True, True, 0x55).fid("other_v1b", LSV1).header([0xF9, 0x08]).ble(0x02, 0x16).add_translators(TRANS_FANLAMP_VR1),
     FanLampEncoderV1(0x81, True, True).fid("other_v1a", LSV1).header([0x77, 0xF8]).ble(0x02, 0x03).add_translators(TRANS_FANLAMP_VR1),
     FanLampEncoderV2(0x0100, False).fid("other_v2", LSV2).header([0xF0, 0x08]).prefix([0x10, 0x80, 0x00]).ble(0x19, 0x16).add_translators(TRANS_FANLAMP_VR2),

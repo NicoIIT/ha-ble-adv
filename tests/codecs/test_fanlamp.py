@@ -35,6 +35,8 @@ class TestMultiEncoderFanlampV0(_TestMultiEncoderBase):
         ("lampsmart_pro_v3/s2", 0x03, "F0.08.30.82.36.3C.FD.5A.1B.3E.A5.75.1A.7D.77.0F.91.80.FF.0C.8F.C6.53.2B.8C.CA"),
         ("lampsmart_pro_vi1", 0x03, "F9.08.49.13.F0.69.25.4E.31.51.BA.AE.25.02.99.C1.BA.7C.71.94.84.55.18.CA.EC.4C"),
         ("lampsmart_pro_vi3", 0x03, "F0.08.21.80.0B.B5.DA.CF.F3.B5.A7.A0.3B.E9.1C.FC.27.A9.3A.34.0E.2D.3F.57.B9.81"),
+        ("lampsmart_pro_v1/r1", 0xFF, "62.55.18.87.52.B6.5F.2B.5E.00.FC.31.51.CC.3D.95.8F.29.CB.56.BA.C8.1A.E1.6C.73.7E.60.57"),  # PAIR
+        ("lampsmart_pro_v1/r1", 0xFF, "62.55.18.87.52.B6.5F.2B.5E.00.FC.31.51.50.3D.95.08.24.CB.3B.FC.AE.7C.88.0A.CB.89.60.57"),  # Light Toogle
         ("remote_v1", 0xFF, "56.55.18.87.52.B6.5F.2B.5E.00.FC.31.51.50.50.9A.08.24.0A.EC.FC.A9.7B.8E.0D.4A.67.60.57"),
         ("remote_v1", 0xFF, "56.55.18.87.52.B6.5F.2B.5E.00.FC.31.51.54.50.9A.08.24.0A.96.FC.F5.27.DB.51.D3.43.60.57"),
         ("remote_v3", 0x16, "F0.08.10.00.5B.B5.CC.F3.7B.EB.FC.C8.4A.F2.0A.2E.3F.FC.18.05.F7.AD.3B.BD.17.A6"),
@@ -84,6 +86,13 @@ class TestEncoderFanlampDupe(_TestEncoderBase):
             "02.01.19.1B.03.F0.08.10.80.B8.01.E1.22.C6.F2.D3.A7.67.44.A4.9F.67.F6.B6.A2.22.8B.53.2B.E1.B5",
             "cmd: 0x28, param: 0x00, args: [0,0,0]",
             "id: 0xD2135C22, index: 2, tx: 117, seed: 0x2B53",
+            "device_0: ['cmd'] / {'cmd': 'pair'}",
+        ),
+        (
+            "lampsmart_pro_v1/r1",
+            "1E.FF.62.55.18.87.52.B6.5F.2B.5E.00.FC.31.51.CC.3D.95.8F.29.CB.56.BA.C8.1A.E1.6C.73.7E.60.57",
+            "cmd: 0x28, param: 0x00, args: [0,0,0]",
+            "id: 0x0001B0E1, index: 0, tx: 182, seed: 0xA89C",
             "device_0: ['cmd'] / {'cmd': 'pair'}",
         ),
         # Timer 2H (120min / 7200s)
@@ -534,6 +543,29 @@ class TestEncoderFanlampFull(_TestEncoderFull):
             "cmd: 0x6F, param: 0x00, args: [0,0,0]",
             "id: 0xD2135C22, index: 2, tx: 146, seed: 0x2B53",
             "device_0: ['on'] / {'on': False}",
+        ),
+        # Light Toggle
+        (
+            "lampsmart_pro_v1/r1",
+            "1E.FF.62.55.18.87.52.B6.5F.2B.5E.00.FC.31.51.50.3D.95.08.24.CB.3B.FC.AE.7C.88.0A.CB.89.60.57",
+            "cmd: 0x11, param: 0x00, args: [0,0,0]",
+            "id: 0x0001B0E1, index: 0, tx: 0, seed: 0x3EFA",
+            "light_0: ['cmd'] / {'cmd': 'toggle'}",
+        ),
+        # Light Brightness Half / Full Toggle
+        (
+            "lampsmart_pro_v1/r1",
+            "1E.FF.62.55.18.87.52.B6.5F.2B.5E.00.FC.31.51.5C.3D.95.F7.DB.CB.B9.BC.48.9A.AB.EC.29.4B.60.57",
+            "cmd: 0x21, param: 0x02, args: [255,255,0]",
+            "id: 0x0001B0E1, index: 0, tx: 65, seed: 0xFA9D",
+            "light_0: ['cold', 'warm'] / {'sub_type': 'cww', 'cold': 1.0, 'warm': 1.0}",
+        ),
+        (
+            "lampsmart_pro_v1/r1",
+            "1E.FF.62.55.18.87.52.B6.5F.2B.5E.00.FC.31.51.5C.3D.95.F6.DA.CB.39.7C.DD.0F.AB.79.5C.D2.60.57",
+            "cmd: 0x21, param: 0x01, args: [127,127,0]",
+            "id: 0x0001B0E1, index: 0, tx: 64, seed: 0xFA34",
+            "light_0: ['cold', 'warm'] / {'sub_type': 'cww', 'cold': 0.5, 'warm': 0.5}",
         ),
         # Remote BR+
         (
