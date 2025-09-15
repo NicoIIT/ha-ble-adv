@@ -433,6 +433,10 @@ LSCODECS = [
     FanLampEncoderV2(0x0100, True).fid("lampsmart_pro_vi3/s3", LSV3).header([0xF0, 0x08]).prefix([0x21, 0x83, 0x00]).ble(0x19, 0x03).add_translators(TRANS_FANLAMP_V2),
     # LampSmart remotes
     FanLampEncoderV1(0x00, False, True, 0x00, 0x9372).id(LSV1, "r1").header([0x62, 0x55, 0x18, 0x87, 0x52]).ble(0x00, 0xFF).add_translators(TRANS_FANLAMP_VR1),
+    FanLampEncoderV2(0x0100, False).id(LSV2, "r1").header([0xF0, 0x08]).prefix([0x10, 0x00, 0x62]).ble(0x02, 0x16).add_translators(TRANS_FANLAMP_VR2),
+    FanLampEncoderV2(0x0100, False).id(LSV2, "r1b").header([0xF0, 0x08]).prefix([0x11, 0x00, 0x62]).ble(0x02, 0x16).add_translators(TRANS_FANLAMP_VR2),
+    FanLampEncoderV2(0x0100, True).id(LSV3, "r1").header([0xF0, 0x08]).prefix([0x10, 0x00, 0x62]).ble(0x02, 0x16).add_translators(TRANS_FANLAMP_VR2),
+    FanLampEncoderV2(0x0100, True).id(LSV3, "r1b").header([0xF0, 0x08]).prefix([0x11, 0x00, 0x62]).ble(0x02, 0x16).add_translators(TRANS_FANLAMP_VR2),
     FanLampEncoderV1(0x81, True, True, 0x55).fid("other_v1b", LSV1).header([0xF9, 0x08]).ble(0x02, 0x16).add_translators(TRANS_FANLAMP_VR1),
     FanLampEncoderV1(0x81, True, True).fid("other_v1a", LSV1).header([0x77, 0xF8]).ble(0x02, 0x03).add_translators(TRANS_FANLAMP_VR1),
     FanLampEncoderV2(0x0100, False).fid("other_v2", LSV2).header([0xF0, 0x08]).prefix([0x10, 0x80, 0x00]).ble(0x19, 0x16).add_translators(TRANS_FANLAMP_VR2),

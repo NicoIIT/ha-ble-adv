@@ -37,6 +37,8 @@ class TestMultiEncoderFanlampV0(_TestMultiEncoderBase):
         ("lampsmart_pro_vi3", 0x03, "F0.08.21.80.0B.B5.DA.CF.F3.B5.A7.A0.3B.E9.1C.FC.27.A9.3A.34.0E.2D.3F.57.B9.81"),
         ("lampsmart_pro_v1/r1", 0xFF, "62.55.18.87.52.B6.5F.2B.5E.00.FC.31.51.CC.3D.95.8F.29.CB.56.BA.C8.1A.E1.6C.73.7E.60.57"),  # PAIR
         ("lampsmart_pro_v1/r1", 0xFF, "62.55.18.87.52.B6.5F.2B.5E.00.FC.31.51.50.3D.95.08.24.CB.3B.FC.AE.7C.88.0A.CB.89.60.57"),  # Light Toogle
+        ("lampsmart_pro_v3/r1", 0x16, "F0.08.10.00.EA.44.8A.9E.16.71.9D.AB.3F.D0.3A.70.1E.AB.BB.7F.86.41.8D.BE.E9.57"),
+        ("lampsmart_pro_v3/r1b", 0x16, "F0.08.11.00.36.92.DC.4F.37.3B.12.7D.BB.69.33.5D.E8.F8.F1.8D.47.FA.CE.4D.E5.D9"),
         ("remote_v1", 0xFF, "56.55.18.87.52.B6.5F.2B.5E.00.FC.31.51.50.50.9A.08.24.0A.EC.FC.A9.7B.8E.0D.4A.67.60.57"),
         ("remote_v1", 0xFF, "56.55.18.87.52.B6.5F.2B.5E.00.FC.31.51.54.50.9A.08.24.0A.96.FC.F5.27.DB.51.D3.43.60.57"),
         ("remote_v3", 0x16, "F0.08.10.00.5B.B5.CC.F3.7B.EB.FC.C8.4A.F2.0A.2E.3F.FC.18.05.F7.AD.3B.BD.17.A6"),
@@ -93,6 +95,13 @@ class TestEncoderFanlampDupe(_TestEncoderBase):
             "1E.FF.62.55.18.87.52.B6.5F.2B.5E.00.FC.31.51.CC.3D.95.8F.29.CB.56.BA.C8.1A.E1.6C.73.7E.60.57",
             "cmd: 0x28, param: 0x00, args: [0,0,0]",
             "id: 0x0001B0E1, index: 0, tx: 182, seed: 0xA89C",
+            "device_0: ['cmd'] / {'cmd': 'pair'}",
+        ),
+        (
+            "lampsmart_pro_v3/r1",
+            "02.01.02.1B.16.F0.08.10.00.EA.44.8A.9E.16.71.9D.AB.3F.D0.3A.70.1E.AB.BB.7F.86.41.8D.BE.E9.57",
+            "cmd: 0x28, param: 0x00, args: [0,0,0]",
+            "id: 0x01FB1E1B, index: 0, tx: 83, seed: 0xBE8D",
             "device_0: ['cmd'] / {'cmd': 'pair'}",
         ),
         # Timer 2H (120min / 7200s)
