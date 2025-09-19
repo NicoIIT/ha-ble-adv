@@ -14,7 +14,7 @@ from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.event import async_track_state_change_event
 
-from .adapters import AdvRecvCallback, BleAdvAdapter, BleAdvAdapterAdvItem, BleAdvBtManager
+from .adapters import AdapterEventCallback, AdvRecvCallback, BleAdvAdapter, BleAdvAdapterAdvItem, BleAdvBtManager
 from .const import DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
@@ -151,9 +151,17 @@ class BleAdvEspBtManager(BleAdvBtManager):
     PROXY_NAME_PATTERN: re.Pattern = re.compile(r"sensor.(\w+)_ble_adv_proxy_name")
     WAIT_REDISCOVER: float = 1.0
 
-    def __init__(self, hass: HomeAssistant, adv_recv_callback: AdvRecvCallback, ign_duration: int, ign_cids: list[int], ign_macs: list[str]) -> None:
+    def __init__(
+        self,
+        hass: HomeAssistant,
+        adv_recv_callback: AdvRecvCallback,
+        adapter_event_callback: AdapterEventCallback,
+        ign_duration: int,
+        ign_cids: list[int],
+        ign_macs: list[str],
+    ) -> None:
         """Init."""
-        super().__init__()
+        super().__init__(adapter_event_callback)
         self.hass: HomeAssistant = hass
         self.handle_raw_adv = adv_recv_callback
         self.ign_duration: int = ign_duration

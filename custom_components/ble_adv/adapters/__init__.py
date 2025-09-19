@@ -466,13 +466,17 @@ def lb(buf: bytes) -> int:
     return int.from_bytes(buf, "little")
 
 
+type AdapterEventCallback = Callable[[str, bool], Awaitable[None]]
+
+
 class BleAdvBtManager:
     """Base Bluetooth Manager."""
 
-    def __init__(self) -> None:
+    def __init__(self, adapter_event_callback: AdapterEventCallback) -> None:
         self._adapters: dict[str, BleAdvAdapter] = {}
         self._id_to_name: dict[str, str] = {}
         self._diags: deque[str] = deque(maxlen=30)
+        self._adapter_event_callback: AdapterEventCallback = adapter_event_callback
 
     @property
     def adapters(self) -> dict[str, BleAdvAdapter]:
@@ -508,10 +512,12 @@ class BleAdvBtManager:
         self._id_to_name[adapter_id] = adapter_name
         self._adapters[adapter_name] = adapter
         await self._adapters[adapter_name].async_init()
+        await self._adapter_event_callback(adapter_name, True)
 
     async def _remove_adapter(self, adapter_name: str) -> None:
         self._add_diag(f"Removing adapter '{adapter_name}'")
         if (adapter := self._adapters.pop(adapter_name, None)) is not None:
+            await self._adapter_event_callback(adapter_name, False)
             await adapter.async_final()
             self._id_to_name = {k: v for k, v in self._id_to_name.items() if v != adapter_name}
 
@@ -526,8 +532,8 @@ class BleAdvBtHciManager(BleAdvBtManager):
     RECONNECT_RTO: float = 1.0
     CONF_HCI: str = "hci"
 
-    def __init__(self, adv_recv_callback: AdvRecvCallback, ign_adapters: list[str]) -> None:
-        super().__init__()
+    def __init__(self, adv_recv_callback: AdvRecvCallback, adapter_event_callback: AdapterEventCallback, ign_adapters: list[str]) -> None:
+        super().__init__(adapter_event_callback)
         self._mgmt_sock: AsyncSocketBase | None = None
         self._mgmt_cmd_event = asyncio.Event()
         self._og_mgmt_cmd = None

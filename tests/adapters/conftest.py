@@ -95,7 +95,7 @@ async def bt_manager() -> AsyncGenerator[BleAdvBtHciManager]:
         return amock
 
     with mock.patch("ble_adv.adapters.create_async_socket", side_effect=create_mock_socket):
-        btmgt = BleAdvBtHciManager(mock.AsyncMock(), [])
+        btmgt = BleAdvBtHciManager(mock.AsyncMock(), mock.AsyncMock(), [])
         BleAdvAdapter.MAX_ADV_WAIT = 0.2
         BluetoothHCIAdapter.CMD_RTO = 0.1
         BleAdvBtHciManager.MGMT_CMD_RTO = 0.1
