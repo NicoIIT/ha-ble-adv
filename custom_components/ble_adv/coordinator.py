@@ -53,6 +53,9 @@ class BleAdvBaseDevice:
         """Return True if the device is available: if one of the adapters is available."""
         return any(adapter_id in self.coordinator.get_adapter_ids() for adapter_id in self.adapter_ids)
 
+    def update_availability(self) -> None:
+        """Update availability."""
+
     def add_listener(self, codec_id: str, config: BleAdvConfig) -> None:
         """Add a listener to this device."""
         self.in_use_codec_ids.add(codec_id)
@@ -119,8 +122,10 @@ class BleAdvCoordinator:
         self._devices: list[BleAdvBaseDevice] = []
         self._in_use_codecs: set[str] = set()
 
-        self._hci_bt_manager: BleAdvBtHciManager = BleAdvBtHciManager(self.handle_raw_adv, ign_adapters)
-        self._esp_bt_manager: BleAdvEspBtManager = BleAdvEspBtManager(self.hass, self.handle_raw_adv, ign_duration, ign_cids, ign_macs)
+        self._hci_bt_manager: BleAdvBtHciManager = BleAdvBtHciManager(self.handle_raw_adv, self.on_adapter_change, ign_adapters)
+        self._esp_bt_manager: BleAdvEspBtManager = BleAdvEspBtManager(
+            self.hass, self.handle_raw_adv, self.on_adapter_change, ign_duration, ign_cids, ign_macs
+        )
 
         self._stop_listening_time: datetime | None = None
         self.listened_raw_advs: list[bytes] = []
@@ -151,6 +156,12 @@ class BleAdvCoordinator:
     def has_available_adapters(self) -> bool:
         """Check if the coordinator has available adapters."""
         return len(self._hci_bt_manager.adapters) > 0 or len(self._esp_bt_manager.adapters) > 0
+
+    async def on_adapter_change(self, adapter_id: str, _: bool) -> None:
+        """Update availability on Adapter added / removed."""
+        for device in self._devices:
+            if adapter_id in device.adapter_ids:
+                device.update_availability()
 
     async def on_stop_event(self, _: Event) -> None:
         """Act on stop event."""

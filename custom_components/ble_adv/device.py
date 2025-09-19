@@ -31,6 +31,7 @@ from .coordinator import BleAdvBaseDevice, BleAdvCoordinator
 _LOGGER = logging.getLogger(__name__)
 
 ATTR_IS_ON = "is_on"
+ATTR_AVAILABLE = "available"
 
 
 class _DeviceLoggingAdapter(logging.LoggerAdapter):
@@ -62,13 +63,9 @@ class BleAdvEntity(RestoreEntity):
         self._attr_device_info: DeviceInfo = device.device_info
         self._attr_unique_id: str = f"{device.unique_id}_{base_type}_{index}"
         self._attr_translation_key: str = f"{base_type}_{index}"
+        self._attr_available = self._device.available
         self._device.add_entity(self)
-        self.logger = _DeviceLoggingAdapter(_LOGGER, {"name": f"{base_type}_{index}_{sub_type}"})
-
-    @property
-    def available(self) -> bool:
-        """Return True if the device is available."""
-        return self._device.available
+        self.logger = _DeviceLoggingAdapter(_LOGGER, {"name": f"{device.name}/{base_type}_{index}"})
 
     @property
     def id(self) -> tuple[str, int]:
@@ -198,6 +195,12 @@ class BleAdvDevice(BleAdvBaseDevice):
             model=self.codec_id,
             model_id=f"0x{self.config.id:X} / {self.config.index}",
         )
+
+    def update_availability(self) -> None:
+        """Update availability."""
+        for ent in self.entities.values():
+            if ent.set_state_attribute(ATTR_AVAILABLE, self.available):
+                ent.async_write_ha_state()
 
     def add_entity(self, ent: BleAdvEntity) -> None:
         """Add entity to this device."""

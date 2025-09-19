@@ -44,11 +44,11 @@ async def test_coordinator(hass: HomeAssistant) -> None:
     assert list(coord.codecs.keys()) == ["cod1", "cod2/a"]
     await coord.async_init()
     assert coord.get_adapter_ids() == []
+    dev1 = _Device(coord, "dev1", "cod1", ["esp-test"])
+    coord.add_device(dev1)
     t1 = MockEspProxy(hass, "esp-test")
     await t1.setup()
     assert coord.get_adapter_ids() == ["esp-test"]
-    dev1 = _Device(coord, "dev1", "cod1", ["esp-test"])
-    coord.add_device(dev1)
     adv = BleAdvAdvertisement(0xFF, b"dtwithminlen", 0x1A)
     qi = BleAdvQueueItem(0x10, 1, 100, 20, [adv.to_raw()], 2)
     await coord.advertise("not-exists", "q1", qi)
