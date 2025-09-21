@@ -181,7 +181,7 @@ class BleAdvDevice(BleAdvBaseDevice):
         self.hass: HomeAssistant = hass
         self.name: str = name
         self.force_send: bool = force_send
-        self.entities: dict[Any, BleAdvEntity] = {}
+        self._entities: list[BleAdvEntity] = []
         self._timer_cancel: CALLBACK_TYPE | None = None
         self.logger = _DeviceLoggingAdapter(_LOGGER, {"name": self.name})
 
@@ -198,13 +198,13 @@ class BleAdvDevice(BleAdvBaseDevice):
 
     def update_availability(self) -> None:
         """Update availability."""
-        for ent in self.entities.values():
+        for ent in self._entities:
             if ent.set_state_attribute(ATTR_AVAILABLE, self.available):
                 ent.async_write_ha_state()
 
     def add_entity(self, ent: BleAdvEntity) -> None:
         """Add entity to this device."""
-        self.entities[ent.id] = ent
+        self._entities.append(ent)
 
     async def apply_change(self, ent_attr: BleAdvEntAttr) -> None:
         """Apply changes."""
@@ -223,14 +223,14 @@ class BleAdvDevice(BleAdvBaseDevice):
             if ent_attr.base_type == DEVICE_TYPE:
                 await self._async_on_device_command(ent_attr)
             else:
-                ent = self.entities.get(ent_attr.id)
-                if ent is not None and (
-                    ent.is_on
-                    or (ATTR_ON in ent_attr.chg_attrs and ent.change_bool(ent.is_on, ent_attr.attrs[ATTR_ON]))
-                    or (ATTR_CMD in ent_attr.chg_attrs and ent_attr.attrs[ATTR_CMD] == ATTR_CMD_TOGGLE)
-                ):
-                    ent.apply_attrs(ent_attr)
-                    ent.async_write_ha_state()
+                for ent in self._entities:
+                    if ent.id == ent_attr.id and (
+                        ent.is_on
+                        or (ATTR_ON in ent_attr.chg_attrs and ent.change_bool(ent.is_on, ent_attr.attrs[ATTR_ON]))
+                        or (ATTR_CMD in ent_attr.chg_attrs and ent_attr.attrs[ATTR_CMD] == ATTR_CMD_TOGGLE)
+                    ):
+                        ent.apply_attrs(ent_attr)
+                        ent.async_write_ha_state()
 
     async def _async_on_device_command(self, ent_attr: BleAdvEntAttr) -> None:
         self.logger.debug(f"Device Command received: {ent_attr}")
@@ -258,6 +258,6 @@ class BleAdvDevice(BleAdvBaseDevice):
         await self._async_cmd_all(BleAdvEntAttr([ATTR_ON], {ATTR_ON: False}, "", 0))
 
     async def _async_cmd_all(self, ent_attr: BleAdvEntAttr) -> None:
-        for ent in self.entities.values():
+        for ent in self._entities:
             ent.apply_attrs(ent_attr)
             ent.async_write_ha_state()
