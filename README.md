@@ -33,6 +33,7 @@ This integration **does not support any specific device type or brand**, but pro
 * [Mantra Lighting](https://play.google.com/store/apps/details?id=com.newenergy.baolilan) (Only devices with Fan and Light, Direction Forward / Breeze Mode NOT TESTED)
 * [Smart Light / Argrace Smart](https://apkpure.com/argrace-smart/ai.argrace.oem) (No RGB, Only the control by device, not the Master Control) (not available on Play Store anymore, seems abandoned)
 * [LE Light Pro / 乐智光Pro](https://openapi.lelight.top/dl/cqan) (not available on Play Store)
+* [RuiXin / Sanweyter](https://rx-etech.com/rxzn.html) (No RGB, no Timer, Remote Temperature Switch not reflected in HA) (not available on Play Store)
 * Other (Legacy), removed app from play store: 'FanLamp', 'ControlSwitch', 'Lamp Smart Pro - Soft Lighting / Smart Lighting'
 
 ## Supported Physical Remote
@@ -79,4 +80,4 @@ Future developments are tracked in [github feature requests](https://github.com/
 
 ## More Info on Wiki
 * [Configuration Guide](https://github.com/NicoIIT/ha-ble-adv/wiki/Configuration-Guide)
-* [Troubleshouting Guide](https://github.com/NicoIIT/ha-ble-adv/wiki/Troubleshooting-Guide)
+* [Troubleshooting Guide](https://github.com/NicoIIT/ha-ble-adv/wiki/Troubleshooting-Guide)

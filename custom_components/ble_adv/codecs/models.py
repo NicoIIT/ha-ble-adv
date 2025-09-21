@@ -13,6 +13,7 @@ from .const import (
     FAN_TYPE,
     FAN_TYPE_3SPEED,
     FAN_TYPE_6SPEED,
+    FAN_TYPE_100SPEED,
     LIGHT_TYPE,
     LIGHT_TYPE_CWW,
     LIGHT_TYPE_ONOFF,
@@ -229,6 +230,13 @@ class Fan6SpeedCmd(EntityMatcher):
 
     def __init__(self, index: int = 0) -> None:
         super().__init__(FAN_TYPE, index, FAN_TYPE_6SPEED)
+
+
+class Fan100SpeedCmd(EntityMatcher):
+    """Specific 100 level speed Fan Matcher."""
+
+    def __init__(self, index: int = 0) -> None:
+        super().__init__(FAN_TYPE, index, FAN_TYPE_100SPEED)
 
 
 class LightCmd(EntityMatcher):

@@ -285,6 +285,7 @@
       "options": {
         "3speed": "3 Levels Fan",
         "6speed": "6 Levels Fan",
+        "100speed": "100 Levels Fan",
         "none": "None"
       }
     },

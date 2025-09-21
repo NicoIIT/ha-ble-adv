@@ -21,7 +21,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.util.percentage import percentage_to_ranged_value, ranged_value_to_percentage
 
-from .codecs.const import ATTR_DIR, ATTR_ON, ATTR_OSC, ATTR_PRESET, ATTR_SPEED, ATTR_SUB_TYPE, FAN_TYPE, FAN_TYPE_3SPEED
+from .codecs.const import ATTR_DIR, ATTR_ON, ATTR_OSC, ATTR_PRESET, ATTR_SPEED, ATTR_SUB_TYPE, FAN_TYPE, FAN_TYPE_3SPEED, FAN_TYPE_6SPEED
 from .const import (
     CONF_FANS,
     CONF_PRESETS,
@@ -95,7 +95,7 @@ class BleAdvFan(BleAdvEntity, FanEntity):
 
     def _get_speed_count_from_type(self, sub_type: str) -> int:
         """Convert the Fan sub_type into the number of speed."""
-        return 3 if sub_type == FAN_TYPE_3SPEED else 6
+        return 3 if sub_type == FAN_TYPE_3SPEED else 6 if sub_type == FAN_TYPE_6SPEED else 100
 
     def get_attrs(self) -> dict[str, Any]:
         """Get the attrs."""

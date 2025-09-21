@@ -285,6 +285,7 @@
       "options": {
         "3speed": "Ventilateur à 3 niveaux",
         "6speed": "Ventilateur à 6 niveaux",
+        "100speed": "Ventilateur à 100 niveaux",
         "none": "Aucun"
       }
     },

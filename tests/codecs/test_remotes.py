@@ -11,5 +11,5 @@ from . import _TestEncoderBase
         ("remote_v4", 0xFF, "F0.FF.00.55.8F.24.04.08.65.79"),
     ],
 )
-class TestEncoderZhimei(_TestEncoderBase):
+class TestEncoderRemotes(_TestEncoderBase):
     """Remote Encoder tests."""

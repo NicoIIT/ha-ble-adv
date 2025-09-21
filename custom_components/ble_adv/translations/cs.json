@@ -285,6 +285,7 @@
       "options": {
         "3speed": "Ventilátor se 3 úrovněmi",
         "6speed": "Ventilátor s 6 úrovněmi",
+        "100speed": "Ventilátor s 100 úrovněmi",
         "none": "Žádné"
       }
     },
