@@ -6,6 +6,7 @@ from unittest import mock
 import pytest
 import voluptuous as vol
 from ble_adv.codecs.models import BleAdvEntAttr
+from ble_adv.const import CONF_LAST_VERSION, DOMAIN
 from ble_adv.device import BleAdvEntity
 from ble_adv.esp_adapters import (
     CONF_ATTR_DEVICE_ID,
@@ -17,6 +18,7 @@ from ble_adv.esp_adapters import (
     ESPHOME_BLE_ADV_DISCOVERY_EVENT,
     ESPHOME_BLE_ADV_RECV_EVENT,
 )
+from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import STATE_UNAVAILABLE
 from homeassistant.core import HomeAssistant, ServiceCall
 from homeassistant.helpers import device_registry as dr
@@ -109,3 +111,23 @@ class MockEspProxy:
     async def recv(self, raw: str) -> None:
         """Receive an adv."""
         self.hass.bus.async_fire(ESPHOME_BLE_ADV_RECV_EVENT, {CONF_ATTR_DEVICE_ID: self._dev_id, CONF_ATTR_RAW: raw})
+
+
+async def create_base_entry(hass: HomeAssistant, entry_id: str | None, data: dict[str, Any], version: int = CONF_LAST_VERSION) -> ConfigEntry:
+    """Create a base Entry with default attributes."""
+    # for higher HA versions, add parameter: subentries_data=[],
+    conf = ConfigEntry(
+        domain=DOMAIN,
+        unique_id=entry_id,
+        data=data,
+        version=version,
+        minor_version=0,
+        title="tl",
+        source="",
+        discovery_keys={},  # type: ignore [none]
+        options={},
+    )
+    await hass.config_entries.async_add(entry=conf)
+    if entry_id is not None:
+        hass.data.setdefault(DOMAIN, {})[conf.entry_id] = _Device()
+    return conf

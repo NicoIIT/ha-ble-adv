@@ -1,6 +1,8 @@
 """Light Entities tests."""
 
 # ruff: noqa: S101
+from unittest import mock
+
 from ble_adv.codecs.const import (
     ATTR_BLUE,
     ATTR_BLUE_F,
@@ -28,12 +30,13 @@ from ble_adv.codecs.const import (
     LIGHT_TYPE_RGB,
 )
 from ble_adv.codecs.models import BleAdvEntAttr
-from ble_adv.const import CONF_EFFECTS, CONF_REVERSED
-from ble_adv.light import create_entity
+from ble_adv.const import CONF_EFFECTS, CONF_LIGHTS, CONF_REVERSED
+from ble_adv.light import async_setup_entry, create_entity
 from homeassistant.components.light.const import ColorMode, LightEntityFeature
 from homeassistant.const import CONF_TYPE
+from homeassistant.core import HomeAssistant
 
-from .conftest import _Device
+from .conftest import _Device, create_base_entry
 
 
 def ctbr(ct: float, br: float, cold: float, warm: float) -> dict[str, float]:
@@ -44,6 +47,14 @@ def ctbr(ct: float, br: float, cold: float, warm: float) -> dict[str, float]:
 def rgbr(r: float, g: float, b: float, br: float) -> dict[str, float]:
     """RGB and BR dict."""
     return {ATTR_BR: br, ATTR_RED: r, ATTR_GREEN: g, ATTR_BLUE: b, ATTR_RED_F: r * br, ATTR_GREEN_F: g * br, ATTR_BLUE_F: b * br}
+
+
+async def test_setup(hass: HomeAssistant) -> None:
+    """Test async_setup_entry."""
+    ent = await create_base_entry(hass, "ent_id", {CONF_LIGHTS: [{CONF_TYPE: LIGHT_TYPE_CWW}, {CONF_TYPE: LIGHT_TYPE_ONOFF}]})
+    add_ent_mock = mock.MagicMock()
+    await async_setup_entry(hass, ent, add_ent_mock)
+    add_ent_mock.assert_called_once()
 
 
 async def test_light_binary(device: _Device) -> None:

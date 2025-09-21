@@ -68,8 +68,6 @@ async def test_device(hass: HomeAssistant) -> None:
     coord.add_device(device)
     ent0 = _Entity("ent_type", "ent_sub_type", device, 0)
     ent1 = _Entity("ent_type", "ent_sub_type", device, 1)
-    device.add_entity(ent0)
-    device.add_entity(ent1)
     assert not device.available
     ent0.set_state_attribute(ATTR_AVAILABLE, True)
     assert ent0.available
