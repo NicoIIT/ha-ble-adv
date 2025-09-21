@@ -1,5 +1,6 @@
 """RuiXin App."""
 
+from random import randint
 from typing import ClassVar
 
 from .const import (
@@ -56,9 +57,9 @@ class RuiXinEncoder(BleAdvCodec):
     def convert_to_enc(self, decoded: bytes) -> tuple[BleAdvEncCmd | None, BleAdvConfig | None]:
         """Convert a readable buffer into an encoder command and a config."""
         conf = BleAdvConfig()
-        conf.seed = int.from_bytes(decoded[0:2], "little")
+        conf.seed = decoded[0]
+        conf.tx_count = decoded[1]
         conf.id = int.from_bytes(decoded[2:6], "little")
-        conf.tx_count = 0
 
         enc_cmd = BleAdvEncCmd(decoded[6])
         enc_cmd.arg0 = decoded[7]
@@ -69,9 +70,9 @@ class RuiXinEncoder(BleAdvCodec):
 
     def convert_from_enc(self, enc_cmd: BleAdvEncCmd, conf: BleAdvConfig) -> bytes:
         """Convert an encoder command and a config into a readable buffer."""
-        seed = conf.seed.to_bytes(2, "little")
+        seed = conf.seed if conf.seed != 0 else randint(1, 0xF5)
         uid = conf.id.to_bytes(4, "little")
-        return bytes([*seed, *uid, enc_cmd.cmd, enc_cmd.arg0, enc_cmd.arg1, enc_cmd.arg2])
+        return bytes([seed, conf.tx_count, *uid, enc_cmd.cmd, enc_cmd.arg0, enc_cmd.arg1, enc_cmd.arg2])
 
 
 class RuiXinRemoteEncoder(RuiXinEncoder):
