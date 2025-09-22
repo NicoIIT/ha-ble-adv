@@ -19,6 +19,15 @@ body:
 
 - type: textarea
   attributes:
+    label: "Supported Android Application controlling your Device (effectivelly or as per provider documentation)"
+    description: "It is much more easy to reverse engineer if the controlling Android App is known. Moreover it is nearly impossible to implement a correct control from a Physical Remote alone as the set of commands is not complete."
+    value: ""
+  validations:
+    required: true
+
+
+- type: textarea
+  attributes:
     label: "Describe ALL buttons and capture the BLE Advertising they trigger."
     description: "Describe all buttons, what happens on the device when you press them once (and a second time if the result differs), and the BLE Advertising it produces using `Add Device -> Tools and Helpers -> Listen BLE ADV`."
     value: |

@@ -25,7 +25,7 @@ from .codecs.const import (
     DEVICE_TYPE,
 )
 from .codecs.models import BleAdvConfig, BleAdvEntAttr
-from .const import DOMAIN
+from .const import CONF_FORCED_OFF, CONF_FORCED_ON, DOMAIN
 from .coordinator import BleAdvBaseDevice, BleAdvCoordinator
 
 _LOGGER = logging.getLogger(__name__)
@@ -64,8 +64,16 @@ class BleAdvEntity(RestoreEntity):
         self._attr_unique_id: str = f"{device.unique_id}_{base_type}_{index}"
         self._attr_translation_key: str = f"{base_type}_{index}"
         self._attr_available = self._device.available
+        self._forced_attrs: dict[str, list[Any]] = {}
         self._device.add_entity(self)
         self.logger = _DeviceLoggingAdapter(_LOGGER, {"name": f"{device.name}/{base_type}_{index}"})
+
+    def set_forced_cmds(self, cmds: list[str]) -> None:
+        """Set the commands to be forced."""
+        if CONF_FORCED_ON in cmds:
+            self._forced_attrs.setdefault(ATTR_ON, []).append(True)
+        if CONF_FORCED_OFF in cmds:
+            self._forced_attrs.setdefault(ATTR_ON, []).append(False)
 
     @property
     def id(self) -> tuple[str, int]:
@@ -98,10 +106,10 @@ class BleAdvEntity(RestoreEntity):
                     for attr_reset in state_attr.resets:
                         self.set_state_attribute(attr_reset, None)
                 forced_chg_attrs += state_attr.chg_attrs
-        if self._device.force_send:
+        attrs = self.get_attrs()
+        if any(attr_val in self._forced_attrs.get(attr_name, []) for (attr_name, attr_val) in attrs.items()):
             chg_attrs = forced_chg_attrs
         if chg_attrs:
-            attrs = self.get_attrs()
             if ATTR_ON in chg_attrs and attrs[ATTR_ON]:
                 chg_attrs += self.forced_changed_attr_on_start()
             await self._device.apply_change(BleAdvEntAttr(list(set(chg_attrs)), attrs, self._base_type, self._index))
@@ -174,13 +182,11 @@ class BleAdvDevice(BleAdvBaseDevice):
         interval: int,
         duration: int,
         config: BleAdvConfig,
-        force_send: bool,
         coordinator: BleAdvCoordinator,
     ) -> None:
         super().__init__(coordinator, unique_id, codec_id, adapter_ids, int(repeat), int(interval), int(duration), config)
         self.hass: HomeAssistant = hass
         self.name: str = name
-        self.force_send: bool = force_send
         self._entities: list[BleAdvEntity] = []
         self._timer_cancel: CALLBACK_TYPE | None = None
         self.logger = _DeviceLoggingAdapter(_LOGGER, {"name": self.name})

@@ -8,6 +8,7 @@ from unittest import mock
 from ble_adv.adapters import BleAdvQueueItem
 from ble_adv.codecs.const import ATTR_CMD, ATTR_CMD_PAIR, ATTR_CMD_TIMER, ATTR_CMD_TOGGLE, ATTR_ON, ATTR_SUB_TYPE, ATTR_TIME, DEVICE_TYPE
 from ble_adv.codecs.models import BleAdvAdvertisement, BleAdvConfig, BleAdvEncCmd, BleAdvEntAttr
+from ble_adv.const import CONF_FORCED_OFF, CONF_FORCED_ON
 from ble_adv.coordinator import BleAdvCoordinator
 from ble_adv.device import ATTR_AVAILABLE, ATTR_IS_ON, BleAdvDevice, BleAdvEntity, BleAdvStateAttribute
 from homeassistant.const import STATE_ON
@@ -56,7 +57,7 @@ async def test_device(hass: HomeAssistant) -> None:
     coord = BleAdvCoordinator(hass, {codec.codec_id: codec}, ["hci"], 2000, [], [])
     coord.advertise = mock.AsyncMock()
     conf = BleAdvConfig(0xABCDEF, 1)
-    device = BleAdvDevice(hass, "my_device", "device", codec.codec_id, ["my_adapter"], 1, 20, 100, conf, False, coord)
+    device = BleAdvDevice(hass, "my_device", "device", codec.codec_id, ["my_adapter"], 1, 20, 100, conf, coord)
     assert device.device_info == {
         "identifiers": {("ble_adv", "my_device")},
         "name": "device",
@@ -145,3 +146,13 @@ async def test_entity(device: _Device) -> None:
     await ent.async_turn_on(sta="VALAAA")
     assert ent.get_attrs() == {ATTR_ON: True, ATTR_SUB_TYPE: "ent_sub_type", ATTR_CMD: "VALAAA_SAVB"}
     device.assert_apply_change(ent, [ATTR_CMD])
+    ent.set_forced_cmds([CONF_FORCED_ON])
+    await ent.async_turn_on()
+    device.assert_apply_change(ent, [ATTR_ON])
+    await ent.async_turn_off()
+    device.assert_apply_change(ent, [ATTR_ON])
+    await ent.async_turn_off()
+    device.assert_no_change()
+    ent.set_forced_cmds([CONF_FORCED_OFF])
+    await ent.async_turn_off()
+    device.assert_apply_change(ent, [ATTR_ON])
