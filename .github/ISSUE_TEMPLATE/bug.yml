@@ -36,6 +36,17 @@ body:
 
 - type: textarea
   attributes:
+    label: Describe your physical setup
+    description: "Describe your setup by completing what follows (Please note some of the values MUST follow the recommended values in the Troubleshooting Guide)."
+    value: |
+      - Distance between the controller (Phone or Remote) and the Bluetooth Adapter: XX meters in direct view (no wall)
+      - Distance between the controller and the Device: XX meters in direct view (no wall)
+      - Distance between the Device and the Bluetooth Adapter: XX meters with a 30cm concrete wall in between
+  validations:
+    required: true
+
+- type: textarea
+  attributes:
     label: Reproduction steps
     description: "Without steps to reproduce, it will be hard to understand and even harder to fix. Please specify the EXACT time (with 'second' precision) at which you performed a specific action so that we can correlate with the time in the debug logs. The description of the action must also be very clear as in the example below, in particular on which device / controller you perform which action."
     value: |

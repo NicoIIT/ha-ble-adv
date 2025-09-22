@@ -1,6 +1,6 @@
 ---
 name: "Support New Physical Remote"
-description: "Request support for new Physical Remote not recognized yet."
+description: "Request for the support of a new Physical Remote that is using BLE ADV as a mechanism to control a Device."
 labels: ["enhancement"]
 body:
 - type: markdown
@@ -21,9 +21,6 @@ body:
   attributes:
     label: "Supported Android Application controlling your Device (effectivelly or as per provider documentation)"
     description: "It is much more easy to reverse engineer if the controlling Android App is known. Moreover it is nearly impossible to implement a correct control from a Physical Remote alone as the set of commands is not complete."
-    value: ""
-  validations:
-    required: true
 
 
 - type: textarea

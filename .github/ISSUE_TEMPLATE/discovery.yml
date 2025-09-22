@@ -30,21 +30,33 @@ body:
   attributes:
     label: Checklist
     options:
-      - label: I carefully read the [troubleshooting guide](https://github.com/NicoIIT/ha-ble-adv/wiki/Troubleshooting-Guide) and it did not help.
+      - label: I carefully read the [Troubleshooting Guide](https://github.com/NicoIIT/ha-ble-adv/wiki/Troubleshooting-Guide) and it did not help.
         required: true
 
 - type: textarea
   attributes:
-    label: Describe your setup and the issue
-    description: "Describe your device, the corresponding supported Phone Application or Remote you try to duplicate, how far the components are, all the steps you followed in the troubleshouting guide..."
+    label: Describe your setup
+    description: "Describe your setup by completing what follows (Please note some of the values MUST follow the recommended values in the Troubleshooting Guide)."
     value: |
-      THIS IS AN EXAMPLE, IF YOU DO NOT REPLACE IT BY YOUR OWN SETUP THE ISSUE WILL BE REJECTED.
+      - Device Brand / Type (if known): XXXXXXX
+      - Controller Type you are trying to duplicate: Remote / Phone App / Both / None (Manual or Pairing Flow)
+      - Supported ANDROID Phone App recommended by the Device manufacturer: XXXXXXX
+      - The Phone App is paired to my Device and controlling it: Yes / No
+      - Distance between the controller (Phone or Remote) and the Bluetooth Adapter: XX meters in direct view (no wall)
+      - Distance between the controller and the Device: XX meters in direct view (no wall)
+      - Distance between the Device and the Bluetooth Adapter: XX meters with a 30cm concrete wall in between
 
-      I have an Irelan Fan + Light device paired to the FanLamp Pro App on an Android Phone.
-      My phone is 3 meters away from my device and 2 meters away from the bluetooth adapter.
-      The device is 1 meter away from the bluetooth adapter.
+  validations:
+    required: true
 
-      When I try the recommended 'Duplicate Config' flow, 4 configurations are detected but none of them is making the light blink.
+- type: textarea
+  attributes:
+    label: Describe your issue
+    description: "Describe your issue and all the steps you followed in the troubleshooting guide."
+    value: |
+      EXAMPLE:
+
+      When I try the recommended 'Duplicate Config' flow using the Phone App as a basis, 4 configurations are detected but none of them is making the light blink.
 
       I followed the troubleshouting guide until step 3.2a.2, including the bluetooth range check, without success.
 
@@ -55,6 +67,6 @@ body:
   attributes:
     label: "Diagnostics dump"
     description: |
-      Drag here the diagnostic dump you downloaded during the failing configuration flow.
+      Drag here the diagnostic dump you downloaded during the failing configuration flow, or from the place given in the Troubleshooting guide.
   validations:
     required: true
