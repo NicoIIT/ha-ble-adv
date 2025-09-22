@@ -158,6 +158,7 @@
               "min_brightness": "Minimálny jas",
               "refresh_on_start": "Vynútiť obnovenie farby / jasu pri zapnutí",
               "reversed": "Prehodiť studená / teplá",
+              "forced_cmds": "Commands always sent even if nothing changed",
               "effects": "Režimy osvetlenia"
             }
           },
@@ -168,6 +169,7 @@
               "min_brightness": "Minimálny jas",
               "refresh_on_start": "Vynútiť obnovenie farby / jasu pri zapnutí",
               "reversed": "Prehodiť studená / teplá",
+              "forced_cmds": "Commands always sent even if nothing changed",
               "effects": "Režimy osvetlenia"
             }
           },
@@ -178,6 +180,7 @@
               "min_brightness": "Minimálny jas",
               "refresh_on_start": "Vynútiť obnovenie farby / jasu pri zapnutí",
               "reversed": "Prehodiť studená / teplá",
+              "forced_cmds": "Commands always sent even if nothing changed",
               "effects": "Režimy osvetlenia"
             }
           },
@@ -189,6 +192,7 @@
               "oscillating": "Podporuje osciláciu",
               "refresh_dir_on_start": "Vynútiť obnovenie smeru pri zapnutí",
               "refresh_osc_on_start": "Vynútiť obnovenie oscilácie pri zapnutí",
+              "forced_cmds": "Commands always sent even if nothing changed",
               "presets": "Režimy ventilátora"
             }
           },
@@ -200,6 +204,7 @@
               "oscillating": "Podporuje osciláciu",
               "refresh_dir_on_start": "Vynútiť obnovenie smeru pri zapnutí",
               "refresh_osc_on_start": "Vynútiť obnovenie oscilácie pri zapnutí",
+              "forced_cmds": "Commands always sent even if nothing changed",
               "presets": "Režimy ventilátora"
             }
           },
@@ -211,6 +216,7 @@
               "oscillating": "Podporuje osciláciu",
               "refresh_dir_on_start": "Vynútiť obnovenie smeru pri zapnutí",
               "refresh_osc_on_start": "Vynútiť obnovenie oscilácie pri zapnutí",
+              "forced_cmds": "Commands always sent even if nothing changed",
               "presets": "Režimy ventilátora"
             }
           }
@@ -238,7 +244,6 @@
         "description": "Každý príkaz sa odošle do vybraných adaptérov 'Opakovania' s daným 'Intervalom' (ms) a s minimálnym časovým odstupom medzi dvoma príkazmi ('Minimálne trvanie').\n\nUpravujte len ak viete, čo robíte!\n\nPoužitie viacerých adaptérov sa DÔRAZNE NEODPORÚČA, nebude poskytovaná žiadna podpora.",
         "data": {
           "adapter_ids": "BLE ADV adaptér(y)",
-          "force_send": "Force the send of the commands even if nothing changed.",
           "interval": "Interval",
           "repeats": "Opakovania",
           "duration": "Minimálne trvanie"
@@ -265,7 +270,7 @@
       "no_config": "Nebola zistená ani úspešne otestovaná žiadna konfigurácia.",
       "not_implemented": "Zatiaľ neimplementované",
       "reconfigure_successful": "Rekonfigurácia bola úspešná!",
-      "already_configured": "Zariadenie s rovnakým (kodek / ID / index) je už nakonfigurované."
+      "already_configured": "Zariadenie s rovnakým (kodek / ID / index) je už nakonfigurované.\nMore info in the [Troubleshooting Guide - Step 3.3](https://github.com/NicoIIT/ha-ble-adv/wiki/Troubleshooting-Guide#step-33-device-unique_id)."
     },
     "error": {
       "missing_entity": "Je potrebné nakonfigurovať aspoň jeden ventilátor alebo svetlo.",
@@ -287,6 +292,12 @@
         "6speed": "Ventilátor so 6 úrovňami",
         "100speed": "Ventilátor so 100 úrovňami",
         "none": "Žiadne"
+      }
+    },
+    "forced_cmds": {
+      "options": {
+        "turn_on": "Turn ON",
+        "turn_off": "Turn OFF"
       }
     },
     "effects": {

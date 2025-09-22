@@ -158,6 +158,7 @@
               "min_brightness": "Luminosité Minimum",
               "refresh_on_start": "Forcer le rafraichissement de la Température / Luminosité au démarrage",
               "reversed": "Inverser Chaud / Froid",
+              "forced_cmds": "Commandes systématiquement envoyées même sans changement",
               "effects": "Effets"
             }
           },
@@ -168,6 +169,7 @@
               "min_brightness": "Luminosité Minimum",
               "refresh_on_start": "Forcer le rafraichissement de la Température / Luminosité au démarrage",
               "reversed": "Inverser Chaud / Froid",
+              "forced_cmds": "Commandes systématiquement envoyées même sans changement",
               "effects": "Effets"
             }
           },
@@ -178,6 +180,7 @@
               "min_brightness": "Luminosité Minimum",
               "refresh_on_start": "Forcer le rafraichissement de la Température / Luminosité au démarrage",
               "reversed": "Inverser Chaud / Froid",
+              "forced_cmds": "Commandes systématiquement envoyées même sans changement",
               "effects": "Effets"
             }
           },
@@ -189,6 +192,7 @@
               "oscillating": "Supporte l'oscillation",
               "refresh_dir_on_start": "Forcer le rafraichissement de la direction au démarrage",
               "refresh_osc_on_start": "Forcer le rafraichissement de la oscillation au démarrage",
+              "forced_cmds": "Commandes systématiquement envoyées même sans changement",
               "presets": "Modes"
             }
           },
@@ -200,6 +204,7 @@
               "oscillating": "Supporte l'oscillation",
               "refresh_dir_on_start": "Forcer le rafraichissement de la direction au démarrage",
               "refresh_osc_on_start": "Forcer le rafraichissement de la oscillation au démarrage",
+              "forced_cmds": "Commandes systématiquement envoyées même sans changement",
               "presets": "Modes"
             }
           },
@@ -211,6 +216,7 @@
               "oscillating": "Supporte l'oscillation",
               "refresh_dir_on_start": "Forcer le rafraichissement de la direction au démarrage",
               "refresh_osc_on_start": "Forcer le rafraichissement de la oscillation au démarrage",
+              "forced_cmds": "Commandes systématiquement envoyées même sans changement",
               "presets": "Modes"
             }
           }
@@ -238,7 +244,6 @@
         "description": "Chaque commande est envoyée 'Répétitions' fois par l'adaptateur séléctionné, à 'Interval' (ms) d'interval, avec un délai minimum de 'Délai Minimum' (ms) entre 2 commandes successives.\n\nNe modifier que si vous savez ce que vous faites!\n\nLa séléction de plusieurs Adaptateurs est possible mais FORTEMENT DECONSEILLEE, aucune aide ne sera apportée dans ce cas.",
         "data": {
           "adapter_ids": "Adaptateur(s) BLE ADV",
-          "force_send": "Forcer l'envoi des commandes même si rien n'a changé.",
           "interval": "Interval",
           "repeats": "Répétitions",
           "duration": "Délai Minimum"
@@ -261,11 +266,11 @@
       "wait_config_remote": "Veuillez appuyer sur un bouton de la Télécommande (Appairrage de préférence) dans les {max_seconds}s."
     },
     "abort": {
-      "no_adapters": "Aucun Adaptateur Bluetooth n'a été détecté.\n Veuillez suivre le [Troubleshooting Guide - Step 1.2](https://github.com/NicoIIT/ha-ble-adv/wiki/Troubleshooting-Guide#step-12-bluetooth-adapter).",
+      "no_adapters": "Aucun Adaptateur Bluetooth supportant le BLE Advertising n'a été détecté.\n Veuillez suivre le [Troubleshooting Guide - Step 1.2](https://github.com/NicoIIT/ha-ble-adv/wiki/Troubleshooting-Guide#step-12-bluetooth-adapter).",
       "no_config": "Aucune configuration n'a été trouvée ou validée.",
       "not_implemented": "A venir?",
       "reconfigure_successful": "Reconfiguration effectuée!",
-      "already_configured": "Un appareil avec les mêmes (codec / id / index) est déjà configuré."
+      "already_configured": "Un appareil avec les mêmes (codec / id / index) est déjà configuré.\nPlus d'info dans le [Troubleshooting Guide - Step 3.3](https://github.com/NicoIIT/ha-ble-adv/wiki/Troubleshooting-Guide#step-33-device-unique_id)."
     },
     "error": {
       "missing_entity": "Au moins une Entité doit être configurée.",
@@ -287,6 +292,12 @@
         "6speed": "Ventilateur à 6 niveaux",
         "100speed": "Ventilateur à 100 niveaux",
         "none": "Aucun"
+      }
+    },
+    "forced_cmds": {
+      "options": {
+        "turn_on": "Allumer",
+        "turn_off": "Eteindre"
       }
     },
     "effects": {

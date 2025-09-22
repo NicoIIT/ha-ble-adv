@@ -158,6 +158,7 @@
               "min_brightness": "Minimum Brightness",
               "refresh_on_start": "Force color / brightness refresh when switched ON",
               "reversed": "Reverse Cold / Warm",
+              "forced_cmds": "Commands always sent even if nothing changed",
               "effects": "Light Modes"
             }
           },
@@ -168,6 +169,7 @@
               "min_brightness": "Minimum Brightness",
               "refresh_on_start": "Force color / brightness refresh when switched ON",
               "reversed": "Reverse Cold / Warm",
+              "forced_cmds": "Commands always sent even if nothing changed",
               "effects": "Light Modes"
             }
           },
@@ -178,6 +180,7 @@
               "min_brightness": "Minimum Brightness",
               "refresh_on_start": "Force color / brightness refresh when switched ON",
               "reversed": "Reverse Cold / Warm",
+              "forced_cmds": "Commands always sent even if nothing changed",
               "effects": "Light Modes"
             }
           },
@@ -189,6 +192,7 @@
               "oscillating": "Supports Oscillation",
               "refresh_dir_on_start": "Force direction refresh when switched ON",
               "refresh_osc_on_start": "Force oscillation refresh when switched ON",
+              "forced_cmds": "Commands always sent even if nothing changed",
               "presets": "Fan modes"
             }
           },
@@ -200,6 +204,7 @@
               "oscillating": "Supports Oscillation",
               "refresh_dir_on_start": "Force direction refresh when switched ON",
               "refresh_osc_on_start": "Force oscillation refresh when switched ON",
+              "forced_cmds": "Commands always sent even if nothing changed",
               "presets": "Fan modes"
             }
           },
@@ -211,6 +216,7 @@
               "oscillating": "Supports Oscillation",
               "refresh_dir_on_start": "Force direction refresh when switched ON",
               "refresh_osc_on_start": "Force oscillation refresh when switched ON",
+              "forced_cmds": "Commands always sent even if nothing changed",
               "presets": "Fan modes"
             }
           }
@@ -238,7 +244,6 @@
         "description": "Each command is advertised to the given adapter(s) 'Repetitions' times, at given 'Interval' (ms), and respecting a delay of 'Minimum Duration' in between 2 distinct commands.\n\nModify only if you know what you are doing!\n\nMultiple adapters are SERIOUSLY DISCOURAGED, no support will be provided.",
         "data": {
           "adapter_ids": "BLE ADV Adapter(s)",
-          "force_send": "Force the send of the commands even if nothing changed.",
           "interval": "Interval",
           "repeats": "Repetitions",
           "duration": "Minimum Duration"
@@ -261,11 +266,11 @@
       "wait_config_remote": "Please press any button (preferably Pair) on the controller within {max_seconds}s."
     },
     "abort": {
-      "no_adapters": "No Bluetooth adapter has been found, Aborting.\nPlease check the [Troubleshooting Guide - Step 1.2](https://github.com/NicoIIT/ha-ble-adv/wiki/Troubleshooting-Guide#step-12-bluetooth-adapter).",
+      "no_adapters": "No Bluetooth adapter supporting BLE Advertising has been found, Aborting.\nPlease check the [Troubleshooting Guide - Step 1.2](https://github.com/NicoIIT/ha-ble-adv/wiki/Troubleshooting-Guide#step-12-bluetooth-adapter).",
       "no_config": "No configuration has been discovered or tested successfully.",
       "not_implemented": "Not Implemented (yet)",
       "reconfigure_successful": "Reconfigure successful!",
-      "already_configured": "A device with the same (codec / id / index) is already configured."
+      "already_configured": "A device with the same (codec / id / index) is already configured.\nMore info in the [Troubleshooting Guide - Step 3.3](https://github.com/NicoIIT/ha-ble-adv/wiki/Troubleshooting-Guide#step-33-device-unique_id)."
     },
     "error": {
       "missing_entity": "At least one Fan or Light must be configured.",
@@ -287,6 +292,12 @@
         "6speed": "6 Levels Fan",
         "100speed": "100 Levels Fan",
         "none": "None"
+      }
+    },
+    "forced_cmds": {
+      "options": {
+        "turn_on": "Turn ON",
+        "turn_off": "Turn OFF"
       }
     },
     "effects": {

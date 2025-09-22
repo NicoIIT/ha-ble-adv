@@ -21,7 +21,6 @@ from .const import (
     CONF_DEVICE_QUEUE,
     CONF_DURATION,
     CONF_FANS,
-    CONF_FORCE_SEND,
     CONF_FORCED_ID,
     CONF_GOOGLE_LCC_UUIDS,
     CONF_INDEX,
@@ -125,9 +124,6 @@ async def async_migrate_entry(hass: HomeAssistant, config_entry: ConfigEntry) ->
     if CONF_REPEATS not in new_data[CONF_TECHNICAL] and CONF_REPEAT in new_data[CONF_TECHNICAL]:
         new_data[CONF_TECHNICAL][CONF_REPEATS] = 3 * new_data[CONF_TECHNICAL][CONF_REPEAT]
         update_needed = True
-    if CONF_FORCE_SEND not in new_data[CONF_TECHNICAL]:
-        new_data[CONF_TECHNICAL][CONF_FORCE_SEND] = False
-        update_needed = True
 
     if config_entry.version < 2:
         coordinator = await get_coordinator(hass)
@@ -169,7 +165,6 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         tech_conf[CONF_INTERVAL],
         tech_conf[CONF_DURATION],
         BleAdvConfig(device_conf[CONF_FORCED_ID], device_conf[CONF_INDEX]),
-        tech_conf[CONF_FORCE_SEND],
         coordinator,
     )
     if CONF_REMOTE in entry.data and CONF_CODEC_ID in entry.data[CONF_REMOTE]:

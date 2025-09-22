@@ -48,8 +48,10 @@ from .const import (
     CONF_DURATION,
     CONF_EFFECTS,
     CONF_FANS,
-    CONF_FORCE_SEND,
+    CONF_FORCED_CMDS,
     CONF_FORCED_ID,
+    CONF_FORCED_OFF,
+    CONF_FORCED_ON,
     CONF_INDEX,
     CONF_INTERVAL,
     CONF_LAST_VERSION,
@@ -611,7 +613,6 @@ class BleAdvConfigFlow(ConfigFlow, domain=DOMAIN):
                 CONF_DURATION: codec.duration,
                 CONF_INTERVAL: codec.interval,
                 CONF_REPEATS: codec.repeat,
-                CONF_FORCE_SEND: False,
             },
         }
         return await self.async_step_configure()
@@ -656,6 +657,7 @@ class BleAdvConfigFlow(ConfigFlow, domain=DOMAIN):
 
         codec: BleAdvCodec = self.coordinator.codecs[self._data[CONF_DEVICE][CONF_CODEC_ID]]
         sections: dict[str, tuple[dict[vol.Schemable, Any], bool]] = {}
+        forced_cmds = [CONF_FORCED_ON, CONF_FORCED_OFF]
 
         # Build one section for each Light supported by the codec
         for i, feats in enumerate(codec.get_supported_features(LIGHT_TYPE)):
@@ -672,10 +674,13 @@ class BleAdvConfigFlow(ConfigFlow, domain=DOMAIN):
                     schema_opts[vol.Required(CONF_REFRESH_ON_START, default=opts.get(CONF_REFRESH_ON_START, False))] = bool
                 if LIGHT_TYPE_CWW in types:
                     schema_opts[vol.Required(CONF_REVERSED, default=opts.get(CONF_REVERSED, False))] = bool
+                schema_opts[vol.Required(CONF_FORCED_CMDS, default=opts.get(CONF_FORCED_CMDS, []))] = self._get_multi_selector(
+                    CONF_FORCED_CMDS, forced_cmds
+                )
                 if ATTR_EFFECT in feats:
                     effects = list(feats[ATTR_EFFECT])
                     schema_opts[vol.Required(CONF_EFFECTS, default=opts.get(CONF_EFFECTS, effects))] = self._get_multi_selector(CONF_EFFECTS, effects)
-                sections[f"{LIGHT_TYPE}_{i}"] = (schema_opts, (i > 0) and CONF_TYPE in opts)
+                sections[f"{LIGHT_TYPE}_{i}"] = (schema_opts, (i == 0) or CONF_TYPE in opts)
 
         # Build one section for each Fan supported by the codec
         for i, feats in enumerate(codec.get_supported_features(FAN_TYPE)):
@@ -691,14 +696,17 @@ class BleAdvConfigFlow(ConfigFlow, domain=DOMAIN):
                 if ATTR_OSC in feats:
                     schema_opts[vol.Required(CONF_USE_OSC, default=opts.get(CONF_USE_OSC, True))] = bool
                     schema_opts[vol.Required(CONF_REFRESH_OSC_ON_START, default=opts.get(CONF_REFRESH_OSC_ON_START, False))] = bool
+                schema_opts[vol.Required(CONF_FORCED_CMDS, default=opts.get(CONF_FORCED_CMDS, []))] = self._get_multi_selector(
+                    CONF_FORCED_CMDS, forced_cmds
+                )
                 if ATTR_PRESET in feats:
                     presets = list(feats[ATTR_PRESET])
                     schema_opts[vol.Required(CONF_PRESETS, default=opts.get(CONF_PRESETS, presets))] = self._get_multi_selector(CONF_PRESETS, presets)
-                sections[f"{FAN_TYPE}_{i}"] = (schema_opts, (i > 0) and CONF_TYPE in opts)
+                sections[f"{FAN_TYPE}_{i}"] = (schema_opts, CONF_TYPE in opts)
 
         # Finalize schema with all sections
         data_schema = vol.Schema(
-            {vol.Required(name): section(vol.Schema(sect), {"collapsed": collapsed}) for name, (sect, collapsed) in sections.items()}
+            {vol.Required(name): section(vol.Schema(sect), {"collapsed": not visible}) for name, (sect, visible) in sections.items()}
         )
 
         return self.async_show_form(step_id="config_entities", data_schema=data_schema, errors=errors)
@@ -762,7 +770,6 @@ class BleAdvConfigFlow(ConfigFlow, domain=DOMAIN):
                 vol.Optional(CONF_DURATION, default=def_tech[CONF_DURATION]): selector.NumberSelector(
                     selector.NumberSelectorConfig(step=50, min=100, max=2000, mode=selector.NumberSelectorMode.SLIDER)
                 ),
-                vol.Optional(CONF_FORCE_SEND, default=def_tech[CONF_FORCE_SEND]): bool,
                 vol.Optional(CONF_INTERVAL, default=def_tech[CONF_INTERVAL]): selector.NumberSelector(
                     selector.NumberSelectorConfig(step=10, min=10, max=150, mode=selector.NumberSelectorMode.BOX)
                 ),
