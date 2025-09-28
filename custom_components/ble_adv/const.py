@@ -9,6 +9,11 @@ CONF_COORDINATOR_ID = "coordinator_unique_id"
 
 CONF_LAST_VERSION = 6
 
+CONF_IGN_ADAPTERS = "ignored_adapters"
+CONF_IGN_DURATION = "ignored_duration"
+CONF_IGN_CIDS = "ignored_cids"
+CONF_IGN_MACS = "ignored_macs"
+
 CONF_INDEX = "index"
 CONF_CODEC_ID = "codec_id"
 CONF_ADAPTER_ID = "adapter_id"
