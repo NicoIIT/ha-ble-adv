@@ -6,6 +6,7 @@ import voluptuous as vol
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_DEVICE, CONF_NAME
 from homeassistant.core import HomeAssistant, ServiceCall
+from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers.selector import NumberSelector, NumberSelectorConfig
 from homeassistant.helpers.singleton import singleton
 from homeassistant.helpers.typing import ConfigType
@@ -23,6 +24,10 @@ from .const import (
     CONF_FANS,
     CONF_FORCED_ID,
     CONF_GOOGLE_LCC_UUIDS,
+    CONF_IGN_ADAPTERS,
+    CONF_IGN_CIDS,
+    CONF_IGN_DURATION,
+    CONF_IGN_MACS,
     CONF_INDEX,
     CONF_INTERVAL,
     CONF_LAST_VERSION,
@@ -58,6 +63,20 @@ INJECT_RAW_SCHEMA = vol.Schema(
     }
 )
 
+CONFIG_SCHEMA = vol.Schema(
+    {
+        DOMAIN: vol.Schema(
+            {
+                vol.Optional(CONF_IGN_ADAPTERS): vol.All(cv.ensure_list, [cv.string]),
+                vol.Optional(CONF_IGN_DURATION): vol.All(vol.Coerce(int), vol.Range(min=0, max=60000)),
+                vol.Optional(CONF_IGN_CIDS): vol.All(cv.ensure_list, [vol.All(vol.Coerce(int), vol.Range(min=0, max=0xFFFF))]),
+                vol.Optional(CONF_IGN_MACS): vol.All(cv.ensure_list, [cv.string]),
+            }
+        )
+    },
+    extra=vol.ALLOW_EXTRA,
+)
+
 
 @singleton(f"{DOMAIN}/{CONF_COORDINATOR_ID}")
 async def get_coordinator(hass: HomeAssistant) -> BleAdvCoordinator:
@@ -66,10 +85,10 @@ async def get_coordinator(hass: HomeAssistant) -> BleAdvCoordinator:
     coordinator = BleAdvCoordinator(
         hass,
         get_codecs(),
-        conf.get("ignored_adapters", []),
-        conf.get("ignored_duration", 60000),
-        conf.get("ignored_cids", [*CONF_GOOGLE_LCC_UUIDS, *CONF_APPLE_INC_UUIDS]),
-        conf.get("ignored_macs", []),
+        conf.get(CONF_IGN_ADAPTERS, []),
+        conf.get(CONF_IGN_DURATION, 60000),
+        conf.get(CONF_IGN_CIDS, [*CONF_GOOGLE_LCC_UUIDS, *CONF_APPLE_INC_UUIDS]),
+        conf.get(CONF_IGN_MACS, []),
     )
     await coordinator.async_init()
     return coordinator
