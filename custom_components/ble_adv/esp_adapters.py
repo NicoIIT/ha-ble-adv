@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import asyncio
-import logging
 import re
 from typing import Any
 
@@ -17,10 +16,7 @@ from homeassistant.helpers.event import async_track_state_change_event
 from .adapters import AdapterEventCallback, AdvRecvCallback, BleAdvAdapter, BleAdvAdapterAdvItem, BleAdvBtManager
 from .const import DOMAIN
 
-_LOGGER = logging.getLogger(__name__)
-
 ESPHOME_DOMAIN = "esphome"
-ESPHOME_BLE_ADV_DISCOVERY_EVENT = f"{ESPHOME_DOMAIN}.{DOMAIN}.discovery"
 ESPHOME_BLE_ADV_RECV_EVENT = f"{ESPHOME_DOMAIN}.{DOMAIN}.raw_adv"
 CONF_ADV_SVCS = ["adv_svc_v1", "adv_svc"]
 CONF_SETUP_SVCS = ["setup_svc_v0"]
@@ -33,44 +29,6 @@ CONF_ATTR_IGN_CIDS = "ignored_cids"
 CONF_ATTR_IGN_MACS = "ignored_macs"
 CONF_ATTR_IGN_DURATION = "ignored_duration"
 CONF_ATTR_ORIGIN = "orig"
-
-CONF_ATTR_NAME = "name"
-CONF_ATTR_MAC = "mac"
-CONF_ATTR_RECV_EVENT_NAME = "adv_recv_event"
-CONF_ATTR_PUBLISH_ADV_SVC = "publish_adv_svc"
-
-
-class BleAdvEsphomeAdapter(BleAdvAdapter):
-    """ESPHome BT Adapter with discovery based on Event - LEGACY."""
-
-    def __init__(self, manager: BleAdvEspBtManager, conf: dict[str, str]) -> None:
-        super().__init__(conf[CONF_ATTR_NAME], conf.get("mac", ""), self._on_error, 100)
-        self._conf = conf
-        self.manager: BleAdvEspBtManager = manager
-
-    def diagnostic_dump(self) -> dict[str, Any]:
-        """Diagnostic dump."""
-        return {**super().diagnostic_dump(), "conf": self._conf}
-
-    async def open(self) -> None:
-        """Open adapter."""
-        self._opened = True
-        self.logger.info("Connected")
-
-    def close(self) -> None:
-        """Close the adapter, nothing to do."""
-        self.logger.info("Disconnected")
-
-    async def _on_error(self, message: str) -> None:
-        await self.manager.reset_adapter(self.name, f"Unhandled error: {message}")
-
-    async def _advertise(self, item: BleAdvAdapterAdvItem) -> None:
-        """Advertise the msg."""
-        duration = item.repeat * item.interval
-        await self.manager.hass.services.async_call(
-            ESPHOME_DOMAIN, self._conf[CONF_ATTR_PUBLISH_ADV_SVC], {CONF_ATTR_RAW: item.data.hex(), CONF_ATTR_DURATION: duration}
-        )
-        await asyncio.sleep(0.0009 * duration)
 
 
 class BleAdvEsphomeService:
@@ -174,7 +132,6 @@ class BleAdvEspBtManager(BleAdvBtManager):
         proxy_name_ids = await self._discover_existing()
         self._cnl_clbck.append(async_track_state_change_event(self.hass, proxy_name_ids, self._async_name_state_changed_listener))
         self._cnl_clbck.append(self.hass.bus.async_listen(er.EVENT_ENTITY_REGISTRY_UPDATED, self._proxy_created, event_filter=self._proxy_filter))
-        self._cnl_clbck.append(self.hass.bus.async_listen(ESPHOME_BLE_ADV_DISCOVERY_EVENT, self._on_discovery_event))
         self._cnl_clbck.append(self.hass.bus.async_listen(ESPHOME_BLE_ADV_RECV_EVENT, self._on_adv_recv_event))
 
     async def async_final(self) -> None:
@@ -232,12 +189,6 @@ class BleAdvEspBtManager(BleAdvBtManager):
     async def _proxy_created(self, event: Event[er.EventEntityRegistryUpdatedData]) -> None:
         self._add_diag(f"Registry Event: {event.data['entity_id']} {event.data['action']}")
         self._cnl_clbck.append(async_track_state_change_event(self.hass, [event.data["entity_id"]], self._async_name_state_changed_listener))
-
-    async def _on_discovery_event(self, event: Event) -> None:
-        adapter_name = event.data[CONF_ATTR_NAME]
-        if adapter_name not in self._adapters:
-            self._add_diag("ESPHome ble_adv_proxy LEGACY discovery by Event, please upgrade your proxy to latest version.", logging.WARNING)
-            await self._add_adapter(adapter_name, event.data[CONF_ATTR_DEVICE_ID], BleAdvEsphomeAdapter(self, {**event.data}))
 
     async def _on_adv_recv_event(self, event: Event) -> None:
         await self.handle_raw_adv(

@@ -11,11 +11,7 @@ from ble_adv.device import BleAdvEntity
 from ble_adv.esp_adapters import (
     CONF_ATTR_DEVICE_ID,
     CONF_ATTR_IGN_DURATION,
-    CONF_ATTR_NAME,
-    CONF_ATTR_PUBLISH_ADV_SVC,
     CONF_ATTR_RAW,
-    CONF_ATTR_RECV_EVENT_NAME,
-    ESPHOME_BLE_ADV_DISCOVERY_EVENT,
     ESPHOME_BLE_ADV_RECV_EVENT,
 )
 from homeassistant.config_entries import ConfigEntry
@@ -49,12 +45,11 @@ def device() -> _Device:
 class MockEspProxy:
     """Mock an ESPHome ble_adv_proxy."""
 
-    def __init__(self, hass: HomeAssistant, name: str, create_by_discovery: bool = False) -> None:
+    def __init__(self, hass: HomeAssistant, name: str) -> None:
         self.hass = hass
         self._name = name
         self._bn = self._name.replace("-", "_")
         self._dev_id = f"{self._bn}_dev_id"
-        self._create_by_discovery = create_by_discovery
         self._adv_calls = []
         self._setup_calls = []
 
@@ -78,19 +73,6 @@ class MockEspProxy:
 
     async def setup(self) -> None:
         """Set the ble_adv_proxy."""
-        if self._create_by_discovery:
-            # Set the ble_adv_proxy by discovery event
-            self.hass.bus.async_fire(
-                ESPHOME_BLE_ADV_DISCOVERY_EVENT,
-                {
-                    CONF_ATTR_DEVICE_ID: self._dev_id,
-                    CONF_ATTR_NAME: "esp-test3",
-                    CONF_ATTR_RECV_EVENT_NAME: "recv-event",
-                    CONF_ATTR_PUBLISH_ADV_SVC: "pub-svc",
-                },
-            )
-            return
-
         # Set the ble_adv_proxy by registering services and entities
         setup_schema = {vol.Required(CONF_ATTR_IGN_DURATION): int}
         adv_schema = {vol.Required(CONF_ATTR_RAW): str}
@@ -102,8 +84,6 @@ class MockEspProxy:
 
     async def set_available(self, status: bool) -> None:
         """Set the status."""
-        if self._create_by_discovery:
-            return
         state = self._name if status else STATE_UNAVAILABLE
         self.hass.async_add_executor_job(self.hass.states.set, f"sensor.{self._bn}_ble_adv_proxy_name", state)
         await self.hass.async_block_till_done(wait_background_tasks=True)
