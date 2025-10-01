@@ -247,7 +247,7 @@ class BleAdvCoordinator:
         if raw_adv not in self.listened_raw_advs:
             self.listened_raw_advs.append(raw_adv)
         for codec_id, acodec in self.codecs.items():
-            enc_cmd, conf = acodec.decode_adv(BleAdvAdvertisement.FromRaw(raw_adv))
+            __, conf = acodec.decode_adv(BleAdvAdvertisement.FromRaw(raw_adv))
             if conf is not None:
                 data = (adapter_id, codec_id, acodec.match_id, conf)
                 if data not in self.listened_decoded_confs:
