@@ -36,6 +36,24 @@ class _Device(mock.AsyncMock):
         self.apply_change.assert_not_called()
 
 
+class _MockEsphomeConfigEntry(ConfigEntry):
+    def __init__(self, bn: str) -> None:
+        super().__init__(
+            domain="esphome",
+            unique_id=f"esp_unique_id_{bn}",
+            data={},
+            version=1,
+            minor_version=0,
+            title=bn,
+            source="",
+            discovery_keys={},  # type: ignore [none]
+            options={},
+        )
+        self.runtime_data = mock.MagicMock()
+        self.runtime_data.device_info.name = bn
+        self.runtime_data.device_info.mac = "00:00:00:00:00:00"
+
+
 @pytest.fixture
 def device() -> _Device:
     """Fixture device."""
@@ -78,8 +96,10 @@ class MockEspProxy:
         adv_schema = {vol.Required(CONF_ATTR_RAW): str}
         self.hass.services.async_register("esphome", f"{self._bn}_setup_svc_v0", self._call_setup, vol.Schema(setup_schema))
         self.hass.services.async_register("esphome", f"{self._bn}_adv_svc_v1", self._call_adv, vol.Schema(adv_schema))
+        esp_conf = _MockEsphomeConfigEntry(self._bn)
+        await self.hass.config_entries.async_add(esp_conf)
         dr.async_get(self.hass).devices[self._dev_id] = mock.AsyncMock()
-        er.async_get(self.hass).async_get_or_create("sensor", self._bn, "ble_adv_proxy_name", device_id=self._dev_id)
+        er.async_get(self.hass).async_get_or_create("sensor", self._bn, "ble_adv_proxy_name", device_id=self._dev_id, config_entry=esp_conf)
         await self.set_available(True)
 
     async def set_available(self, status: bool) -> None:

@@ -3,13 +3,13 @@
 from __future__ import annotations
 
 import asyncio
+import logging
 import re
 from typing import Any
 
 from homeassistant.const import STATE_UNAVAILABLE, STATE_UNKNOWN
 from homeassistant.core import CALLBACK_TYPE, Event, EventStateChangedData, HomeAssistant, State, callback
 from homeassistant.helpers import config_validation as cv
-from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.event import async_track_state_change_event
 
@@ -30,6 +30,8 @@ CONF_ATTR_IGN_MACS = "ignored_macs"
 CONF_ATTR_IGN_DURATION = "ignored_duration"
 CONF_ATTR_ORIGIN = "orig"
 
+_LOGGER = logging.getLogger(__name__)
+
 
 class BleAdvEsphomeService:
     """ESPHome Dynamic Service.
@@ -40,23 +42,25 @@ class BleAdvEsphomeService:
     """
 
     def __init__(self, hass: HomeAssistant, device_name: str, svcs: list[str]) -> None:
-        self.svc_name = ""
         self.hass: HomeAssistant = hass
-        esp_svcs: list[str] = [f"{device_name}_{svc}" for svc in svcs]
+        self.svc_name: str | None = None
+        self._svc_attrs: dict[str, Any] = {}
         all_svcs = self.hass.services.async_services_for_domain(ESPHOME_DOMAIN)
-        for esp_svc in esp_svcs:
-            if esp_svc in all_svcs:
+        for svc in svcs:
+            esp_svc = f"{device_name.replace('-', '_')}_{svc}"  # Same as "build_service_name" in ESPHome manager.py
+            if (service := all_svcs.get(esp_svc)) is not None:
                 self.svc_name = esp_svc
+                self._svc_attrs = {attr: self._def_attr_val(val) for attr, val in service.schema.schema.items()}  # type: ignore NONE
                 break
-        self._svc_attrs: dict[str, Any] = {attr: self._def_attr_val(val) for attr, val in all_svcs[self.svc_name].schema.schema.items()}  # type: ignore NONE
 
     def _def_attr_val(self, attr_type: Any) -> Any:  # noqa: ANN401
         return [] if isinstance(attr_type, list) else "" if attr_type == cv.string else False if attr_type == cv.boolean else 0
 
     async def call(self, attrs: dict[str, Any]) -> None:
         """Call the service with the given attributes, filtered with the effectively available attributes and default values for others."""
-        attrs = {attr: attrs.get(attr, def_val) for attr, def_val in self._svc_attrs.items()}
-        await self.hass.services.async_call(ESPHOME_DOMAIN, self.svc_name, attrs)
+        if self.svc_name is not None:
+            attrs = {attr: attrs.get(attr, def_val) for attr, def_val in self._svc_attrs.items()}
+            await self.hass.services.async_call(ESPHOME_DOMAIN, self.svc_name, attrs)
 
 
 class BleAdvEsphomeAdapterV2(BleAdvAdapter):
@@ -65,12 +69,16 @@ class BleAdvEsphomeAdapterV2(BleAdvAdapter):
     def __init__(self, manager: BleAdvEspBtManager, adapter_name: str, device_name: str, mac: str) -> None:
         super().__init__(adapter_name, mac, self._on_error, 100)
         self.manager: BleAdvEspBtManager = manager
-        self._adv_svc_: BleAdvEsphomeService = BleAdvEsphomeService(manager.hass, device_name, CONF_ADV_SVCS)
-        self._setup_svc_: BleAdvEsphomeService = BleAdvEsphomeService(manager.hass, device_name, CONF_SETUP_SVCS)
+        self._adv_svc: BleAdvEsphomeService = BleAdvEsphomeService(manager.hass, device_name, CONF_ADV_SVCS)
+        self._setup_svc: BleAdvEsphomeService = BleAdvEsphomeService(manager.hass, device_name, CONF_SETUP_SVCS)
 
     def diagnostic_dump(self) -> dict[str, Any]:
         """Diagnostic dump."""
-        return {**super().diagnostic_dump(), "adv_svc": self._adv_svc_.svc_name, "setup_svc": self._setup_svc_.svc_name}
+        return {**super().diagnostic_dump(), "adv_svc": self._adv_svc.svc_name, "setup_svc": self._setup_svc.svc_name}
+
+    def is_valid(self) -> bool:
+        """Return if the adapter is valid."""
+        return self._setup_svc.svc_name is not None and self._adv_svc.svc_name is not None
 
     async def open(self) -> None:
         """Open adapter."""
@@ -79,7 +87,7 @@ class BleAdvEsphomeAdapterV2(BleAdvAdapter):
             CONF_ATTR_IGN_CIDS: self.manager.ign_cids,
             CONF_ATTR_IGN_MACS: self.manager.ign_macs,
         }
-        await self._setup_svc_.call(call_params)
+        await self._setup_svc.call(call_params)
         self._opened = True
         self.logger.info("Connected")
 
@@ -99,7 +107,7 @@ class BleAdvEsphomeAdapterV2(BleAdvAdapter):
             CONF_ATTR_IGN_DURATION: item.ign_duration,
             CONF_ATTR_IGN_ADVS: [item.data.hex()],
         }
-        await self._adv_svc_.call(params)
+        await self._adv_svc.call(params)
         await asyncio.sleep(0.0009 * item.repeat * item.interval)
 
 
@@ -158,15 +166,18 @@ class BleAdvEspBtManager(BleAdvBtManager):
     async def _create_adapter(self, adapter_name: str, entity_id: str) -> None:
         if adapter_name in self._adapters:
             return
-        device_name = dv.group(1) if (dv := self.PROXY_NAME_PATTERN.match(entity_id)) is not None else adapter_name.replace("-", "_")
-        mac = ""
-        eff_dev_id = ""
-        if (ent := er.async_get(self.hass).async_get(entity_id)) is not None and (dev_id := ent.device_id) is not None:
-            eff_dev_id = dev_id
-            if (dev := dr.async_get(self.hass).async_get(dev_id)) is not None:
-                mac = next(iter([val.upper() for tp, val in dev.connections if tp == "mac"]), "")
-
-        await self._add_adapter(adapter_name, eff_dev_id, BleAdvEsphomeAdapterV2(self, adapter_name, device_name, mac))
+        if (
+            (ent := er.async_get(self.hass).async_get(entity_id)) is not None
+            and (dev_id := ent.device_id) is not None
+            and (conf_id := ent.config_entry_id) is not None
+            and (conf_entry := self.hass.config_entries.async_get_entry(conf_id)) is not None
+        ):
+            dev_info = conf_entry.runtime_data.device_info
+            adapter = BleAdvEsphomeAdapterV2(self, adapter_name, dev_info.name, dev_info.mac_address)
+            if adapter.is_valid():
+                await self._add_adapter(adapter_name, dev_id, adapter)
+                return
+        self._add_diag(f"Failed to create adapter '{adapter_name}' from sensor entity {entity_id}", logging.ERROR)
 
     async def reset_adapter(self, adapter_name: str, reason: str) -> None:
         """Reset an adapter and try to re discover it."""
