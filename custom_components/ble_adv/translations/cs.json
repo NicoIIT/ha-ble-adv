@@ -11,6 +11,13 @@
           "tools": "Nástroje a pomocníci"
         }
       },
+      "no_adapters": {
+        "description": "Nebylo nalezeno žádné Bluetooth zařízení.\nPlease check the [Troubleshooting Guide - Step 1.2](https://github.com/NicoIIT/ha-ble-adv/wiki/Troubleshooting-Guide#step-12-bluetooth-adapter).",
+        "menu_options": {
+          "abort_no_adapters": "Přerušit",
+          "open_issue": "Open Issue"
+        }
+      },
       "tools": {
         "title": "Nástroje a pomocníci",
         "description": "Sekce nástrojů",
@@ -266,7 +273,7 @@
       "wait_config_remote": "Stiskněte libovolné tlačítko (ideálně Párovat) na ovladači do {max_seconds} sekund."
     },
     "abort": {
-      "no_adapters": "Nebylo nalezeno žádné Bluetooth zařízení. Přerušuji.\nPlease check the [Troubleshooting Guide - Step 1.2](https://github.com/NicoIIT/ha-ble-adv/wiki/Troubleshooting-Guide#step-12-bluetooth-adapter).",
+      "no_adapters": "Nebylo nalezeno žádné Bluetooth zařízení. Přerušuji.",
       "no_config": "Nebyla zjištěna ani úspěšně otestována žádná konfigurace.",
       "not_implemented": "Zatím neimplementováno",
       "reconfigure_successful": "Rekonfigurace byla úspěšná!",

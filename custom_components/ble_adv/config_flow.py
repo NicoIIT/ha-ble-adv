@@ -422,8 +422,16 @@ class BleAdvConfigFlow(ConfigFlow, domain=DOMAIN):
         self._add_diag("Config flow 'user' started.")
         self.coordinator: BleAdvCoordinator = await get_coordinator(self.hass)
         if not self.coordinator.has_available_adapters():
-            return self.async_abort(reason="no_adapters")
+            return await self.async_step_no_adapters()
         return self.async_show_menu(step_id="user", menu_options=["wait_config", "manual", "pair", "tools"])
+
+    async def async_step_no_adapters(self, _: dict[str, Any] | None = None) -> ConfigFlowResult:
+        """No Adapter Step."""
+        return self.async_show_menu(step_id="no_adapters", menu_options=["abort_no_adapters", "open_issue"])
+
+    async def async_step_abort_no_adapters(self, _: dict[str, Any] | None = None) -> ConfigFlowResult:
+        """No Adapter Abort Step."""
+        return self.async_abort(reason="no_adapters")
 
     async def async_step_tools(self, _: dict[str, Any] | None = None) -> ConfigFlowResult:
         """Tooling Step."""
