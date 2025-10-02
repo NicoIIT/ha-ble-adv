@@ -46,9 +46,9 @@ There are lots of different Physical Remote so it is impossible to know if a Phy
 If your remote is not recognized by the integration then you can check if it could be supported and request for its support, see [How To](https://github.com/NicoIIT/ha-ble-adv/wiki/How-to-know-if-my-Physical-Remote-is-using-BLE-Advertising-to-control-my-device).
 
 ## Installing the component
-This component is an [HACS](https://www.hacs.xyz/) Custom Repository. With HACS installed, the repository installation procedure can be found [here](https://www.hacs.xyz/docs/faq/custom_repositories/), with parameters:
-* **Repository**: "NicoIIT/ha-ble-adv"
-* **Type**: "Integration"
+Download and install directly through [HACS (Home Assistant Community Store)](https://www.hacs.xyz/) following the [my-link](https://my.home-assistant.io/) link:
+
+[![Open your Home Assistant instance and open a repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=NicoIIT&repository=ha-ble-adv)
 
 Alternatively if you do not want to use HACS, you can simply clone this repository and copy the 'custom_components' directly at the root of your HA config (at the same place than your configuration.yaml):
 ```
@@ -85,4 +85,5 @@ Future developments are tracked in [github feature requests](https://github.com/
 ## More Info on Wiki
 * [Configuration Guide](https://github.com/NicoIIT/ha-ble-adv/wiki/Configuration-Guide)
 * [Troubleshooting Guide](https://github.com/NicoIIT/ha-ble-adv/wiki/Troubleshooting-Guide)
+
 
