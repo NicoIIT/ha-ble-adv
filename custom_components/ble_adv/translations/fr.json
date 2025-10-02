@@ -11,6 +11,13 @@
           "tools": "Outils"
         }
       },
+      "no_adapters": {
+        "description": "Aucun Adaptateur Bluetooth supportant le BLE Advertising n'a été détecté.\nVeuillez suivre le [Troubleshooting Guide - Step 1.2](https: //github.com/NicoIIT/ha-ble-adv/wiki/Troubleshooting-Guide#step-12-bluetooth-adapter).",
+        "menu_options": {
+          "abort_no_adapters": "Quitter",
+          "open_issue": "Ouvrir une Issue"
+        }
+      },
       "tools": {
         "title": "Outils",
         "description": "Section outillage",
@@ -266,7 +273,7 @@
       "wait_config_remote": "Veuillez appuyer sur un bouton de la Télécommande (Appairrage de préférence) dans les {max_seconds}s."
     },
     "abort": {
-      "no_adapters": "Aucun Adaptateur Bluetooth supportant le BLE Advertising n'a été détecté.\n Veuillez suivre le [Troubleshooting Guide - Step 1.2](https://github.com/NicoIIT/ha-ble-adv/wiki/Troubleshooting-Guide#step-12-bluetooth-adapter).",
+      "no_adapters": "Aucun Adaptateur Bluetooth supportant le BLE Advertising n'a été détecté.",
       "no_config": "Aucune configuration n'a été trouvée ou validée.",
       "not_implemented": "A venir?",
       "reconfigure_successful": "Reconfiguration effectuée!",

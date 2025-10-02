@@ -156,6 +156,8 @@ class BleAdvEspBtManager(BleAdvBtManager):
         for entity_id in proxy_name_ids:
             if (adapter_name := self._get_name_from_state(self.hass.states.get(entity_id))) is not None:
                 await self._create_adapter(adapter_name, entity_id)
+            else:
+                self._add_diag(f"Unable to get name from state for entity: {entity_id}")
         return proxy_name_ids
 
     def _get_name_from_state(self, name_state: State | None) -> str | None:
@@ -166,18 +168,32 @@ class BleAdvEspBtManager(BleAdvBtManager):
     async def _create_adapter(self, adapter_name: str, entity_id: str) -> None:
         if adapter_name in self._adapters:
             return
-        if (
-            (ent := er.async_get(self.hass).async_get(entity_id)) is not None
-            and (dev_id := ent.device_id) is not None
-            and (conf_id := ent.config_entry_id) is not None
-            and (conf_entry := self.hass.config_entries.async_get_entry(conf_id)) is not None
-        ):
-            dev_info = conf_entry.runtime_data.device_info
-            adapter = BleAdvEsphomeAdapterV2(self, adapter_name, dev_info.name, dev_info.mac_address)
-            if adapter.is_valid():
-                await self._add_adapter(adapter_name, dev_id, adapter)
-                return
-        self._add_diag(f"Failed to create adapter '{adapter_name}' from sensor entity {entity_id}", logging.ERROR)
+
+        self._add_diag(f"Creating adapter for '{adapter_name}' from sensor entity {entity_id}.")
+        if (ent := er.async_get(self.hass).async_get(entity_id)) is None:
+            self._add_diag(f"Failed to create adapter '{adapter_name}' - no entity found", logging.ERROR)
+            return
+        if (dev_id := ent.device_id) is None:
+            self._add_diag(f"Failed to create adapter '{adapter_name}' - no device_id", logging.ERROR)
+            return
+        if (conf_id := ent.config_entry_id) is None:
+            self._add_diag(f"Failed to create adapter '{adapter_name}' - no config_entry_id", logging.ERROR)
+            return
+        if (conf_entry := self.hass.config_entries.async_get_entry(conf_id)) is None:
+            self._add_diag(f"Failed to create adapter '{adapter_name}' - no conf_entry", logging.ERROR)
+            return
+        if not hasattr(conf_entry.runtime_data, "device_info"):
+            self._add_diag(f"Failed to create adapter '{adapter_name}' - no device_info", logging.ERROR)
+            return
+
+        dev_info = conf_entry.runtime_data.device_info
+        self._add_diag(f"device_info: {dev_info}")
+        mac = dev_info.bluetooth_mac_address if hasattr(dev_info, "bluetooth_mac_address") else dev_info.mac_address
+        adapter = BleAdvEsphomeAdapterV2(self, adapter_name, dev_info.name, mac)
+        if adapter.is_valid():
+            await self._add_adapter(adapter_name, dev_id, adapter)
+        else:
+            self._add_diag(f"Failed to create adapter '{adapter_name}' - Invalid adapter: {adapter.diagnostic_dump()}", logging.ERROR)
 
     async def reset_adapter(self, adapter_name: str, reason: str) -> None:
         """Reset an adapter and try to re discover it."""
