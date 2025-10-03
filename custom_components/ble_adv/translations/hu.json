@@ -1,0 +1,427 @@
+{
+  "title": "Bluetooth Low Energy hirdetéssel vezérelt eszközök",
+  "config": {
+    "step": {
+      "user": {
+        "description": "Kezdés előtt győződjön meg róla, hogy ugyanabban a helyiségben tartózkodik, mint az irányítani kívánt eszköz!",
+        "menu_options": {
+          "manual": "Kézi bevitel (szakértő)",
+          "wait_config": "Párosított telefon alkalmazás konfigurációjának másolása (ajánlott)",
+          "pair": "Párosítás",
+          "tools": "Eszközök és segédprogramok"
+        }
+      },
+      "no_adapters": {
+        "description": "Nem található BLE hirdetést támogató Bluetooth adapter.\nKérjük, ellenőrizze a [Hibaelhárítási útmutatót - 1.2. lépés](https://github.com/NicoIIT/ha-ble-adv/wiki/Troubleshooting-Guide#step-12-bluetooth-adapter).",
+        "menu_options": {
+          "abort_no_adapters": "Megszakítás",
+          "open_issue": "Probléma jelentése"
+        }
+      },
+      "tools": {
+        "title": "Eszközök és segédprogramok",
+        "description": "Eszközök szakasz",
+        "menu_options": {
+          "diag": "Diagnosztikai kivonat",
+          "inject": "Nyers adatok beillesztése",
+          "listen_raw": "BLE hirdetés figyelése",
+          "decode_raw": "Nyers BLE hirdetés dekódolása"
+        }
+      },
+      "diag": {
+        "title": "Diagnosztikai kivonat"
+      },
+      "listen_raw": {
+        "title": "BLE hirdetés figyelése"
+      },
+      "listen_raw_res": {
+        "title": "BLE hirdetés figyelése",
+        "description": "Fogadott BLE hirdetések:\n{advs}",
+        "menu_options": {
+          "listen_raw": "Újrapróbálás",
+          "tools": "Vissza az eszközökhöz"
+        }
+      },
+      "inject": {
+        "title": "Kézi beillesztés",
+        "description": "Tapasztalt felhasználók számára: nyers adatok beillesztése",
+        "data": {
+          "adapter_id": "BLE ADV adapter",
+          "raw": "Nyers adatok",
+          "interval": "Időköz",
+          "repeat": "Ismétlés"
+        }
+      },
+      "inject_res": {
+        "title": "Beillesztés eredménye",
+        "description": "Beillesztés befejezve.",
+        "menu_options": {
+          "inject": "Új nyers adatok beillesztése",
+          "tools": "Vissza az eszközökhöz"
+        }
+      },
+      "decode_raw": {
+        "title": "Nyers BLE hirdetés dekódolása",
+        "data": {
+          "raw": "Nyers adatok"
+        }
+      },
+      "decode_raw_res": {
+        "title": "Nyers BLE hirdetés dekódolásának eredménye",
+        "description": "{conf}",
+        "menu_options": {
+          "decode_raw": "Új nyers adatok dekódolása",
+          "tools": "Vissza az eszközökhöz"
+        }
+      },
+      "manual": {
+        "title": "Kézi bevitel",
+        "description": "Tapasztalt felhasználók számára, például ESPHome-ról való áttéréskor",
+        "data": {
+          "name": "Eszköz neve",
+          "codec_id": "Kodek",
+          "adapter_id": "BLE ADV adapter",
+          "forced_id": "Kényszerített azonosító",
+          "index": "Index"
+        }
+      },
+      "wait_config": {
+        "title": "Konfiguráció figyelése a párosított telefon alkalmazásból."
+      },
+      "no_config": {
+        "description": "10 másodpercen belül nem érkezett konfiguráció",
+        "menu_options": {
+          "wait_config": "Újrapróbálás",
+          "abort_config": "Megszakítás",
+          "open_issue": "Probléma jelentése"
+        }
+      },
+      "blink": {
+        "title": "Konfiguráció teszt"
+      },
+      "pair": {
+        "title": "Párosítás",
+        "description": "Kérjük, válassza ki a megfelelő Bluetooth adaptert és a telefon alkalmazást az alábbi listákból, kapcsolja ki az eszköz tápellátását, kapcsolja vissza, majd nyomja meg a **Küldés** gombot 5 másodpercen belül (ez elküldi a párosítási parancsokat)",
+        "data": {
+          "adapter_id": "BLE ADV adapter",
+          "phone_app": "Telefon alkalmazás"
+        }
+      },
+      "wait_pair": {
+        "title": "Párosítás"
+      },
+      "confirm_pair": {
+        "description": "Sikerült a párosítás? Általában ilyenkor a lámpa villog, de ez függ a lámpa típusától...",
+        "menu_options": {
+          "pair": "Párosítás SIKERTELEN, újrapróbálás",
+          "confirm_no_abort": "Párosítás SIKERTELEN, megszakítás",
+          "blink": "Párosítás SIKERES, konfigurációk tesztelése"
+        }
+      },
+      "choose_adapter": {
+        "title": "Adapter kiválasztása",
+        "description": "Több bluetooth adapter is fogott konfigurációt, kérjük válassza ki az eszközéhez legközelebbit",
+        "data": {
+          "adapter_id": "BLE ADV adapter"
+        }
+      },
+      "confirm": {
+        "title": "Ellenőrzés",
+        "description": "Konfiguráció tesztelése {nb}/{tot}:\n\n    Kodek: {codec}\n    Azonosító: {id}\n    Index: {index}\n\nVillogott a lámpa?",
+        "menu_options": {
+          "confirm_yes": "Igen!",
+          "confirm_no_another": "Nem, következő próbálása.",
+          "confirm_no_abort": "Nem, megszakítás.",
+          "open_issue": "Nem, probléma jelentése",
+          "confirm_retry_last": "Ugyanaz újra.",
+          "confirm_retry_all": "Újrakezdés az elsőtől."
+        }
+      },
+      "open_issue": {
+        "title": "Probléma jelentése",
+        "description": "1. Töltse le a diagnosztikai kivonatot az alábbi gombra kattintva\n2. Nyisson egy Config Flow [problémát](https://github.com/NicoIIT/ha-ble-adv/issues/new?template=discovery.yml) és csatolja hozzá a kivonatot.",
+        "menu_options": {
+          "diag": "Diagnosztikai kivonat letöltése"
+        }
+      },
+      "configure": {
+        "title": "Konfiguráció",
+        "description": "Entitások, fizikai távirányító és technikai paraméterek konfigurálása.\nEzeket a paramétereket később módosíthatja az 'Újrakonfigurálás' útvonalon.",
+        "menu_options": {
+          "config_entities": "Lámpák / ventilátorok konfigurálása",
+          "config_remote": "További vezérlő konfigurálása (fizikai távirányító, ..)",
+          "config_technical": "Technikai paraméterek",
+          "finalize": "Befejezés"
+        }
+      },
+      "config_entities": {
+        "title": "Vezérelt entitások",
+        "description": "Válassza ki a létrehozandó entitásokat és azok jellemzőit",
+        "sections": {
+          "light_0": {
+            "name": "Fő lámpa",
+            "data": {
+              "type": "Típus",
+              "min_brightness": "Minimális fényerő",
+              "refresh_on_start": "Szín / fényerő frissítés bekapcsoláskor",
+              "reversed": "Hideg / meleg megfordítása",
+              "forced_cmds": "Parancsok mindig elküldve, még ha semmi sem változott",
+              "effects": "Világítási módok"
+            }
+          },
+          "light_1": {
+            "name": "Második lámpa",
+            "data": {
+              "type": "Típus",
+              "min_brightness": "Minimális fényerő",
+              "refresh_on_start": "Szín / fényerő frissítés bekapcsoláskor",
+              "reversed": "Hideg / meleg megfordítása",
+              "forced_cmds": "Parancsok mindig elküldve, még ha semmi sem változott",
+              "effects": "Világítási módok"
+            }
+          },
+          "light_2": {
+            "name": "Harmadik lámpa",
+            "data": {
+              "type": "Típus",
+              "min_brightness": "Minimális fényerő",
+              "refresh_on_start": "Szín / fényerő frissítés bekapcsoláskor",
+              "reversed": "Hideg / meleg megfordítása",
+              "forced_cmds": "Parancsok mindig elküldve, még ha semmi sem változott",
+              "effects": "Világítási módok"
+            }
+          },
+          "fan_0": {
+            "name": "Fő ventilátor",
+            "data": {
+              "type": "Típus",
+              "direction": "Irány támogatás",
+              "oscillating": "Oszcilláció támogatás",
+              "refresh_dir_on_start": "Irány frissítés bekapcsoláskor",
+              "refresh_osc_on_start": "Oszcilláció frissítés bekapcsoláskor",
+              "forced_cmds": "Parancsok mindig elküldve, még ha semmi sem változott",
+              "presets": "Ventilátor módok"
+            }
+          },
+          "fan_1": {
+            "name": "Második ventilátor",
+            "data": {
+              "type": "Típus",
+              "direction": "Irány támogatás",
+              "oscillating": "Oszcilláció támogatás",
+              "refresh_dir_on_start": "Irány frissítés bekapcsoláskor",
+              "refresh_osc_on_start": "Oszcilláció frissítés bekapcsoláskor",
+              "forced_cmds": "Parancsok mindig elküldve, még ha semmi sem változott",
+              "presets": "Ventilátor módok"
+            }
+          },
+          "fan_2": {
+            "name": "Harmadik ventilátor",
+            "data": {
+              "type": "Típus",
+              "direction": "Irány támogatás",
+              "oscillating": "Oszcilláció támogatás",
+              "refresh_dir_on_start": "Irány frissítés bekapcsoláskor",
+              "refresh_osc_on_start": "Oszcilláció frissítés bekapcsoláskor",
+              "forced_cmds": "Parancsok mindig elküldve, még ha semmi sem változott",
+              "presets": "Ventilátor módok"
+            }
+          }
+        }
+      },
+      "config_remote": {
+        "title": "Fizikai távirányító konfigurálása",
+        "description": "Kapcsolt vezérlő:\n\n    Kodek: {codec}\n    Azonosító: {id}\n    Index: {index}",
+        "menu_options": {
+          "config_remote_delete": "Kapcsolt vezérlő törlése",
+          "config_remote_update": "Kapcsolt vezérlő beállításainak módosítása",
+          "wait_config_remote": "Kapcsolt vezérlő cseréje",
+          "configure": "Vissza"
+        }
+      },
+      "wait_config_remote": {
+        "title": "Új kapcsolt vezérlő konfigurálása"
+      },
+      "config_remote_update": {
+        "title": "Kapcsolt vezérlő beállításainak konfigurálása",
+        "description": "Kapcsolt vezérlő:\n\n    Kodek: {codec}\n    Azonosító: {id}\n    Index: {index}"
+      },
+      "config_technical": {
+        "title": "Technikai beállítások konfigurálása",
+        "description": "Minden parancs az adott adapter(ek)hez 'Ismétlések' alkalommal kerül hirdetésre, megadott 'Időközzel' (ms), és 'Minimális időtartam' késleltetéssel két különböző parancs között.\n\nCsak akkor módosítsa, ha tudja, mit csinál!\n\nTöbb adapter használata KOMOLYAN ELLENJAVALLT, nem nyújtunk támogatást hozzá.",
+        "data": {
+          "adapter_ids": "BLE ADV adapter(ek)",
+          "interval": "Időköz",
+          "repeats": "Ismétlések",
+          "duration": "Minimális időtartam"
+        }
+      },
+      "finalize": {
+        "title": "Eszköz elnevezése",
+        "description": "Ez az utolsó lépés!",
+        "data": {
+          "name": "Eszköz neve"
+        }
+      }
+    },
+    "progress": {
+      "listen_raw": "BLE hirdetés figyelése\n{advs}",
+      "wait_pair": "Párosítás folyamatban...",
+      "wait_config": "Kérjük, nyomjon meg bármilyen gombot (lehetőleg Párosítás) az eszközt vezérlő telefon alkalmazásban {max_seconds} másodpercen belül.",
+      "agg_config": "Konfigurációs adatok összesítése.",
+      "blink": "A lámpa villogtatása a {nb}/{tot} konfigurációval:\n\n    Kodek: {codec}\n    Azonosító: {id}\n    Index: {index}",
+      "wait_config_remote": "Kérjük, nyomjon meg bármilyen gombot (lehetőleg Párosítás) a vezérlőn {max_seconds} másodpercen belül."
+    },
+    "abort": {
+      "no_adapters": "Nem található BLE hirdetést támogató Bluetooth adapter. Megszakítás.",
+      "no_config": "Nem sikerült konfigurációt felfedezni vagy sikeresen tesztelni.",
+      "not_implemented": "Még nincs megvalósítva",
+      "reconfigure_successful": "Újrakonfigurálás sikeres!",
+      "already_configured": "Már létezik eszköz ugyanezzel a (kodek / azonosító / index) kombinációval.\nTöbb információ a [Hibaelhárítási útmutatóban - 3.3. lépés](https://github.com/NicoIIT/ha-ble-adv/wiki/Troubleshooting-Guide#step-33-device-unique_id)."
+    },
+    "error": {
+      "missing_entity": "Legalább egy ventilátort vagy lámpát konfigurálni kell.",
+      "missing_adapter": "Legalább egy adaptert ki kell választani."
+    }
+  },
+  "selector": {
+    "light": {
+      "options": {
+        "cww": "Hideg / meleg fehér",
+        "onoff": "Csak be / ki",
+        "rgb": "RGB",
+        "none": "Nincs"
+      }
+    },
+    "fan": {
+      "options": {
+        "3speed": "3 fokozatú ventilátor",
+        "6speed": "6 fokozatú ventilátor",
+        "100speed": "100 fokozatú ventilátor",
+        "none": "Nincs"
+      }
+    },
+    "forced_cmds": {
+      "options": {
+        "turn_on": "Bekapcsolás",
+        "turn_off": "Kikapcsolás"
+      }
+    },
+    "effects": {
+      "options": {
+        "rgb": "RGB ciklus",
+        "rgbk": "RGBK ciklus"
+      }
+    },
+    "presets": {
+      "options": {
+        "breeze": "Természetes szél",
+        "sleep": "Alvási mód"
+      }
+    }
+  },
+  "entity": {
+    "fan": {
+      "fan_0": {
+        "name": "Fő ventilátor",
+        "state_attributes": {
+          "preset_mode": {
+            "state": {
+              "breeze": "Természetes szél",
+              "sleep": "Alvási mód"
+            }
+          }
+        }
+      },
+      "fan_1": {
+        "name": "Második ventilátor",
+        "state_attributes": {
+          "preset_mode": {
+            "state": {
+              "breeze": "Természetes szél",
+              "sleep": "Alvási mód"
+            }
+          }
+        }
+      },
+      "fan_2": {
+        "name": "Harmadik ventilátor",
+        "state_attributes": {
+          "preset_mode": {
+            "state": {
+              "breeze": "Természetes szél",
+              "sleep": "Alvási mód"
+            }
+          }
+        }
+      }
+    },
+    "light": {
+      "light_0": {
+        "name": "Fő lámpa",
+        "state_attributes": {
+          "effect": {
+            "state": {
+              "rgb": "RGB ciklus",
+              "rgbk": "RGBK ciklus"
+            }
+          }
+        }
+      },
+      "light_1": {
+        "name": "Második lámpa",
+        "state_attributes": {
+          "effect": {
+            "state": {
+              "rgb": "RGB ciklus",
+              "rgbk": "RGBK ciklus"
+            }
+          }
+        }
+      },
+      "light_2": {
+        "name": "Harmadik lámpa",
+        "state_attributes": {
+          "effect": {
+            "state": {
+              "rgb": "RGB ciklus",
+              "rgbk": "RGBK ciklus"
+            }
+          }
+        }
+      }
+    }
+  },
+  "services": {
+    "inject_raw": {
+      "name": "Nyers BLE hirdetés beillesztése",
+      "description": "Nyers BLE hirdetés beillesztése bináris hex formátumban.",
+      "fields": {
+        "adapter_id": {
+          "name": "Adapter azonosító",
+          "description": "A használandó adapter neve."
+        },
+        "raw": {
+          "name": "Nyers BLE hirdetés",
+          "description": "Az elküldendő nyers BLE hirdetés."
+        },
+        "interval": {
+          "name": "Időköz",
+          "description": "Két hirdetés közötti időköz milliszekundumban."
+        },
+        "repeat": {
+          "name": "Ismétlés",
+          "description": "A hirdetés 'Ismétlés' alkalommal kerül elküldésre."
+        },
+        "device_queue": {
+          "name": "Eszköz sor neve",
+          "description": "A célzott eszköz sor neve, amely nem felel meg egyetlen azonosítónak sem: a különböző eszközök hirdetéseinek megkülönböztetésére és a megfelelő sorkezelés alkalmazására szolgál."
+        },
+        "duration": {
+          "name": "Minimális időtartam",
+          "description": "A minimális időtartam, amely előtt újabb hirdetés küldhető ugyanazzal az adapterrel/eszközzel, milliszekundumban."
+        }
+      }
+    }
+  }
+}
