@@ -12,10 +12,10 @@
         }
       },
       "no_adapters": {
-        "description": "Nebylo nalezeno žádné Bluetooth zařízení.\nPlease check the [Troubleshooting Guide - Step 1.2](https://github.com/NicoIIT/ha-ble-adv/wiki/Troubleshooting-Guide#step-12-bluetooth-adapter).",
+        "description": "Nebylo nalezeno žádné Bluetooth zařízení podporující BLE reklamy.\nProsím, zkontrolujte [Průvodce řešením problémů - Krok 1.2](https://github.com/NicoIIT/ha-ble-adv/wiki/Troubleshooting-Guide#step-12-bluetooth-adapter).",
         "menu_options": {
           "abort_no_adapters": "Přerušit",
-          "open_issue": "Open Issue"
+          "open_issue": "Otevřít problém"
         }
       },
       "tools": {
@@ -93,7 +93,7 @@
         "menu_options": {
           "wait_config": "Zkusit znovu",
           "abort_config": "Přerušit",
-          "open_issue": "Open Issue"
+          "open_issue": "Otevřít problém"
         }
       },
       "blink": {
@@ -138,10 +138,10 @@
         }
       },
       "open_issue": {
-        "title": "Open Issue",
-        "description": "1. Download the diagnostic dump by clicking the button below\n2. Open a Config Flow [issue](https://github.com/NicoIIT/ha-ble-adv/issues/new?template=discovery.yml) and attach the dump to it.",
+        "title": "Otevřít problém",
+        "description": "1. Stažete diagnostický výpis kliknutím na tlačítko níže\n2. Otevřete [problém s konfiguračním tokem](https://github.com/NicoIIT/ha-ble-adv/issues/new?template=discovery.yml) a přiložte k němu výpis.",
         "menu_options": {
-          "diag": "Download Diagnostic Dump"
+          "diag": "Stažení diagnostického výpisu"
         }
       },
       "configure": {
@@ -165,7 +165,7 @@
               "min_brightness": "Minimální jas",
               "refresh_on_start": "Vynutit obnovení barvy / jasu při zapnutí",
               "reversed": "Prohodit studená / teplá",
-              "forced_cmds": "Commands always sent even if nothing changed",
+              "forced_cmds": "Příkazy vždy odeslány i když se nic nezměnilo",
               "effects": "Režimy osvětlení"
             }
           },
@@ -176,7 +176,7 @@
               "min_brightness": "Minimální jas",
               "refresh_on_start": "Vynutit obnovení barvy / jasu při zapnutí",
               "reversed": "Prohodit studená / teplá",
-              "forced_cmds": "Commands always sent even if nothing changed",
+              "forced_cmds": "Příkazy vždy odeslány i když se nic nezměnilo",
               "effects": "Režimy osvětlení"
             }
           },
@@ -187,7 +187,7 @@
               "min_brightness": "Minimální jas",
               "refresh_on_start": "Vynutit obnovení barvy / jasu při zapnutí",
               "reversed": "Prohodit studená / teplá",
-              "forced_cmds": "Commands always sent even if nothing changed",
+              "forced_cmds": "Příkazy vždy odeslány i když se nic nezměnilo",
               "effects": "Režimy osvětlení"
             }
           },
@@ -199,7 +199,7 @@
               "oscillating": "Podporuje oscilaci",
               "refresh_dir_on_start": "Vynutit obnovení směru při zapnutí",
               "refresh_osc_on_start": "Vynutit obnovení oscilace při zapnutí",
-              "forced_cmds": "Commands always sent even if nothing changed",
+              "forced_cmds": "Příkazy vždy odeslány i když se nic nezměnilo",
               "presets": "Režimy ventilátoru"
             }
           },
@@ -211,7 +211,7 @@
               "oscillating": "Podporuje oscilaci",
               "refresh_dir_on_start": "Vynutit obnovení směru při zapnutí",
               "refresh_osc_on_start": "Vynutit obnovení oscilace při zapnutí",
-              "forced_cmds": "Commands always sent even if nothing changed",
+              "forced_cmds": "Příkazy vždy odeslány i když se nic nezměnilo",
               "presets": "Režimy ventilátoru"
             }
           },
@@ -223,7 +223,7 @@
               "oscillating": "Podporuje oscilaci",
               "refresh_dir_on_start": "Vynutit obnovení směru při zapnutí",
               "refresh_osc_on_start": "Vynutit obnovení oscilace při zapnutí",
-              "forced_cmds": "Commands always sent even if nothing changed",
+              "forced_cmds": "Příkazy vždy odeslány i když se nic nezměnilo",
               "presets": "Režimy ventilátoru"
             }
           }
@@ -277,7 +277,7 @@
       "no_config": "Nebyla zjištěna ani úspěšně otestována žádná konfigurace.",
       "not_implemented": "Zatím neimplementováno",
       "reconfigure_successful": "Rekonfigurace byla úspěšná!",
-      "already_configured": "Zařízení se stejným (kodek / ID / index) je už nakonfigurováno.\nMore info in the [Troubleshooting Guide - Step 3.3](https://github.com/NicoIIT/ha-ble-adv/wiki/Troubleshooting-Guide#step-33-device-unique_id)."
+      "already_configured": "Zařízení se stejným (kodek / ID / index) je už nakonfigurováno.\nVíce informací v [Průvodci řešením problémů - Krok 3.3](https://github.com/NicoIIT/ha-ble-adv/wiki/Troubleshooting-Guide#step-33-device-unique_id)."
     },
     "error": {
       "missing_entity": "Je potřeba nakonfigurovat aspoň jeden ventilátor nebo světlo.",
@@ -303,8 +303,8 @@
     },
     "forced_cmds": {
       "options": {
-        "turn_on": "Turn ON",
-        "turn_off": "Turn OFF"
+        "turn_on": "Zapnout",
+        "turn_off": "Vypnout"
       }
     },
     "effects": {
