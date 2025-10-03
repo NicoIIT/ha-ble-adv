@@ -13,6 +13,7 @@ from .const import (
     FAN_TYPE,
     FAN_TYPE_3SPEED,
     FAN_TYPE_6SPEED,
+    FAN_TYPE_100SPEED,
     LIGHT_TYPE,
     LIGHT_TYPE_CWW,
     LIGHT_TYPE_ONOFF,
@@ -231,6 +232,13 @@ class Fan6SpeedCmd(EntityMatcher):
         super().__init__(FAN_TYPE, index, FAN_TYPE_6SPEED)
 
 
+class Fan100SpeedCmd(EntityMatcher):
+    """Specific 100 level speed Fan Matcher."""
+
+    def __init__(self, index: int = 0) -> None:
+        super().__init__(FAN_TYPE, index, FAN_TYPE_100SPEED)
+
+
 class LightCmd(EntityMatcher):
     """Specific Light Base Matcher."""
 
@@ -364,7 +372,7 @@ class BleAdvCodec(ABC):
     debug_mode: bool = False
     duration: int = 750
     interval: int = 30
-    repeat: int = 3
+    repeat: int = 9
     ign_duration: int = 12000
     multi_advs: bool = False
 

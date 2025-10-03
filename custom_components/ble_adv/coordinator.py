@@ -53,6 +53,9 @@ class BleAdvBaseDevice:
         """Return True if the device is available: if one of the adapters is available."""
         return any(adapter_id in self.coordinator.get_adapter_ids() for adapter_id in self.adapter_ids)
 
+    def update_availability(self) -> None:
+        """Update availability."""
+
     def add_listener(self, codec_id: str, config: BleAdvConfig) -> None:
         """Add a listener to this device."""
         self.in_use_codec_ids.add(codec_id)
@@ -70,8 +73,8 @@ class BleAdvBaseDevice:
     async def apply_cmd(self, enc_cmd: BleAdvEncCmd) -> None:
         """Apply command."""
         advs: list[BleAdvAdvertisement] = self.codec.encode_advs(enc_cmd, self.config)
-        qi = BleAdvQueueItem(enc_cmd.cmd, self.repeat, self.duration, self.interval, [x.to_raw() for x in advs], self.codec.ign_duration)
         for adapter_id in self.adapter_ids:
+            qi = BleAdvQueueItem(enc_cmd.cmd, self.repeat, self.duration, self.interval, [x.to_raw() for x in advs], self.codec.ign_duration)
             await self.coordinator.advertise(adapter_id, self.unique_id, qi)
 
     async def advertise(self, ent_attr: BleAdvEntAttr) -> None:
@@ -119,8 +122,10 @@ class BleAdvCoordinator:
         self._devices: list[BleAdvBaseDevice] = []
         self._in_use_codecs: set[str] = set()
 
-        self._hci_bt_manager: BleAdvBtHciManager = BleAdvBtHciManager(self.handle_raw_adv, ign_adapters)
-        self._esp_bt_manager: BleAdvEspBtManager = BleAdvEspBtManager(self.hass, self.handle_raw_adv, ign_duration, ign_cids, ign_macs)
+        self._hci_bt_manager: BleAdvBtHciManager = BleAdvBtHciManager(self.handle_raw_adv, self.on_adapter_change, ign_adapters)
+        self._esp_bt_manager: BleAdvEspBtManager = BleAdvEspBtManager(
+            self.hass, self.handle_raw_adv, self.on_adapter_change, ign_duration, ign_cids, ign_macs
+        )
 
         self._stop_listening_time: datetime | None = None
         self.listened_raw_advs: list[bytes] = []
@@ -151,6 +156,12 @@ class BleAdvCoordinator:
     def has_available_adapters(self) -> bool:
         """Check if the coordinator has available adapters."""
         return len(self._hci_bt_manager.adapters) > 0 or len(self._esp_bt_manager.adapters) > 0
+
+    async def on_adapter_change(self, adapter_id: str, _: bool) -> None:
+        """Update availability on Adapter added / removed."""
+        for device in self._devices:
+            if adapter_id in device.adapter_ids:
+                device.update_availability()
 
     async def on_stop_event(self, _: Event) -> None:
         """Act on stop event."""
@@ -207,7 +218,7 @@ class BleAdvCoordinator:
         except ValueError:
             return {CONF_RAW: "Cannot convert to bytes"}
         ign_duration = 4 * dt[CONF_REPEAT] * dt[CONF_INTERVAL]
-        qi: BleAdvQueueItem = BleAdvQueueItem(None, 3 * dt[CONF_REPEAT], dt[CONF_DURATION], dt[CONF_INTERVAL], [raw], ign_duration)
+        qi: BleAdvQueueItem = BleAdvQueueItem(None, dt[CONF_REPEAT], dt[CONF_DURATION], dt[CONF_INTERVAL], [raw], ign_duration)
         await self.advertise(dt[CONF_ADAPTER_ID], dt[CONF_DEVICE_QUEUE], qi)
         return {}
 
@@ -236,7 +247,7 @@ class BleAdvCoordinator:
         if raw_adv not in self.listened_raw_advs:
             self.listened_raw_advs.append(raw_adv)
         for codec_id, acodec in self.codecs.items():
-            enc_cmd, conf = acodec.decode_adv(BleAdvAdvertisement.FromRaw(raw_adv))
+            __, conf = acodec.decode_adv(BleAdvAdvertisement.FromRaw(raw_adv))
             if conf is not None:
                 data = (adapter_id, codec_id, acodec.match_id, conf)
                 if data not in self.listened_decoded_confs:
@@ -307,11 +318,13 @@ class BleAdvCoordinator:
         return {
             "hci": self._hci_bt_manager.diagnostic_dump(),
             "esp": self._esp_bt_manager.diagnostic_dump(),
-            "codec_ids": list(self.codecs.keys()),
             "ign_adapters": self.ign_adapters,
             "ign_duration": self.ign_duration,
             "ign_cids": list(self.ign_cids),
             "ign_macs": list(self.ign_macs),
+            "last_emitted": {x.hex().upper(): y for x, y in self._emit_last_advs.items()},
+            "last_unk_raw": {x.hex().upper(): y for x, y in self._raw_last_advs.items()},
+            "last_dec_raw": {x.hex().upper(): y for x, y in self._dec_last_advs.items()},
         }
 
     async def full_diagnostic_dump(self) -> dict[str, Any]:

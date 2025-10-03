@@ -48,7 +48,10 @@ from .const import (
     CONF_DURATION,
     CONF_EFFECTS,
     CONF_FANS,
+    CONF_FORCED_CMDS,
     CONF_FORCED_ID,
+    CONF_FORCED_OFF,
+    CONF_FORCED_ON,
     CONF_INDEX,
     CONF_INTERVAL,
     CONF_LAST_VERSION,
@@ -63,6 +66,7 @@ from .const import (
     CONF_REFRESH_OSC_ON_START,
     CONF_REMOTE,
     CONF_REPEAT,
+    CONF_REPEATS,
     CONF_REVERSED,
     CONF_TECHNICAL,
     CONF_TYPE_NONE,
@@ -335,7 +339,18 @@ class BleAdvConfigFlow(ConfigFlow, domain=DOMAIN):
 
         self._data: dict[str, Any] = {}
         self._finalize_requested: bool = False
-        self._last_inject: dict[str, Any] = {CONF_RAW: "", CONF_INTERVAL: 20, CONF_REPEAT: 3}
+        self._last_inject: dict[str, Any] = {CONF_RAW: "", CONF_INTERVAL: 20, CONF_REPEATS: 9}
+
+        self._diags: list[str] = []
+        self._return_step_after_diag: str = ""
+
+    def _add_diag(self, msg: str, log_level: int = logging.DEBUG) -> None:
+        _LOGGER.log(log_level, msg)
+        self._diags.append(f"{datetime.now()} - {msg}")
+
+    async def _diagnostic_dump(self) -> dict[str, Any]:
+        """Diagnostic dump."""
+        return {**await self.coordinator.full_diagnostic_dump(), "flow": self._diags}
 
     def _remote_conf_placeholders(self) -> dict[str, str]:
         conf = self._data[CONF_REMOTE]
@@ -349,11 +364,11 @@ class BleAdvConfigFlow(ConfigFlow, domain=DOMAIN):
     def _get_device(self, name: str, adapter_id: str, config: _CodecConfig, duration: int | None = None) -> BleAdvBaseDevice:
         codec: BleAdvCodec = self.coordinator.codecs[config.codec_id]
         duration = duration if duration is not None else codec.duration
-        repeat = 3 * codec.repeat
-        return BleAdvBaseDevice(self.coordinator, name, config.codec_id, [adapter_id], repeat, codec.interval, duration, config)
+        return BleAdvBaseDevice(self.coordinator, name, config.codec_id, [adapter_id], codec.repeat, codec.interval, duration, config)
 
     async def async_blink_light(self) -> None:
         """Blink."""
+        self._add_diag(f"Start blink - {self._confs.selected_adapter()} / {self._confs.selected()}.")
         tmp_device: BleAdvBaseDevice = self._get_device("cf", self._confs.selected_adapter(), self._confs.selected())
         on_cmd = BleAdvEntAttr([ATTR_ON], {ATTR_ON: True}, LIGHT_TYPE, 0)
         off_cmd = BleAdvEntAttr([ATTR_ON], {ATTR_ON: False}, LIGHT_TYPE, 0)
@@ -370,9 +385,11 @@ class BleAdvConfigFlow(ConfigFlow, domain=DOMAIN):
         await tmp_device.advertise(off_cmd)
         await asyncio.sleep(1)
         self.async_update_progress(1)
+        self._add_diag("Stop blink.")
 
     async def async_pair_all(self) -> None:
         """Pair."""
+        self._add_diag(f"Start pair - {self._confs.selected_adapter()} / {self._confs.selected_confs()}.")
         pair_cmd = BleAdvEntAttr([ATTR_CMD], {ATTR_CMD: ATTR_CMD_PAIR}, DEVICE_TYPE, 0)
         adapter_id = self._confs.selected_adapter()
         for i, config in enumerate(self._confs.selected_confs()):
@@ -380,6 +397,7 @@ class BleAdvConfigFlow(ConfigFlow, domain=DOMAIN):
             await tmp_device.advertise(pair_cmd)
             await asyncio.sleep(0.3)
         await asyncio.sleep(2)
+        self._add_diag("Stop pair.")
 
     def _create_api_view(self, response: web.Response) -> str:
         async def api_resp() -> web.Response:
@@ -401,23 +419,30 @@ class BleAdvConfigFlow(ConfigFlow, domain=DOMAIN):
 
     async def async_step_user(self, _: dict[str, Any] | None = None) -> ConfigFlowResult:
         """Handle the user step to setup a device."""
-        _LOGGER.debug("Config flow 'user' started.")
+        self._add_diag("Config flow 'user' started.")
         self.coordinator: BleAdvCoordinator = await get_coordinator(self.hass)
         if not self.coordinator.has_available_adapters():
-            return self.async_abort(reason="no_adapters")
+            return await self.async_step_no_adapters()
         return self.async_show_menu(step_id="user", menu_options=["wait_config", "manual", "pair", "tools"])
+
+    async def async_step_no_adapters(self, _: dict[str, Any] | None = None) -> ConfigFlowResult:
+        """No Adapter Step."""
+        return self.async_show_menu(step_id="no_adapters", menu_options=["abort_no_adapters", "open_issue"])
+
+    async def async_step_abort_no_adapters(self, _: dict[str, Any] | None = None) -> ConfigFlowResult:
+        """No Adapter Abort Step."""
+        return self.async_abort(reason="no_adapters")
 
     async def async_step_tools(self, _: dict[str, Any] | None = None) -> ConfigFlowResult:
         """Tooling Step."""
+        self._return_step_after_diag = "tools"
         return self.async_show_menu(step_id="tools", menu_options=["diag", "inject", "listen_raw", "decode_raw"])
 
     async def async_step_diag(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         """Diagnostic step."""
         if user_input is not None:
-            return self.async_external_step_done(next_step_id="tools")
-
-        diag = await self.coordinator.full_diagnostic_dump()
-        return self.async_external_step(url=self._create_api_json_view("ble_adv_diag", diag))
+            return self.async_external_step_done(next_step_id=self._return_step_after_diag)
+        return self.async_external_step(url=self._create_api_json_view("ble_adv_diag", await self._diagnostic_dump()))
 
     async def async_step_inject(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         """Manual injection step."""
@@ -480,8 +505,10 @@ class BleAdvConfigFlow(ConfigFlow, domain=DOMAIN):
         if user_input is not None:
             codec = _CodecConfig(user_input[CONF_CODEC_ID], int(f"0x{user_input[CONF_FORCED_ID]}", 16), int(user_input[CONF_INDEX]))
             self._confs = BleAdvConfigHandler({user_input[CONF_ADAPTER_ID]: [codec]})
+            self._add_diag(f"Step Manual - confs: {self._confs}")
             return await self.async_step_blink()
 
+        self._add_diag("Step Manual")
         data_schema = vol.Schema(
             {
                 vol.Required(CONF_ADAPTER_ID): vol.In(self.coordinator.get_adapter_ids()),
@@ -501,8 +528,10 @@ class BleAdvConfigFlow(ConfigFlow, domain=DOMAIN):
             gen_id = randint(0xFF, 0xFFF5)
             codecs = [_CodecConfig(codec_id, gen_id, 1) for codec_id in PHONE_APPS[user_input[CONF_PHONE_APP]]]
             self._confs = BleAdvConfigHandler({user_input[CONF_ADAPTER_ID]: codecs})
+            self._add_diag(f"Step Pair - confs: {self._confs}")
             return await self.async_step_wait_pair()
 
+        self._add_diag("Step Pair")
         data_schema = vol.Schema(
             {
                 vol.Required(CONF_ADAPTER_ID): vol.In(self.coordinator.get_adapter_ids()),
@@ -531,12 +560,14 @@ class BleAdvConfigFlow(ConfigFlow, domain=DOMAIN):
         if (flow_res := self._progress.next()) is not None:
             return flow_res
         self._confs = BleAdvConfigHandler(cast("BleAdvWaitConfigProgress", self._progress).configs)
+        self._add_diag(f"Wait Config - Raw advs: {[x.hex().upper() for x in self.coordinator.listened_raw_advs]}")
+        self._add_diag(f"Wait Config - Confs: {self._confs}")
         self._progress = None
         return self.async_show_progress_done(next_step_id="no_config" if self._confs.is_empty() else "choose_adapter")
 
     async def async_step_no_config(self, _: dict[str, Any] | None = None) -> ConfigFlowResult:
         """No Config found, abort or retry."""
-        return self.async_show_menu(step_id="no_config", menu_options=["wait_config", "abort_config"])
+        return self.async_show_menu(step_id="no_config", menu_options=["wait_config", "abort_config", "open_issue"])
 
     async def async_step_abort_config(self, _: dict[str, Any] | None = None) -> ConfigFlowResult:
         """No Config found, abort."""
@@ -544,13 +575,12 @@ class BleAdvConfigFlow(ConfigFlow, domain=DOMAIN):
 
     async def async_step_choose_adapter(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         """Choose adapter."""
-        if user_input is None:
-            _LOGGER.info(f"Configs listened: {self._confs}")
         if len(self._confs.adapters) != 1:
             if user_input is not None:
                 self._confs.set_selected_adapter(user_input[CONF_ADAPTER_ID])
                 return await self.async_step_blink()
 
+            self._add_diag("Selecting adapter.")
             data_schema = vol.Schema({vol.Required(CONF_ADAPTER_ID): vol.In(self._confs.adapters)})
             return self.async_show_form(step_id="choose_adapter", data_schema=data_schema)
 
@@ -567,8 +597,14 @@ class BleAdvConfigFlow(ConfigFlow, domain=DOMAIN):
 
     async def async_step_confirm(self, _: dict[str, Any] | None = None) -> ConfigFlowResult:
         """Confirm choice Step."""
-        opts = ["confirm_yes", "confirm_no_another" if self._confs.has_next() else "confirm_no_abort", "confirm_retry_last", "confirm_retry_all"]
+        varying_choices = ["confirm_no_another"] if self._confs.has_next() else ["confirm_no_abort", "open_issue"]
+        opts = ["confirm_yes", *varying_choices, "confirm_retry_last", "confirm_retry_all"]
         return self.async_show_menu(step_id="confirm", menu_options=opts, description_placeholders=self._confs.placeholders())
+
+    async def async_step_open_issue(self, _: dict[str, Any] | None = None) -> ConfigFlowResult:
+        """Open issue Step."""
+        self._return_step_after_diag = "open_issue"
+        return self.async_show_menu(step_id="open_issue", menu_options=["diag"])
 
     async def async_step_confirm_yes(self, _: dict[str, Any] | None = None) -> ConfigFlowResult:
         """Confirm YES Step."""
@@ -584,7 +620,7 @@ class BleAdvConfigFlow(ConfigFlow, domain=DOMAIN):
                 CONF_ADAPTER_IDS: [self._confs.selected_adapter()],
                 CONF_DURATION: codec.duration,
                 CONF_INTERVAL: codec.interval,
-                CONF_REPEAT: codec.repeat,
+                CONF_REPEATS: codec.repeat,
             },
         }
         return await self.async_step_configure()
@@ -629,6 +665,7 @@ class BleAdvConfigFlow(ConfigFlow, domain=DOMAIN):
 
         codec: BleAdvCodec = self.coordinator.codecs[self._data[CONF_DEVICE][CONF_CODEC_ID]]
         sections: dict[str, tuple[dict[vol.Schemable, Any], bool]] = {}
+        forced_cmds = [CONF_FORCED_ON, CONF_FORCED_OFF]
 
         # Build one section for each Light supported by the codec
         for i, feats in enumerate(codec.get_supported_features(LIGHT_TYPE)):
@@ -645,10 +682,13 @@ class BleAdvConfigFlow(ConfigFlow, domain=DOMAIN):
                     schema_opts[vol.Required(CONF_REFRESH_ON_START, default=opts.get(CONF_REFRESH_ON_START, False))] = bool
                 if LIGHT_TYPE_CWW in types:
                     schema_opts[vol.Required(CONF_REVERSED, default=opts.get(CONF_REVERSED, False))] = bool
+                schema_opts[vol.Required(CONF_FORCED_CMDS, default=opts.get(CONF_FORCED_CMDS, []))] = self._get_multi_selector(
+                    CONF_FORCED_CMDS, forced_cmds
+                )
                 if ATTR_EFFECT in feats:
                     effects = list(feats[ATTR_EFFECT])
                     schema_opts[vol.Required(CONF_EFFECTS, default=opts.get(CONF_EFFECTS, effects))] = self._get_multi_selector(CONF_EFFECTS, effects)
-                sections[f"{LIGHT_TYPE}_{i}"] = (schema_opts, (i > 0) and CONF_TYPE in opts)
+                sections[f"{LIGHT_TYPE}_{i}"] = (schema_opts, (i == 0) or CONF_TYPE in opts)
 
         # Build one section for each Fan supported by the codec
         for i, feats in enumerate(codec.get_supported_features(FAN_TYPE)):
@@ -664,14 +704,17 @@ class BleAdvConfigFlow(ConfigFlow, domain=DOMAIN):
                 if ATTR_OSC in feats:
                     schema_opts[vol.Required(CONF_USE_OSC, default=opts.get(CONF_USE_OSC, True))] = bool
                     schema_opts[vol.Required(CONF_REFRESH_OSC_ON_START, default=opts.get(CONF_REFRESH_OSC_ON_START, False))] = bool
+                schema_opts[vol.Required(CONF_FORCED_CMDS, default=opts.get(CONF_FORCED_CMDS, []))] = self._get_multi_selector(
+                    CONF_FORCED_CMDS, forced_cmds
+                )
                 if ATTR_PRESET in feats:
                     presets = list(feats[ATTR_PRESET])
                     schema_opts[vol.Required(CONF_PRESETS, default=opts.get(CONF_PRESETS, presets))] = self._get_multi_selector(CONF_PRESETS, presets)
-                sections[f"{FAN_TYPE}_{i}"] = (schema_opts, (i > 0) and CONF_TYPE in opts)
+                sections[f"{FAN_TYPE}_{i}"] = (schema_opts, CONF_TYPE in opts)
 
         # Finalize schema with all sections
         data_schema = vol.Schema(
-            {vol.Required(name): section(vol.Schema(sect), {"collapsed": collapsed}) for name, (sect, collapsed) in sections.items()}
+            {vol.Required(name): section(vol.Schema(sect), {"collapsed": not visible}) for name, (sect, visible) in sections.items()}
         )
 
         return self.async_show_form(step_id="config_entities", data_schema=data_schema, errors=errors)
@@ -738,7 +781,7 @@ class BleAdvConfigFlow(ConfigFlow, domain=DOMAIN):
                 vol.Optional(CONF_INTERVAL, default=def_tech[CONF_INTERVAL]): selector.NumberSelector(
                     selector.NumberSelectorConfig(step=10, min=10, max=150, mode=selector.NumberSelectorMode.BOX)
                 ),
-                vol.Optional(CONF_REPEAT, default=def_tech[CONF_REPEAT]): selector.NumberSelector(
+                vol.Optional(CONF_REPEATS, default=def_tech[CONF_REPEATS]): selector.NumberSelector(
                     selector.NumberSelectorConfig(step=1, min=1, max=20, mode=selector.NumberSelectorMode.BOX)
                 ),
             }
@@ -761,6 +804,7 @@ class BleAdvConfigFlow(ConfigFlow, domain=DOMAIN):
 
     async def async_step_reconfigure(self, _: dict[str, Any] | None = None) -> ConfigFlowResult:
         """Reconfigure Step."""
+        self._add_diag("'Reconfigure' flow started")
         self.coordinator = await get_coordinator(self.hass)
         self._data = {**self._get_reconfigure_entry().data}
         return await self.async_step_configure()

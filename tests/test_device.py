@@ -8,8 +8,9 @@ from unittest import mock
 from ble_adv.adapters import BleAdvQueueItem
 from ble_adv.codecs.const import ATTR_CMD, ATTR_CMD_PAIR, ATTR_CMD_TIMER, ATTR_CMD_TOGGLE, ATTR_ON, ATTR_SUB_TYPE, ATTR_TIME, DEVICE_TYPE
 from ble_adv.codecs.models import BleAdvAdvertisement, BleAdvConfig, BleAdvEncCmd, BleAdvEntAttr
+from ble_adv.const import CONF_FORCED_OFF, CONF_FORCED_ON
 from ble_adv.coordinator import BleAdvCoordinator
-from ble_adv.device import ATTR_IS_ON, BleAdvDevice, BleAdvEntity, BleAdvStateAttribute
+from ble_adv.device import ATTR_AVAILABLE, ATTR_IS_ON, BleAdvDevice, BleAdvEntity, BleAdvStateAttribute
 from homeassistant.const import STATE_ON
 from homeassistant.core import HomeAssistant, State
 
@@ -21,6 +22,7 @@ ATTR_STB = "stb"
 
 class _Entity(BleAdvEntity):
     _attr_is_on: bool = False
+    _attr_available: bool = False
     _attr_sta: str = "INIT"
     _attr_stb: str = "INITB"
     _state_attributes = frozenset(
@@ -67,9 +69,13 @@ async def test_device(hass: HomeAssistant) -> None:
     coord.add_device(device)
     ent0 = _Entity("ent_type", "ent_sub_type", device, 0)
     ent1 = _Entity("ent_type", "ent_sub_type", device, 1)
-    device.add_entity(ent0)
-    device.add_entity(ent1)
     assert not device.available
+    ent0.set_state_attribute(ATTR_AVAILABLE, True)
+    assert ent0.available
+    device.update_availability()
+    ent0.async_write_ha_state.assert_called_once()  # pyright: ignore[reportAttributeAccessIssue]
+    ent0.async_write_ha_state.reset_mock()  # pyright: ignore[reportAttributeAccessIssue]
+    assert not ent0.available
     on_cmd = BleAdvEntAttr([ATTR_ON], {ATTR_ON: True}, "ent_type", 0)
     await device.apply_change(on_cmd)
     coord.advertise.assert_called_once_with("my_adapter", "my_device", BleAdvQueueItem(0x10, 1, 100, 20, [adv.to_raw()], 2))
@@ -140,3 +146,13 @@ async def test_entity(device: _Device) -> None:
     await ent.async_turn_on(sta="VALAAA")
     assert ent.get_attrs() == {ATTR_ON: True, ATTR_SUB_TYPE: "ent_sub_type", ATTR_CMD: "VALAAA_SAVB"}
     device.assert_apply_change(ent, [ATTR_CMD])
+    ent.set_forced_cmds([CONF_FORCED_ON])
+    await ent.async_turn_on()
+    device.assert_apply_change(ent, [ATTR_ON])
+    await ent.async_turn_off()
+    device.assert_apply_change(ent, [ATTR_ON])
+    await ent.async_turn_off()
+    device.assert_no_change()
+    ent.set_forced_cmds([CONF_FORCED_OFF])
+    await ent.async_turn_off()
+    device.assert_apply_change(ent, [ATTR_ON])

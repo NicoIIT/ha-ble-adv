@@ -1,21 +1,47 @@
 ---
 name: "Bug report"
-description: "Report a bug on an existing feature of the integration."
+description: "Report a bug on an existing feature of a created integration."
 labels: ["bug"]
 body:
 - type: markdown
   attributes:
     value:  |
-      Before you open a new issue, search through the existing [issues](https://github.com/NicoIIT/ha-ble-adv/issues?q=is%3Aissue%20state%3Aopen%20label%3Abug) to see if others have had the same problem.
+      If your integration is NOT created successfully, then you should open a [Config Flow Discovery Issue](https://github.com/NicoIIT/ha-ble-adv/issues/new?template=discovery.yml) instead.
 
-      **If some of the mandatory info is not provided (or not provided in the requested format) then the issue will be rejected, and future requests may not even be considered.**
+      As a remainder:
+      * YOU have a problem
+      * YOU are requesting the maintainer to help YOU
+      * The maintainer is working for free and has no obligation to help YOU
 
-      I spent several months working on this component, you can spend several minutes providing the mandatory info I need to investigate your issue.
+      The maintainer may be annoyed and reluctant to help you if:
+      * the answer to your issue is already in the docs that you obviously did not carefully read, so please read the docs first
+      * your issue was already adressed in another Issue (opened or closed), so please check other issues before opening a new one
+      * some of the mandatory info is not provided (or not provided in the requested format) and then the issue CANNOT be investigated
+      * you do not fill the mandatory info by lazyness with comments such as 'not available' or 'not needed' or 'let me know if you need more info': all requested info ARE available AND needed and MUST be provided directly.
+
+      If the maintainer is annoyed:
+      * YOUR issue will be rejected
+      * YOU will have no help with YOUR problem
+
+      If the maintainer is REALLY annoyed:
+      * YOUR future issues or requests will be ignored
+      * YOU will be banned.
 
 - type: textarea
   attributes:
     label: "Describe the issue"
     description: "A clear and concise description of what the issue is. 'It does not work' is not a valid description. Do not hesitate to add screenshots of the errors you are facing."
+  validations:
+    required: true
+
+- type: textarea
+  attributes:
+    label: Describe your physical setup
+    description: "Describe your setup by completing what follows (Please note some of the values MUST follow the recommended values in the Troubleshooting Guide)."
+    value: |
+      - Distance between the controller (Phone or Remote) and the Bluetooth Adapter: XX meters in direct view (no wall)
+      - Distance between the controller and the Device: XX meters in direct view (no wall)
+      - Distance between the Device and the Bluetooth Adapter: XX meters with a 30cm concrete wall in between
   validations:
     required: true
 
@@ -35,18 +61,8 @@ body:
   attributes:
     label: "Debug logs"
     description: |
-      To enable debug logs add this to your [configuration.yaml](https://www.home-assistant.io/docs/configuration/), and restart your HA:
-      ```
-      ble_adv:
-
-      logger:
-        default: info
-        logs:
-          custom_components.ble_adv: debug
-      ```
-      More details in [logger](https://www.home-assistant.io/integrations/logger/) component.
-
-      This **needs** to include _everything_ from startup of Home Assistant to the point where you encounter the issue.
+      To enable debug logs please check the [Configuration Guide](https://github.com/NicoIIT/ha-ble-adv/wiki/Configuration-Guide#global-options).
+      To know how to access those logs please check Home Assistant doc.
   validations:
     required: true
 
@@ -54,8 +70,7 @@ body:
   attributes:
     label: "Diagnostics dump"
     description: |
-      If the integration was created: Drag the integration [diagnostic dump](https://www.home-assistant.io/integrations/diagnostics/) file here.
-      If the bug is in config flow phase: Drag the diagnostic dump from the config flow menu -> Tools and Helpers -> Diagnostic Dump
+      Drag the integration [diagnostic dump](https://www.home-assistant.io/integrations/diagnostics/) file here.
   validations:
     required: true
 
@@ -63,9 +78,9 @@ body:
   attributes:
     label: Checklist
     options:
-      - label: I checked the [troubleshooting guide](https://github.com/NicoIIT/ha-ble-adv/wiki/Troubleshooting-Guide) and it did not solve my issue
+      - label: I checked the [troubleshooting guide](https://github.com/NicoIIT/ha-ble-adv/wiki/Troubleshooting-Guide) and the [configuration guide](https://github.com/NicoIIT/ha-ble-adv/wiki/Configuration-Guide) and it did not solve my issue
         required: true
-      - label: I provided ALL mandatory info and in the requested format.
+      - label: I provided ALL mandatory info and in the requested format because I know that in the countrary the maintainer will not help.
         required: true
       - label: This issue only contains 1 issue (if you have multiple issues, open one issue for each issue).
         required: true

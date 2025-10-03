@@ -10,6 +10,8 @@ body:
   attributes:
     label: Checklist
     options:
+      - label: I have checked the [README](https://github.com/NicoIIT/ha-ble-adv?tab=readme-ov-file#home-assistant-ble-adv-ceiling-fan--lamps), the [config guide](https://github.com/NicoIIT/ha-ble-adv/wiki/Configuration-Guide) and the [troubleshooting guide](https://github.com/NicoIIT/ha-ble-adv/wiki/Troubleshooting-Guide) to be sure the feature is not existing alreay.
+        required: true
       - label: I have filled out the template to the best of my ability.
         required: true
       - label: This only contains 1 feature request (if you have multiple feature requests, open one feature request for each feature request).

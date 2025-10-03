@@ -62,7 +62,10 @@ async def test_split_queue() -> None:
     qi = BleAdvQueueItem(0, 10, 0, 10, [b"qi"], 2)
     assert hash(qi) != 0
     qi.split_repeat(60)
-    assert qi._adv_items == [BleAdvAdapterAdvItem(interval=10, repeat=6, data=b"qi", ign_duration=2)] * 2
+    assert qi._adv_items == [
+        BleAdvAdapterAdvItem(interval=10, repeat=6, data=b"qi", ign_duration=2),
+        BleAdvAdapterAdvItem(interval=10, repeat=4, data=b"qi", ign_duration=2),
+    ]
     qi = BleAdvQueueItem(0, 10, 0, 10, [b"qi"], 2)
     qi.split_repeat(150)
     assert qi._adv_items == [BleAdvAdapterAdvItem(interval=10, repeat=10, data=b"qi", ign_duration=2)]
@@ -228,6 +231,6 @@ async def test_btmanager_hci_error(bt_manager: BleAdvBtHciManager) -> None:
 
 
 async def test_ignored_hci() -> None:
-    bt_manager = BleAdvBtHciManager(mock.AsyncMock(), ["hci"])
+    bt_manager = BleAdvBtHciManager(mock.AsyncMock(), mock.AsyncMock(), ["hci"])
     await bt_manager.async_init()
     assert bt_manager._disabled

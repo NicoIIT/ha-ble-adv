@@ -11,6 +11,13 @@
           "tools": "Tools and Helpers"
         }
       },
+      "no_adapters": {
+        "description": "No Bluetooth adapter supporting BLE Advertising has been found.\nPlease check the [Troubleshooting Guide - Step 1.2](https://github.com/NicoIIT/ha-ble-adv/wiki/Troubleshooting-Guide#step-12-bluetooth-adapter).",
+        "menu_options": {
+          "abort_no_adapters": "Abort",
+          "open_issue": "Open Issue"
+        }
+      },
       "tools": {
         "title": "Tools and Helpers",
         "description": "Tooling section",
@@ -85,7 +92,8 @@
         "description": "No configuration listened within 10s",
         "menu_options": {
           "wait_config": "Retry",
-          "abort_config": "Abort"
+          "abort_config": "Abort",
+          "open_issue": "Open Issue"
         }
       },
       "blink": {
@@ -122,10 +130,18 @@
         "description": "Testing configuration {nb}/{tot}:\n\n    Codec: {codec}\n    Id: {id}\n    Index: {index}\n\nDid the light blink?",
         "menu_options": {
           "confirm_yes": "Yes!",
-          "confirm_no_another": "No, try another.",
-          "confirm_no_abort": "No, abort.",
+          "confirm_no_another": "No, try Next.",
+          "confirm_no_abort": "No, Abort.",
+          "open_issue": "No, Open Issue",
           "confirm_retry_last": "Retry the same.",
           "confirm_retry_all": "Retry from first."
+        }
+      },
+      "open_issue": {
+        "title": "Open Issue",
+        "description": "1. Download the diagnostic dump by clicking the button below\n2. Open a Config Flow [issue](https://github.com/NicoIIT/ha-ble-adv/issues/new?template=discovery.yml) and attach the dump to it.",
+        "menu_options": {
+          "diag": "Download Diagnostic Dump"
         }
       },
       "configure": {
@@ -149,6 +165,7 @@
               "min_brightness": "Minimum Brightness",
               "refresh_on_start": "Force color / brightness refresh when switched ON",
               "reversed": "Reverse Cold / Warm",
+              "forced_cmds": "Commands always sent even if nothing changed",
               "effects": "Light Modes"
             }
           },
@@ -159,6 +176,7 @@
               "min_brightness": "Minimum Brightness",
               "refresh_on_start": "Force color / brightness refresh when switched ON",
               "reversed": "Reverse Cold / Warm",
+              "forced_cmds": "Commands always sent even if nothing changed",
               "effects": "Light Modes"
             }
           },
@@ -169,6 +187,7 @@
               "min_brightness": "Minimum Brightness",
               "refresh_on_start": "Force color / brightness refresh when switched ON",
               "reversed": "Reverse Cold / Warm",
+              "forced_cmds": "Commands always sent even if nothing changed",
               "effects": "Light Modes"
             }
           },
@@ -180,6 +199,7 @@
               "oscillating": "Supports Oscillation",
               "refresh_dir_on_start": "Force direction refresh when switched ON",
               "refresh_osc_on_start": "Force oscillation refresh when switched ON",
+              "forced_cmds": "Commands always sent even if nothing changed",
               "presets": "Fan modes"
             }
           },
@@ -191,6 +211,7 @@
               "oscillating": "Supports Oscillation",
               "refresh_dir_on_start": "Force direction refresh when switched ON",
               "refresh_osc_on_start": "Force oscillation refresh when switched ON",
+              "forced_cmds": "Commands always sent even if nothing changed",
               "presets": "Fan modes"
             }
           },
@@ -202,6 +223,7 @@
               "oscillating": "Supports Oscillation",
               "refresh_dir_on_start": "Force direction refresh when switched ON",
               "refresh_osc_on_start": "Force oscillation refresh when switched ON",
+              "forced_cmds": "Commands always sent even if nothing changed",
               "presets": "Fan modes"
             }
           }
@@ -226,11 +248,11 @@
       },
       "config_technical": {
         "title": "Configure Technical Options",
-        "description": "Each command is advertised to the given adapter(s) (3 * 'Repetitions') times, at given 'Interval' (ms), and respecting a delay of 'Minimum Duration' in between 2 distinct commands.\n\nModify only if you know what you are doing!\n\nMultiple adapters are SERIOUSLY DISCOURAGED, no support will be provided.",
+        "description": "Each command is advertised to the given adapter(s) 'Repetitions' times, at given 'Interval' (ms), and respecting a delay of 'Minimum Duration' in between 2 distinct commands.\n\nModify only if you know what you are doing!\n\nMultiple adapters are SERIOUSLY DISCOURAGED, no support will be provided.",
         "data": {
           "adapter_ids": "BLE ADV Adapter(s)",
           "interval": "Interval",
-          "repeat": "Repetitions",
+          "repeats": "Repetitions",
           "duration": "Minimum Duration"
         }
       },
@@ -251,11 +273,11 @@
       "wait_config_remote": "Please press any button (preferably Pair) on the controller within {max_seconds}s."
     },
     "abort": {
-      "no_adapters": "No Bluetooth adapter has been found. Aborting.",
+      "no_adapters": "No Bluetooth adapter supporting BLE Advertising has been found, Aborting.",
       "no_config": "No configuration has been discovered or tested successfully.",
       "not_implemented": "Not Implemented (yet)",
       "reconfigure_successful": "Reconfigure successful!",
-      "already_configured": "A device with the same (codec / id / index) is already configured."
+      "already_configured": "A device with the same (codec / id / index) is already configured.\nMore info in the [Troubleshooting Guide - Step 3.3](https://github.com/NicoIIT/ha-ble-adv/wiki/Troubleshooting-Guide#step-33-device-unique_id)."
     },
     "error": {
       "missing_entity": "At least one Fan or Light must be configured.",
@@ -275,7 +297,14 @@
       "options": {
         "3speed": "3 Levels Fan",
         "6speed": "6 Levels Fan",
+        "100speed": "100 Levels Fan",
         "none": "None"
+      }
+    },
+    "forced_cmds": {
+      "options": {
+        "turn_on": "Turn ON",
+        "turn_off": "Turn OFF"
       }
     },
     "effects": {
@@ -382,7 +411,7 @@
         },
         "repeat": {
           "name": "Repeat",
-          "description": "The advertisement will be sent 3 * Repeat times."
+          "description": "The advertisement will be sent 'Repeat' times."
         },
         "device_queue": {
           "name": "Device Queue Name",

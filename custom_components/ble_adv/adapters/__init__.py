@@ -10,7 +10,7 @@ from collections import deque
 from collections.abc import Awaitable, Callable, Coroutine, MutableMapping
 from dataclasses import dataclass
 from datetime import datetime
-from math import ceil
+from math import floor
 from typing import Any, Self
 
 from btsocket.btmgmt_protocol import reader as btmgmt_reader
@@ -52,9 +52,11 @@ class BleAdvQueueItem:
 
     def split_repeat(self, adapter_bunch_time: int) -> None:
         """Split the initial repeat based on adapter capacity."""
-        adapter_repeat = max(1, min(int(adapter_bunch_time / self._interval), self._repeat))
-        repeat = max(1, ceil(self._repeat / adapter_repeat))
-        self._adv_items = [BleAdvAdapterAdvItem(self._interval, adapter_repeat, data, self.ign_duration) for data in self.data] * repeat
+        adapter_max_repeat = max(1, int(adapter_bunch_time / self._interval))
+        repeats = [adapter_max_repeat] * floor(self._repeat / adapter_max_repeat)
+        if (rem_repeats := self._repeat % adapter_max_repeat) > 0:
+            repeats.append(rem_repeats)
+        self._adv_items = [BleAdvAdapterAdvItem(self._interval, rep, data, self.ign_duration) for data in self.data for rep in repeats]
 
     def has_next(self) -> bool:
         """Return True if some items remains."""
@@ -464,13 +466,17 @@ def lb(buf: bytes) -> int:
     return int.from_bytes(buf, "little")
 
 
+type AdapterEventCallback = Callable[[str, bool], Awaitable[None]]
+
+
 class BleAdvBtManager:
     """Base Bluetooth Manager."""
 
-    def __init__(self) -> None:
+    def __init__(self, adapter_event_callback: AdapterEventCallback) -> None:
         self._adapters: dict[str, BleAdvAdapter] = {}
         self._id_to_name: dict[str, str] = {}
         self._diags: deque[str] = deque(maxlen=30)
+        self._adapter_event_callback: AdapterEventCallback = adapter_event_callback
 
     @property
     def adapters(self) -> dict[str, BleAdvAdapter]:
@@ -506,10 +512,12 @@ class BleAdvBtManager:
         self._id_to_name[adapter_id] = adapter_name
         self._adapters[adapter_name] = adapter
         await self._adapters[adapter_name].async_init()
+        await self._adapter_event_callback(adapter_name, True)
 
     async def _remove_adapter(self, adapter_name: str) -> None:
         self._add_diag(f"Removing adapter '{adapter_name}'")
         if (adapter := self._adapters.pop(adapter_name, None)) is not None:
+            await self._adapter_event_callback(adapter_name, False)
             await adapter.async_final()
             self._id_to_name = {k: v for k, v in self._id_to_name.items() if v != adapter_name}
 
@@ -524,8 +532,8 @@ class BleAdvBtHciManager(BleAdvBtManager):
     RECONNECT_RTO: float = 1.0
     CONF_HCI: str = "hci"
 
-    def __init__(self, adv_recv_callback: AdvRecvCallback, ign_adapters: list[str]) -> None:
-        super().__init__()
+    def __init__(self, adv_recv_callback: AdvRecvCallback, adapter_event_callback: AdapterEventCallback, ign_adapters: list[str]) -> None:
+        super().__init__(adapter_event_callback)
         self._mgmt_sock: AsyncSocketBase | None = None
         self._mgmt_cmd_event = asyncio.Event()
         self._og_mgmt_cmd = None
@@ -550,13 +558,13 @@ class BleAdvBtHciManager(BleAdvBtManager):
     async def async_init(self) -> None:
         """Init the handler: init the MGMT Socket and the discovered adapters."""
         if self._disabled:
-            _LOGGER.info("HCI Adapters disabled.")
+            self._add_diag("HCI Adapters disabled.", logging.INFO)
             return
         if self._mgmt_sock is None:
             self._mgmt_sock = create_async_socket()
         fileno = await self._mgmt_sock.async_init("mgmt", self._mgmt_recv, self._mgmt_close, True)
         await self._mgmt_sock.async_start_recv()
-        _LOGGER.info(f"MGMT Connected - fileno: {fileno}")
+        self._add_diag(f"MGMT Connected - fileno: {fileno}", logging.INFO)
         self._mgmt_opened = True
         # Controller Index List
         _, index_resp = await self.send_mgmt_cmd(0xFFFF, 0x03, b"")
@@ -610,7 +618,7 @@ class BleAdvBtHciManager(BleAdvBtManager):
         self._launch_refresh(f"MGMT Closure: {message}")
 
     def _launch_refresh(self, reason: str) -> None:
-        self._add_diag(f"Manager Refresh - {reason}")
+        self._add_diag(f"Manager Refresh - {reason}", logging.WARNING)
         if self._reconnecting:
             return
         self._reconnecting = True

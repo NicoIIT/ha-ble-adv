@@ -12,12 +12,16 @@ import pytest
 
 
 class _SocketMock(mock.MagicMock):
+    BP_ERROR: bytes = b"BP_ERROR"
+
     def init(self) -> None:
         self._recv_queue: asyncio.Queue = asyncio.Queue()
 
     async def sock_recv(self, _: Self, __: int) -> bytes:
         data = await self._recv_queue.get()
         self._recv_queue.task_done()
+        if data == self.BP_ERROR:
+            raise BrokenPipeError("broken pipe")
         return data
 
     def simulate_recv(self, data: bytes) -> None:
@@ -25,6 +29,9 @@ class _SocketMock(mock.MagicMock):
 
     def close(self) -> None:
         self._recv_queue.put_nowait(b"")
+
+    def broken_pipe_error(self) -> None:
+        self._recv_queue.put_nowait(self.BP_ERROR)
 
 
 @pytest.fixture

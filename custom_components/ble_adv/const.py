@@ -3,11 +3,16 @@
 from homeassistant.const import Platform
 
 DOMAIN = "ble_adv"
-PLATFORMS = [Platform.FAN, Platform.LIGHT]
+PLATFORMS = [Platform.LIGHT, Platform.FAN]
 
 CONF_COORDINATOR_ID = "coordinator_unique_id"
 
-CONF_LAST_VERSION = 5
+CONF_LAST_VERSION = 6
+
+CONF_IGN_ADAPTERS = "ignored_adapters"
+CONF_IGN_DURATION = "ignored_duration"
+CONF_IGN_CIDS = "ignored_cids"
+CONF_IGN_MACS = "ignored_macs"
 
 CONF_INDEX = "index"
 CONF_CODEC_ID = "codec_id"
@@ -20,7 +25,11 @@ CONF_RAW = "raw"
 CONF_TECHNICAL = "technical"
 CONF_INTERVAL = "interval"
 CONF_REPEAT = "repeat"
+CONF_REPEATS = "repeats"
 CONF_DURATION = "duration"
+CONF_FORCED_CMDS = "forced_cmds"
+CONF_FORCED_ON = "turn_on"
+CONF_FORCED_OFF = "turn_off"
 CONF_DEVICE_QUEUE = "device_queue"
 CONF_MIN_BRIGHTNESS = "min_brightness"
 CONF_USE_DIR = "direction"

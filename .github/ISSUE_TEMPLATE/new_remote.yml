@@ -1,6 +1,6 @@
 ---
 name: "Support New Physical Remote"
-description: "Request support for new Physical Remote not recognized yet."
+description: "Request for the support of a new Physical Remote that is using BLE ADV as a mechanism to control a Device."
 labels: ["enhancement"]
 body:
 - type: markdown
@@ -16,6 +16,12 @@ body:
         required: true
       - label: This issue is not a duplicate "Support New Physical Remote" request of [previous requests](https://github.com/NicoIIT/ha-ble-adv/issues?q=is%3Aissue%20state%3Aopen%20label%3Aenhancement).
         required: true
+
+- type: textarea
+  attributes:
+    label: "Supported Android Application controlling your Device (effectivelly or as per provider documentation)"
+    description: "It is much more easy to reverse engineer if the controlling Android App is known. Moreover it is nearly impossible to implement a correct control from a Physical Remote alone as the set of commands is not complete."
+
 
 - type: textarea
   attributes:

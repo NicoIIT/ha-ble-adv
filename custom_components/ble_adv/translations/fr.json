@@ -1,0 +1,427 @@
+{
+  "title": "Appareils controllés par Bluetooth Low Energy Advertising",
+  "config": {
+    "step": {
+      "user": {
+        "description": "Avant de commencer, placez-vous dans la même pièce que l'appareil à controller!",
+        "menu_options": {
+          "manual": "Entrée Manuelle (Expert)",
+          "wait_config": "Dupliquer la configuration d'une application pour smartphone déjà appairée (Recommandé)",
+          "pair": "Appairage",
+          "tools": "Outils"
+        }
+      },
+      "no_adapters": {
+        "description": "Aucun Adaptateur Bluetooth supportant le BLE Advertising n'a été détecté.\nVeuillez suivre le [Troubleshooting Guide - Step 1.2](https: //github.com/NicoIIT/ha-ble-adv/wiki/Troubleshooting-Guide#step-12-bluetooth-adapter).",
+        "menu_options": {
+          "abort_no_adapters": "Quitter",
+          "open_issue": "Ouvrir une Issue"
+        }
+      },
+      "tools": {
+        "title": "Outils",
+        "description": "Section outillage",
+        "menu_options": {
+          "diag": "Fichier de Diagnostic",
+          "inject": "Injection de message BLE ADV brut",
+          "listen_raw": "Ecoute de messages BLE ADV brut",
+          "decode_raw": "Décodage de message BLE ADV brut"
+        }
+      },
+      "diag": {
+        "title": "Fichier de Diagnostic"
+      },
+      "listen_raw": {
+        "title": "Listen to BLE ADV"
+      },
+      "listen_raw_res": {
+        "title": "Ecoute de messages BLE ADV brut",
+        "description": "Messages BLE ADV reçus:\n{advs}",
+        "menu_options": {
+          "listen_raw": "Réessayer",
+          "tools": "Retour aux Outils"
+        }
+      },
+      "inject": {
+        "title": "Injection de messages",
+        "description": "Pour utilisateurs expérientés, injection de lessages BLE ADV bruts",
+        "data": {
+          "adapter_id": "BLE ADV Adaptateur",
+          "raw": "Message Brut",
+          "interval": "Interval",
+          "repeat": "Répétition"
+        }
+      },
+      "inject_res": {
+        "title": "Résultat de l'injection",
+        "description": "Injection effectuée.",
+        "menu_options": {
+          "inject": "Injection d'un nouveau message",
+          "tools": "Retour aux Outils"
+        }
+      },
+      "decode_raw": {
+        "title": "Décodage de messages BLE ADV bruts",
+        "data": {
+          "raw": "Message brut"
+        }
+      },
+      "decode_raw_res": {
+        "title": "Résultat de décodage",
+        "description": "{conf}",
+        "menu_options": {
+          "decode_raw": "Décodage d'un nouveau message",
+          "tools": "Retour aux Outils"
+        }
+      },
+      "manual": {
+        "title": "Entrée Manuelle",
+        "description": "Pour utilisateurs expérimentés, migrants d'une solution ESPHome par exemple",
+        "data": {
+          "name": "Nom de l'Appareil",
+          "codec_id": "Codec",
+          "adapter_id": "Adaptateur BLE ADV",
+          "forced_id": "ID",
+          "index": "Index"
+        }
+      },
+      "wait_config": {
+        "title": "Ecoute de configuration d'une application de Smartphone déjà appairée."
+      },
+      "no_config": {
+        "description": "Aucune configuration découverte en 10s",
+        "menu_options": {
+          "wait_config": "Réessayer",
+          "abort_config": "Quitter",
+          "open_issue": "Ouvrir une Issue"
+        }
+      },
+      "blink": {
+        "title": "Test de Configuration"
+      },
+      "pair": {
+        "title": "Appairage",
+        "description": "Veuillez sélectionner l'adaptateur Bluetooth le plus proche de votre Appareil, couper l'alimentation électrique de votre appareil, la remettre et appuyer sur le bouton **Soummettre** dans les 5 seconds (cela enverra les commandes d'appairage)",
+        "data": {
+          "adapter_id": "Adaptateur BLE ADV",
+          "phone_app": "Application Android"
+        }
+      },
+      "wait_pair": {
+        "title": "Appairage"
+      },
+      "confirm_pair": {
+        "description": "L'appairage a-t-il été un succès? Normalement la lampe a clignoté si c'est le cas, mais ce n'est peut-être pas la même chose pour tous les appareils...",
+        "menu_options": {
+          "pair": "Appairage râté, réessayer",
+          "confirm_no_abort": "Appairage râté, quitter",
+          "blink": "Appairage réussi, tester les configurations"
+        }
+      },
+      "choose_adapter": {
+        "title": "Selection de l'Adaptateur",
+        "description": "Plus d'un adaptateur Bluetooth à reçu des messages BLE ADV, sélectionner le plus proche de votre appareil.",
+        "data": {
+          "adapter_id": "Adaptateur BLE ADV"
+        }
+      },
+      "confirm": {
+        "title": "Validation",
+        "description": "Test de la configuration {nb}/{tot}:\n\n    Codec: {codec}\n    Id: {id}\n    Index: {index}\n\nEst-ce que la lampe a clignoté?",
+        "menu_options": {
+          "confirm_yes": "Oui!",
+          "confirm_no_another": "Non, Essayer la configuration suivante.",
+          "confirm_no_abort": "Non, Quitter.",
+          "open_issue": "Non, Ouvrir une Issue",
+          "confirm_retry_last": "Réessayer la même configuration.",
+          "confirm_retry_all": "Réessayer depuis le début."
+        }
+      },
+      "open_issue": {
+        "title": "Ouvrir une Issue",
+        "description": "1. Télécharger le fichier de Diagnostic\n2. Ouvrir une [Issue](https://github.com/NicoIIT/ha-ble-adv/issues/new?template=discovery.yml) et y attacher le fichier de diagnostic téléchargé.",
+        "menu_options": {
+          "diag": "Fichier de Diagnostic"
+        }
+      },
+      "configure": {
+        "title": "Configuration",
+        "description": "Configuration des Entités, Télécommandes et paramètres techniques.\nCes informations peuvent être modifiées a posteriori en utilisant la 'Reconfiguration'.",
+        "menu_options": {
+          "config_entities": "Configurer les lampes / ventilateurs",
+          "config_remote": "Configurer une autre controlleur (Télécommande, ..)",
+          "config_technical": "Paramètres Technique",
+          "finalize": "Finaliser"
+        }
+      },
+      "config_entities": {
+        "title": "Entités",
+        "description": "Selectionner les Entités à créer et leurs propriétés",
+        "sections": {
+          "light_0": {
+            "name": "Lampe principale",
+            "data": {
+              "type": "Type",
+              "min_brightness": "Luminosité Minimum",
+              "refresh_on_start": "Forcer le rafraichissement de la Température / Luminosité au démarrage",
+              "reversed": "Inverser Chaud / Froid",
+              "forced_cmds": "Commandes systématiquement envoyées même sans changement",
+              "effects": "Effets"
+            }
+          },
+          "light_1": {
+            "name": "Lampe secondaire",
+            "data": {
+              "type": "Type",
+              "min_brightness": "Luminosité Minimum",
+              "refresh_on_start": "Forcer le rafraichissement de la Température / Luminosité au démarrage",
+              "reversed": "Inverser Chaud / Froid",
+              "forced_cmds": "Commandes systématiquement envoyées même sans changement",
+              "effects": "Effets"
+            }
+          },
+          "light_2": {
+            "name": "Troisième lampe",
+            "data": {
+              "type": "Type",
+              "min_brightness": "Luminosité Minimum",
+              "refresh_on_start": "Forcer le rafraichissement de la Température / Luminosité au démarrage",
+              "reversed": "Inverser Chaud / Froid",
+              "forced_cmds": "Commandes systématiquement envoyées même sans changement",
+              "effects": "Effets"
+            }
+          },
+          "fan_0": {
+            "name": "Ventilateur Principal",
+            "data": {
+              "type": "Type",
+              "direction": "Supporte le changement de direction",
+              "oscillating": "Supporte l'oscillation",
+              "refresh_dir_on_start": "Forcer le rafraichissement de la direction au démarrage",
+              "refresh_osc_on_start": "Forcer le rafraichissement de la oscillation au démarrage",
+              "forced_cmds": "Commandes systématiquement envoyées même sans changement",
+              "presets": "Modes"
+            }
+          },
+          "fan_1": {
+            "name": "Deuxième Ventilateur",
+            "data": {
+              "type": "Type",
+              "direction": "Supporte le changement de direction",
+              "oscillating": "Supporte l'oscillation",
+              "refresh_dir_on_start": "Forcer le rafraichissement de la direction au démarrage",
+              "refresh_osc_on_start": "Forcer le rafraichissement de la oscillation au démarrage",
+              "forced_cmds": "Commandes systématiquement envoyées même sans changement",
+              "presets": "Modes"
+            }
+          },
+          "fan_2": {
+            "name": "Troisième Ventilateur",
+            "data": {
+              "type": "Type",
+              "direction": "Supporte le changement de direction",
+              "oscillating": "Supporte l'oscillation",
+              "refresh_dir_on_start": "Forcer le rafraichissement de la direction au démarrage",
+              "refresh_osc_on_start": "Forcer le rafraichissement de la oscillation au démarrage",
+              "forced_cmds": "Commandes systématiquement envoyées même sans changement",
+              "presets": "Modes"
+            }
+          }
+        }
+      },
+      "config_remote": {
+        "title": "Configurer une Télécommande",
+        "description": "Télécommande associée:\n\n    Codec: {codec}\n    Id: {id}\n    Index: {index}",
+        "menu_options": {
+          "config_remote_delete": "Dissocier la Télécommande",
+          "config_remote_update": "Modifier les Options",
+          "wait_config_remote": "Changer la Télécommande",
+          "configure": "Retour"
+        }
+      },
+      "wait_config_remote": {
+        "title": "Configurer une nouvelle Télécommande"
+      },
+      "config_remote_update": {
+        "title": "Configuration des Options de Télécommande",
+        "description": "Télécommande associée:\n\n    Codec: {codec}\n    Id: {id}\n    Index: {index}"
+      },
+      "config_technical": {
+        "title": "Configuration Technique",
+        "description": "Chaque commande est envoyée 'Répétitions' fois par l'adaptateur séléctionné, à 'Interval' (ms) d'interval, avec un délai minimum de 'Délai Minimum' (ms) entre 2 commandes successives.\n\nNe modifier que si vous savez ce que vous faites!\n\nLa séléction de plusieurs Adaptateurs est possible mais FORTEMENT DECONSEILLEE, aucune aide ne sera apportée dans ce cas.",
+        "data": {
+          "adapter_ids": "Adaptateur(s) BLE ADV",
+          "interval": "Interval",
+          "repeats": "Répétitions",
+          "duration": "Délai Minimum"
+        }
+      },
+      "finalize": {
+        "title": "Nommer votre Appareil",
+        "description": "C'est la dernière étape!",
+        "data": {
+          "name": "Nom de l'Appareil"
+        }
+      }
+    },
+    "progress": {
+      "listen_raw": "Ecoute des messages BLE Advertising\n{advs}",
+      "wait_pair": "Apparaige en cours...",
+      "wait_config": "Veuillez appuyer sur un bouton de l'Application controllant votre appareil (Appairrage de préférence) dans les {max_seconds}s.",
+      "agg_config": "Préparation des configurations...",
+      "blink": "Tentative de contrôle de la lampe avec la configuration {nb}/{tot}:\n\n    Codec: {codec}\n    Id: {id}\n    Index: {index}",
+      "wait_config_remote": "Veuillez appuyer sur un bouton de la Télécommande (Appairrage de préférence) dans les {max_seconds}s."
+    },
+    "abort": {
+      "no_adapters": "Aucun Adaptateur Bluetooth supportant le BLE Advertising n'a été détecté.",
+      "no_config": "Aucune configuration n'a été trouvée ou validée.",
+      "not_implemented": "A venir?",
+      "reconfigure_successful": "Reconfiguration effectuée!",
+      "already_configured": "Un appareil avec les mêmes (codec / id / index) est déjà configuré.\nPlus d'info dans le [Troubleshooting Guide - Step 3.3](https://github.com/NicoIIT/ha-ble-adv/wiki/Troubleshooting-Guide#step-33-device-unique_id)."
+    },
+    "error": {
+      "missing_entity": "Au moins une Entité doit être configurée.",
+      "missing_adapter": "Au moins un Adaptateur doit être séléctionné."
+    }
+  },
+  "selector": {
+    "light": {
+      "options": {
+        "cww": "Blanc Chaud / Blanc Froid",
+        "onoff": "On / Off seulement",
+        "rgb": "RGB",
+        "none": "Aucune"
+      }
+    },
+    "fan": {
+      "options": {
+        "3speed": "Ventilateur à 3 niveaux",
+        "6speed": "Ventilateur à 6 niveaux",
+        "100speed": "Ventilateur à 100 niveaux",
+        "none": "Aucun"
+      }
+    },
+    "forced_cmds": {
+      "options": {
+        "turn_on": "Allumer",
+        "turn_off": "Eteindre"
+      }
+    },
+    "effects": {
+      "options": {
+        "rgb": "RGB Cycle",
+        "rgbk": "RGBK Cycle"
+      }
+    },
+    "presets": {
+      "options": {
+        "breeze": "Naturel",
+        "sleep": "Mode Sommeil"
+      }
+    }
+  },
+  "entity": {
+    "fan": {
+      "fan_0": {
+        "name": "Ventilateur Principal",
+        "state_attributes": {
+          "preset_mode": {
+            "state": {
+              "breeze": "Naturel",
+              "sleep": "Mode Sommeil"
+            }
+          }
+        }
+      },
+      "fan_1": {
+        "name": "Deuxième Ventilateur",
+        "state_attributes": {
+          "preset_mode": {
+            "state": {
+              "breeze": "Naturel",
+              "sleep": "Mode Sommeil"
+            }
+          }
+        }
+      },
+      "fan_2": {
+        "name": "Troisième Ventilateur",
+        "state_attributes": {
+          "preset_mode": {
+            "state": {
+              "breeze": "Naturel",
+              "sleep": "Mode Sommeil"
+            }
+          }
+        }
+      }
+    },
+    "light": {
+      "light_0": {
+        "name": "Lampe Principale",
+        "state_attributes": {
+          "effect": {
+            "state": {
+              "rgb": "RGB Cycle",
+              "rgbk": "RGBK Cycle"
+            }
+          }
+        }
+      },
+      "light_1": {
+        "name": "Lampe Secondaire",
+        "state_attributes": {
+          "effect": {
+            "state": {
+              "rgb": "RGB Cycle",
+              "rgbk": "RGBK Cycle"
+            }
+          }
+        }
+      },
+      "light_2": {
+        "name": "Troisième lampe",
+        "state_attributes": {
+          "effect": {
+            "state": {
+              "rgb": "RGB Cycle",
+              "rgbk": "RGBK Cycle"
+            }
+          }
+        }
+      }
+    }
+  },
+  "services": {
+    "inject_raw": {
+      "name": "Injection de message BLE ADV brut",
+      "description": "Injection de message BLE ADV brut (hexadécimal).",
+      "fields": {
+        "adapter_id": {
+          "name": "ID Adaptateur",
+          "description": "Le nom de l'Adaptateur Bluetooth à utiliser."
+        },
+        "raw": {
+          "name": "Message BLE ADV brut",
+          "description": "Le message BLE Advertisement brut à envoyer."
+        },
+        "interval": {
+          "name": "Interval",
+          "description": "L'interval entre 2 messages, en ms."
+        },
+        "repeat": {
+          "name": "Répétition",
+          "description": "Le message sera répété 'Répétition' fois."
+        },
+        "device_queue": {
+          "name": "Nom de la File de l'appareil",
+          "description": "La file de l'appareil considéré, ne correspondant à aucun identifiant: utilisé pour différencier les Appareils ciblés et gérer une file de message unique à chaque appareil."
+        },
+        "duration": {
+          "name": "Délai Minumum",
+          "description": "Le délai minimum à attendre après l'injection avant de pouvoir renvoyer un nouveau message dans la même file, en ms."
+        }
+      }
+    }
+  }
+}

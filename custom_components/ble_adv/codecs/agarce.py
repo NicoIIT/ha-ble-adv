@@ -37,7 +37,7 @@ class AgarceEncoder(BleAdvCodec):
 
     duration: int = 400
     interval: int = 10
-    repeat: int = 20
+    repeat: int = 60
     _len = 18
 
     MATRIX: ClassVar[list[int]] = [0xAA, 0xBB, 0xCC, 0xDD, 0x5A, 0xA5, 0xA5, 0x5A]

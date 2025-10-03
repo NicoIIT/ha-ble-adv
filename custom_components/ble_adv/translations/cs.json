@@ -11,6 +11,13 @@
           "tools": "Nástroje a pomocníci"
         }
       },
+      "no_adapters": {
+        "description": "Nebylo nalezeno žádné Bluetooth zařízení podporující BLE reklamy.\nProsím, zkontrolujte [Průvodce řešením problémů - Krok 1.2](https://github.com/NicoIIT/ha-ble-adv/wiki/Troubleshooting-Guide#step-12-bluetooth-adapter).",
+        "menu_options": {
+          "abort_no_adapters": "Přerušit",
+          "open_issue": "Otevřít problém"
+        }
+      },
       "tools": {
         "title": "Nástroje a pomocníci",
         "description": "Sekce nástrojů",
@@ -85,7 +92,8 @@
         "description": "Do 10 sekund nebyla zachycena žádná konfigurace",
         "menu_options": {
           "wait_config": "Zkusit znovu",
-          "abort_config": "Přerušit"
+          "abort_config": "Přerušit",
+          "open_issue": "Otevřít problém"
         }
       },
       "blink": {
@@ -124,8 +132,16 @@
           "confirm_yes": "Ano!",
           "confirm_no_another": "Ne, zkusit jinou.",
           "confirm_no_abort": "Ne, přerušit.",
+          "open_issue": "No, Open Issue",
           "confirm_retry_last": "Zkusit stejnou.",
           "confirm_retry_all": "Začít od začátku."
+        }
+      },
+      "open_issue": {
+        "title": "Otevřít problém",
+        "description": "1. Stažete diagnostický výpis kliknutím na tlačítko níže\n2. Otevřete [problém s konfiguračním tokem](https://github.com/NicoIIT/ha-ble-adv/issues/new?template=discovery.yml) a přiložte k němu výpis.",
+        "menu_options": {
+          "diag": "Stažení diagnostického výpisu"
         }
       },
       "configure": {
@@ -149,6 +165,7 @@
               "min_brightness": "Minimální jas",
               "refresh_on_start": "Vynutit obnovení barvy / jasu při zapnutí",
               "reversed": "Prohodit studená / teplá",
+              "forced_cmds": "Příkazy vždy odeslány i když se nic nezměnilo",
               "effects": "Režimy osvětlení"
             }
           },
@@ -159,6 +176,7 @@
               "min_brightness": "Minimální jas",
               "refresh_on_start": "Vynutit obnovení barvy / jasu při zapnutí",
               "reversed": "Prohodit studená / teplá",
+              "forced_cmds": "Příkazy vždy odeslány i když se nic nezměnilo",
               "effects": "Režimy osvětlení"
             }
           },
@@ -169,6 +187,7 @@
               "min_brightness": "Minimální jas",
               "refresh_on_start": "Vynutit obnovení barvy / jasu při zapnutí",
               "reversed": "Prohodit studená / teplá",
+              "forced_cmds": "Příkazy vždy odeslány i když se nic nezměnilo",
               "effects": "Režimy osvětlení"
             }
           },
@@ -180,6 +199,7 @@
               "oscillating": "Podporuje oscilaci",
               "refresh_dir_on_start": "Vynutit obnovení směru při zapnutí",
               "refresh_osc_on_start": "Vynutit obnovení oscilace při zapnutí",
+              "forced_cmds": "Příkazy vždy odeslány i když se nic nezměnilo",
               "presets": "Režimy ventilátoru"
             }
           },
@@ -191,6 +211,7 @@
               "oscillating": "Podporuje oscilaci",
               "refresh_dir_on_start": "Vynutit obnovení směru při zapnutí",
               "refresh_osc_on_start": "Vynutit obnovení oscilace při zapnutí",
+              "forced_cmds": "Příkazy vždy odeslány i když se nic nezměnilo",
               "presets": "Režimy ventilátoru"
             }
           },
@@ -202,6 +223,7 @@
               "oscillating": "Podporuje oscilaci",
               "refresh_dir_on_start": "Vynutit obnovení směru při zapnutí",
               "refresh_osc_on_start": "Vynutit obnovení oscilace při zapnutí",
+              "forced_cmds": "Příkazy vždy odeslány i když se nic nezměnilo",
               "presets": "Režimy ventilátoru"
             }
           }
@@ -226,11 +248,11 @@
       },
       "config_technical": {
         "title": "Konfigurace technických možností",
-        "description": "Každý příkaz se odešle do vybraných adaptérů (3 * 'Opakování') s daným 'Intervalem' (ms) a s minimálním časovým odstupem mezi dvěma příkazy ('Minimální trvání').\n\nUpravujte jen pokud víte, co děláte!\n\nPoužití více adaptérů se DŮRAZNĚ NEDOPORUČUJE, nebude poskytována žádná podpora.",
+        "description": "Každý příkaz se odešle do vybraných adaptérů 'Opakování' s daným 'Intervalem' (ms) a s minimálním časovým odstupem mezi dvěma příkazy ('Minimální trvání').\n\nUpravujte jen pokud víte, co děláte!\n\nPoužití více adaptérů se DŮRAZNĚ NEDOPORUČUJE, nebude poskytována žádná podpora.",
         "data": {
           "adapter_ids": "BLE ADV adaptér(y)",
           "interval": "Interval",
-          "repeat": "Opakování",
+          "repeats": "Opakování",
           "duration": "Minimální trvání"
         }
       },
@@ -255,7 +277,7 @@
       "no_config": "Nebyla zjištěna ani úspěšně otestována žádná konfigurace.",
       "not_implemented": "Zatím neimplementováno",
       "reconfigure_successful": "Rekonfigurace byla úspěšná!",
-      "already_configured": "Zařízení se stejným (kodek / ID / index) je už nakonfigurováno."
+      "already_configured": "Zařízení se stejným (kodek / ID / index) je už nakonfigurováno.\nVíce informací v [Průvodci řešením problémů - Krok 3.3](https://github.com/NicoIIT/ha-ble-adv/wiki/Troubleshooting-Guide#step-33-device-unique_id)."
     },
     "error": {
       "missing_entity": "Je potřeba nakonfigurovat aspoň jeden ventilátor nebo světlo.",
@@ -275,7 +297,14 @@
       "options": {
         "3speed": "Ventilátor se 3 úrovněmi",
         "6speed": "Ventilátor s 6 úrovněmi",
+        "100speed": "Ventilátor s 100 úrovněmi",
         "none": "Žádné"
+      }
+    },
+    "forced_cmds": {
+      "options": {
+        "turn_on": "Zapnout",
+        "turn_off": "Vypnout"
       }
     },
     "effects": {
@@ -382,7 +411,7 @@
         },
         "repeat": {
           "name": "Opakování",
-          "description": "Reklama se odešle 3 × počet opakování."
+          "description": "Reklama se odešle počet opakování."
         },
         "device_queue": {
           "name": "Název fronty zařízení",

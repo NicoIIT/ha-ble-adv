@@ -1,0 +1,72 @@
+---
+name: "Config Flow Discovery Issue"
+description: "Report an issue occuring while trying to discover or confirm a configuration (no configuration discovered, the light does not blink, ...)."
+labels: ["bug"]
+body:
+- type: markdown
+  attributes:
+    value:  |
+      If you managed to make the light blink and to create the integration please use a [Bug Report](https://github.com/NicoIIT/ha-ble-adv/issues/new?template=bug.yml) instead.
+
+      As a remainder:
+      * YOU have a problem
+      * YOU are requesting the maintainer to help YOU
+      * The maintainer is working for free and has no obligation to help YOU
+
+      The maintainer may be annoyed and reluctant to help you if:
+      * the answer to your issue is already in the docs that you obviously did not carefully read, so please read the docs first
+      * some of the mandatory info is not provided (or not provided in the requested format) and then the issue CANNOT be investigated
+      * you do not fill the mandatory info by lazyness with comments such as 'not available' or 'not needed' or 'let me know if you need more info': all requested info ARE available AND needed and MUST be provided directly.
+
+      If the maintainer is annoyed:
+      * YOUR issue will be rejected
+      * YOU will have no help with YOUR problem
+
+      If the maintainer is REALLY annoyed:
+      * YOUR future issues or requests will be ignored
+      * YOU will be banned.
+
+- type: checkboxes
+  attributes:
+    label: Checklist
+    options:
+      - label: I carefully read the [Troubleshooting Guide](https://github.com/NicoIIT/ha-ble-adv/wiki/Troubleshooting-Guide) and it did not help.
+        required: true
+
+- type: textarea
+  attributes:
+    label: Describe your setup
+    description: "Describe your setup by completing what follows (Please note some of the values MUST follow the recommended values in the Troubleshooting Guide)."
+    value: |
+      - Device Brand / Type (if known): XXXXXXX
+      - Controller Type you are trying to duplicate: Remote / Phone App / Both / None (Manual or Pairing Flow)
+      - Supported ANDROID Phone App recommended by the Device manufacturer: XXXXXXX
+      - The Phone App is paired to my Device and controlling it: Yes / No
+      - Distance between the controller (Phone or Remote) and the Bluetooth Adapter: XX meters in direct view (no wall)
+      - Distance between the controller and the Device: XX meters in direct view (no wall)
+      - Distance between the Device and the Bluetooth Adapter: XX meters with a 30cm concrete wall in between
+
+  validations:
+    required: true
+
+- type: textarea
+  attributes:
+    label: Describe your issue
+    description: "Describe your issue and all the steps you followed in the troubleshooting guide."
+    value: |
+      EXAMPLE:
+
+      When I try the recommended 'Duplicate Config' flow using the Phone App as a basis, 4 configurations are detected but none of them is making the light blink.
+
+      I followed the troubleshouting guide until step 3.2a.2, including the bluetooth range check, without success.
+
+  validations:
+    required: true
+
+- type: textarea
+  attributes:
+    label: "Diagnostics dump"
+    description: |
+      Drag here the diagnostic dump you downloaded during the failing configuration flow, or from the place given in the Troubleshooting guide.
+  validations:
+    required: true

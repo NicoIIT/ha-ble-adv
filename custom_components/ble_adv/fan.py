@@ -21,9 +21,10 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.util.percentage import percentage_to_ranged_value, ranged_value_to_percentage
 
-from .codecs.const import ATTR_DIR, ATTR_ON, ATTR_OSC, ATTR_PRESET, ATTR_SPEED, ATTR_SUB_TYPE, FAN_TYPE, FAN_TYPE_3SPEED
+from .codecs.const import ATTR_DIR, ATTR_ON, ATTR_OSC, ATTR_PRESET, ATTR_SPEED, ATTR_SUB_TYPE, FAN_TYPE, FAN_TYPE_3SPEED, FAN_TYPE_6SPEED
 from .const import (
     CONF_FANS,
+    CONF_FORCED_CMDS,
     CONF_PRESETS,
     CONF_REFRESH_DIR_ON_START,
     CONF_REFRESH_OSC_ON_START,
@@ -44,9 +45,13 @@ def create_entity(options: dict[str, Any], device: BleAdvDevice, index: int) -> 
         features |= FanEntityFeature.DIRECTION
     if len(presets) > 0:
         features |= FanEntityFeature.PRESET_MODE
-    refresh_dir_on_start = options.get(CONF_REFRESH_DIR_ON_START, False)
-    refresh_osc_on_start = options.get(CONF_REFRESH_OSC_ON_START, False)
-    return BleAdvFan(device, options[CONF_TYPE], index, features, refresh_dir_on_start, refresh_osc_on_start, presets)
+
+    fan = BleAdvFan(device, options[CONF_TYPE], index, features, presets)
+    fan.refresh_dir_on_start = options.get(CONF_REFRESH_DIR_ON_START, False)
+    fan.refresh_osc_on_start = options.get(CONF_REFRESH_OSC_ON_START, False)
+    fan.set_forced_cmds(options.get(CONF_FORCED_CMDS, []))
+
+    return fan
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback) -> None:
@@ -70,21 +75,20 @@ class BleAdvFan(BleAdvEntity, FanEntity):
     )
     _attr_direction = None
 
+    refresh_dir_on_start: bool = False
+    refresh_osc_on_start: bool = False
+
     def __init__(
         self,
         device: BleAdvDevice,
         sub_type: str,
         index: int,
         features: FanEntityFeature,
-        refresh_dir_on_start: bool,
-        refresh_osc_on_start: bool,
         presets: list[str],
     ) -> None:
         super().__init__(FAN_TYPE, sub_type, device, index)
         self._attr_supported_features: FanEntityFeature = features
         self._attr_speed_count: int = self._get_speed_count_from_type(sub_type)
-        self._refresh_dir_on_start: bool = refresh_dir_on_start
-        self._refresh_osc_on_start: bool = refresh_osc_on_start
         self._attr_preset_modes = presets
 
     # redefining 'current_direction' as the attribute name is messy, and not the one defined in the last_state
@@ -95,7 +99,7 @@ class BleAdvFan(BleAdvEntity, FanEntity):
 
     def _get_speed_count_from_type(self, sub_type: str) -> int:
         """Convert the Fan sub_type into the number of speed."""
-        return 3 if sub_type == FAN_TYPE_3SPEED else 6
+        return 3 if sub_type == FAN_TYPE_3SPEED else 6 if sub_type == FAN_TYPE_6SPEED else 100
 
     def get_attrs(self) -> dict[str, Any]:
         """Get the attrs."""
@@ -113,9 +117,9 @@ class BleAdvFan(BleAdvEntity, FanEntity):
         forced_attrs = []
         if self._attr_supported_features & FanEntityFeature.PRESET_MODE:
             forced_attrs.append(ATTR_PRESET)
-        if self._refresh_osc_on_start and self._attr_supported_features & FanEntityFeature.OSCILLATE:
+        if self.refresh_osc_on_start and self._attr_supported_features & FanEntityFeature.OSCILLATE:
             forced_attrs.append(ATTR_OSC)
-        if self._refresh_dir_on_start and self._attr_supported_features & FanEntityFeature.DIRECTION:
+        if self.refresh_dir_on_start and self._attr_supported_features & FanEntityFeature.DIRECTION:
             forced_attrs.append(ATTR_DIR)
         return forced_attrs
 
@@ -135,12 +139,12 @@ class BleAdvFan(BleAdvEntity, FanEntity):
             self._attr_percentage = 0
             self._attr_preset_mode = ent_attr.attrs[ATTR_PRESET]
 
-    async def async_turn_on(self, *_, **kwargs) -> None:  # noqa: ANN002, ANN003
+    async def async_turn_on(self, percentage: int | None = None, preset_mode: str | None = None, **kwargs) -> None:  # noqa: ANN003
         """Turn Entity on / set percentage / preset mode. Percentage is taking precedence over preset_mode."""
-        if ATTR_PERCENTAGE in kwargs and (percentage := kwargs.get(ATTR_PERCENTAGE)) is not None:
-            await self.async_set_percentage(percentage)
-        elif ATTR_PRESET_MODE in kwargs and (preset_mode := kwargs.get(ATTR_PRESET_MODE)) is not None:
-            await self.async_set_preset_mode(preset_mode)
+        if (percent := kwargs.get(ATTR_PERCENTAGE, percentage)) is not None:
+            await self.async_set_percentage(percent)
+        elif (preset := kwargs.get(ATTR_PRESET_MODE, preset_mode)) is not None:
+            await self.async_set_preset_mode(preset)
         else:
             await self._handle_state_change({ATTR_IS_ON: True})
 
