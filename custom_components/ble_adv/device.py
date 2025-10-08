@@ -55,11 +55,11 @@ class BleAdvEntity(RestoreEntity):
     _state_attributes: frozenset[BleAdvStateAttribute] = frozenset()
     _attr_has_entity_name = True
 
-    def __init__(self, base_type: str, sub_type: str, device: BleAdvDevice, index: int = 0) -> None:
+    def __init__(self, base_type: str, sub_type: str | None, device: BleAdvDevice, index: int = 0) -> None:
         self._device: BleAdvDevice = device
         self._index: int = index
         self._base_type: str = base_type
-        self._sub_type: str = sub_type
+        self._sub_type: str | None = sub_type
         self._attr_device_info: DeviceInfo = device.device_info
         self._attr_unique_id: str = f"{device.unique_id}_{base_type}_{index}"
         self._attr_translation_key: str = f"{base_type}_{index}"
@@ -134,7 +134,9 @@ class BleAdvEntity(RestoreEntity):
 
     def get_attrs(self) -> dict[str, Any]:
         """Get the attrs."""
-        return {ATTR_ON: self._attr_is_on, ATTR_SUB_TYPE: self._sub_type}
+        if self._sub_type is not None:
+            return {ATTR_ON: self._attr_is_on, ATTR_SUB_TYPE: self._sub_type}
+        return {ATTR_ON: self._attr_is_on}
 
     def change_bool(self, cur: bool | None, new: bool | str) -> bool:
         """Help function for bool attributes working with Toggle."""

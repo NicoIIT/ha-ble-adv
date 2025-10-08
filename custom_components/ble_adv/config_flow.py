@@ -32,6 +32,7 @@ from .codecs.const import (
     ATTR_ON,
     ATTR_OSC,
     ATTR_PRESET,
+    ATTR_SPEED_COUNT,
     ATTR_SUB_TYPE,
     DEVICE_TYPE,
     FAN_TYPE,
@@ -692,9 +693,11 @@ class BleAdvConfigFlow(ConfigFlow, domain=DOMAIN):
 
         # Build one section for each Fan supported by the codec
         for i, feats in enumerate(codec.get_supported_features(FAN_TYPE)):
-            if ATTR_SUB_TYPE in feats:
+            if ATTR_SPEED_COUNT in feats:
                 opts = self._data[CONF_FANS][i]
-                types = [*feats[ATTR_SUB_TYPE], CONF_TYPE_NONE]
+                # keep backward compatibility for 'type', but a refactor of the UI with the speed count as input
+                # would be better and more easily maintainable
+                types = [*[f"{x}speed" for x in feats[ATTR_SPEED_COUNT]], CONF_TYPE_NONE]
                 schema_opts: dict[vol.Schemable, Any] = {
                     vol.Required(CONF_TYPE, default=opts.get(CONF_TYPE, CONF_TYPE_NONE)): self._get_selector(FAN_TYPE, types),
                 }

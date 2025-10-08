@@ -81,7 +81,7 @@ class TestEncoderRuiXin(_TestEncoderBase):
             "1B.FF.FF.FF.01.02.03.04.69.72.36.0E.9D.32.62.F7.A1.B0.B1.AC.A3.A4.A5.A6.A7.A8.A9.F4",
             "cmd: 0x10, param: 0x00, args: [10,0,0]",
             "id: 0x100259C5, index: 0, tx: 50, seed: 0x009D",
-            "fan_0: ['on', 'speed'] / {'sub_type': '100speed', 'on': True, 'speed': 10.0}",
+            "fan_0: ['on', 'speed'] / {'speed_count': 100, 'on': True, 'speed': 10.0}",
         ),
         # FAN OFF
         (

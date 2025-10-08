@@ -23,13 +23,12 @@ from ble_adv.codecs.const import (
     ATTR_RED,
     ATTR_RED_F,
     ATTR_SPEED,
+    ATTR_SPEED_COUNT,
     ATTR_SUB_TYPE,
     ATTR_TIME,
     ATTR_WARM,
     DEVICE_TYPE,
     FAN_TYPE,
-    FAN_TYPE_3SPEED,
-    FAN_TYPE_6SPEED,
     LIGHT_TYPE,
     LIGHT_TYPE_CWW,
     LIGHT_TYPE_ONOFF,
@@ -110,22 +109,22 @@ def test_config() -> None:
 
 def test_entity_matcher() -> None:
     """Test EntityMatcher."""
-    matcher = EntityMatcher(LIGHT_TYPE, 0, LIGHT_TYPE_CWW, False)
+    matcher = EntityMatcher(LIGHT_TYPE, 0)
     matcher.min(ATTR_CT, 0.5)
     matcher.max(ATTR_BR, 0.5)
     assert repr(matcher) == "light_0 / []"
     matcher.act(ATTR_ON, True)
     assert repr(matcher) == "light_0 / ['on']"
     assert matcher.create() == BleAdvEntAttr([ATTR_ON], {ATTR_ON: True}, LIGHT_TYPE, 0)
-    assert matcher.get_supported_features() == (LIGHT_TYPE, 0, {ATTR_ON: True, ATTR_SUB_TYPE: LIGHT_TYPE_CWW})
+    assert matcher.get_supported_features() == (LIGHT_TYPE, 0, {ATTR_ON: True})
     assert matcher.matches(BleAdvEntAttr([ATTR_ON], {ATTR_ON: True, ATTR_CT: 0.8, ATTR_BR: 0.2}, LIGHT_TYPE, 0))
     assert not matcher.matches(BleAdvEntAttr([ATTR_ON], {ATTR_ON: True, ATTR_CT: 0.2, ATTR_BR: 0.2}, LIGHT_TYPE, 0))
     assert not matcher.matches(BleAdvEntAttr([ATTR_ON], {ATTR_ON: True, ATTR_CT: 0.8, ATTR_BR: 0.2}, LIGHT_TYPE, 1))
     assert not matcher.matches(BleAdvEntAttr([ATTR_CT], {ATTR_ON: True, ATTR_CT: 0.8, ATTR_BR: 0.2}, LIGHT_TYPE, 0))
 
 
-ent_fan3 = BleAdvEntAttr([ATTR_ON], {ATTR_SUB_TYPE: FAN_TYPE_3SPEED, ATTR_ON: True, ATTR_SPEED: 3, ATTR_DIR: True, ATTR_OSC: False}, FAN_TYPE, 0)
-ent_fan6 = BleAdvEntAttr([ATTR_ON], {ATTR_SUB_TYPE: FAN_TYPE_6SPEED, ATTR_ON: True, ATTR_SPEED: 6, ATTR_DIR: True, ATTR_OSC: False}, FAN_TYPE, 0)
+ent_fan3 = BleAdvEntAttr([ATTR_ON], {ATTR_SPEED_COUNT: 3, ATTR_ON: True, ATTR_SPEED: 3, ATTR_DIR: True, ATTR_OSC: False}, FAN_TYPE, 0)
+ent_fan6 = BleAdvEntAttr([ATTR_ON], {ATTR_SPEED_COUNT: 6, ATTR_ON: True, ATTR_SPEED: 6, ATTR_DIR: True, ATTR_OSC: False}, FAN_TYPE, 0)
 ent_light_binary = BleAdvEntAttr([ATTR_ON], {ATTR_SUB_TYPE: LIGHT_TYPE_ONOFF, ATTR_ON: True}, LIGHT_TYPE, 0)
 ent_light_cww = BleAdvEntAttr([ATTR_ON], {ATTR_SUB_TYPE: LIGHT_TYPE_CWW, ATTR_ON: True, ATTR_CT: 1.0, ATTR_BR: 1.0}, LIGHT_TYPE, 0)
 ent_light_rgb = BleAdvEntAttr(

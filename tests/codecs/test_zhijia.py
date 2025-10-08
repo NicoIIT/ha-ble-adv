@@ -218,21 +218,21 @@ class TestEncoderZhijiaDupe(_TestEncoderBase):
             "02.01.1A.1B.FF.22.9D.FD.BE.09.99.58.AA.A7.09.25.CD.1B.D3.56.19.87.B8.A4.4A.5F.85.F6.9C.A9.19",
             "cmd: 0xD5, param: 0x00, args: [0,0,0]",
             "id: 0x00E15324, index: 1, tx: 38, seed: 0x0000",
-            "fan_0: ['on'] / {'sub_type': '3speed', 'on': True, 'speed': 2}",
+            "fan_0: ['on'] / {'speed_count': 3, 'on': True, 'speed': 2}",
         ),
         (
             "zhijia_v0",
             "02.01.1A.11.FF.F9.08.49.89.E4.E1.98.04.54.AF.54.62.C9.02.7D.81",
             "cmd: 0xD1, param: 0x00, args: [0,0,0]",
             "id: 0x00005324, index: 1, tx: 59, seed: 0x0000",
-            "fan_0: ['on'] / {'sub_type': '3speed', 'on': True, 'speed': 2}",
+            "fan_0: ['on'] / {'speed_count': 3, 'on': True, 'speed': 2}",
         ),
         (
             "zhijia_v1",
             "02.01.1A.1B.FF.F9.08.49.13.E1.2B.48.C3.61.4A.85.C2.C5.54.60.96.B3.A0.2C.89.9C.11.01.92.2A.FE",
             "cmd: 0xD5, param: 0x00, args: [0,0,0]",
             "id: 0x00E15324, index: 1, tx: 37, seed: 0x0000",
-            "fan_0: ['on'] / {'sub_type': '3speed', 'on': True, 'speed': 2}",
+            "fan_0: ['on'] / {'speed_count': 3, 'on': True, 'speed': 2}",
         ),
         # FAN OFF
         (

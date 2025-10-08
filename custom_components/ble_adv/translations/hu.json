@@ -296,7 +296,9 @@
     "fan": {
       "options": {
         "3speed": "3 fokozatú ventilátor",
+        "4speed": "4 fokozatú ventilátor",
         "6speed": "6 fokozatú ventilátor",
+        "8speed": "8 fokozatú ventilátor",
         "100speed": "100 fokozatú ventilátor",
         "none": "Nincs"
       }

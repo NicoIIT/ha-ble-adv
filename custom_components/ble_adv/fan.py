@@ -21,7 +21,15 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.util.percentage import percentage_to_ranged_value, ranged_value_to_percentage
 
-from .codecs.const import ATTR_DIR, ATTR_ON, ATTR_OSC, ATTR_PRESET, ATTR_SPEED, ATTR_SUB_TYPE, FAN_TYPE, FAN_TYPE_3SPEED, FAN_TYPE_6SPEED
+from .codecs.const import (
+    ATTR_DIR,
+    ATTR_ON,
+    ATTR_OSC,
+    ATTR_PRESET,
+    ATTR_SPEED,
+    ATTR_SPEED_COUNT,
+    FAN_TYPE,
+)
 from .const import (
     CONF_FANS,
     CONF_FORCED_CMDS,
@@ -46,7 +54,7 @@ def create_entity(options: dict[str, Any], device: BleAdvDevice, index: int) -> 
     if len(presets) > 0:
         features |= FanEntityFeature.PRESET_MODE
 
-    fan = BleAdvFan(device, options[CONF_TYPE], index, features, presets)
+    fan = BleAdvFan(device, index, int(options[CONF_TYPE][:-5]), features, presets)
     fan.refresh_dir_on_start = options.get(CONF_REFRESH_DIR_ON_START, False)
     fan.refresh_osc_on_start = options.get(CONF_REFRESH_OSC_ON_START, False)
     fan.set_forced_cmds(options.get(CONF_FORCED_CMDS, []))
@@ -81,14 +89,14 @@ class BleAdvFan(BleAdvEntity, FanEntity):
     def __init__(
         self,
         device: BleAdvDevice,
-        sub_type: str,
         index: int,
+        speed_count: int,
         features: FanEntityFeature,
         presets: list[str],
     ) -> None:
-        super().__init__(FAN_TYPE, sub_type, device, index)
+        super().__init__(FAN_TYPE, None, device, index)
         self._attr_supported_features: FanEntityFeature = features
-        self._attr_speed_count: int = self._get_speed_count_from_type(sub_type)
+        self._attr_speed_count: int = speed_count
         self._attr_preset_modes = presets
 
     # redefining 'current_direction' as the attribute name is messy, and not the one defined in the last_state
@@ -97,15 +105,12 @@ class BleAdvFan(BleAdvEntity, FanEntity):
         """Return the current direction of the fan."""
         return self._attr_direction
 
-    def _get_speed_count_from_type(self, sub_type: str) -> int:
-        """Convert the Fan sub_type into the number of speed."""
-        return 3 if sub_type == FAN_TYPE_3SPEED else 6 if sub_type == FAN_TYPE_6SPEED else 100
-
     def get_attrs(self) -> dict[str, Any]:
         """Get the attrs."""
         eff_percentage = self._attr_percentage if self._attr_percentage is not None else 0
         return {
             **super().get_attrs(),
+            ATTR_SPEED_COUNT: self._attr_speed_count,
             ATTR_DIR: self._attr_direction == DIRECTION_FORWARD,
             ATTR_OSC: self._attr_oscillating,
             ATTR_PRESET: self._attr_preset_mode,
@@ -133,8 +138,7 @@ class BleAdvFan(BleAdvEntity, FanEntity):
             self._attr_oscillating = self.change_bool(self._attr_oscillating, ent_attr.attrs[ATTR_OSC])
         if ATTR_SPEED in ent_attr.chg_attrs:
             self._attr_preset_mode = None
-            recv_speed_count = self._get_speed_count_from_type(ent_attr.attrs[ATTR_SUB_TYPE])
-            self._attr_percentage = ranged_value_to_percentage((1, recv_speed_count), ent_attr.attrs[ATTR_SPEED])
+            self._attr_percentage = ranged_value_to_percentage((1, ent_attr.attrs[ATTR_SPEED_COUNT]), ent_attr.attrs[ATTR_SPEED])
         if ATTR_PRESET in ent_attr.chg_attrs:
             self._attr_percentage = 0
             self._attr_preset_mode = ent_attr.attrs[ATTR_PRESET]
