@@ -263,21 +263,21 @@ class TestEncoderFanlampDupe(_TestEncoderBase):
             "02.01.19.1B.03.77.F8.B6.5F.2B.5E.00.FC.31.51.94.FE.D2.48.44.0A.35.FC.0A.64.F4.92.75.78.EE.EE",
             "cmd: 0x32, param: 0x00, args: [2,6,0]",
             "id: 0x003D5022, index: 2, tx: 112, seed: 0x00E3",
-            "fan_0: ['on', 'speed'] / {'sub_type': '6speed', 'on': True, 'speed': 2.0}",
+            "fan_0: ['on', 'speed'] / {'speed_count': 6, 'on': True, 'speed': 2.0}",
         ),
         (
             "fanlamp_pro_v3",
             "02.01.1A.1B.03.F0.08.20.80.B8.0B.E1.22.C6.F2.D3.A7.67.5D.A4.9F.47.F4.B6.5B.33.8B.53.2B.63.90",
             "cmd: 0x31, param: 0x00, args: [32,2,0]",
             "id: 0xD2135C22, index: 2, tx: 127, seed: 0x2B53",
-            "fan_0: ['on', 'speed'] / {'sub_type': '6speed', 'on': True, 'speed': 2.0}",
+            "fan_0: ['on', 'speed'] / {'speed_count': 6, 'on': True, 'speed': 2.0}",
         ),
         (
             "fanlamp_pro_v2",
             "02.01.1A.1B.03.F0.08.10.80.B8.0B.E1.22.C6.F2.D3.A7.67.5D.A4.9F.47.F4.B6.A2.22.8B.53.2B.B1.BD",
             "cmd: 0x31, param: 0x00, args: [32,2,0]",
             "id: 0xD2135C22, index: 2, tx: 127, seed: 0x2B53",
-            "fan_0: ['on', 'speed'] / {'sub_type': '6speed', 'on': True, 'speed': 2.0}",
+            "fan_0: ['on', 'speed'] / {'speed_count': 6, 'on': True, 'speed': 2.0}",
         ),
         # FAN OFF
         (
@@ -285,7 +285,7 @@ class TestEncoderFanlampDupe(_TestEncoderBase):
             "02.01.1A.1B.03.F0.08.20.80.B8.F4.E1.22.C6.F2.D3.A7.67.5D.A4.9F.47.F6.B6.D9.13.8B.53.2B.E6.08",
             "cmd: 0x31, param: 0x00, args: [32,0,0]",
             "id: 0xD2135C22, index: 2, tx: 128, seed: 0x2B53",
-            "fan_0: ['on'] / {'sub_type': '6speed', 'on': False}",
+            "fan_0: ['on'] / {'speed_count': 6, 'on': False}",
         ),
         (
             "fanlamp_pro_v1",
@@ -299,7 +299,7 @@ class TestEncoderFanlampDupe(_TestEncoderBase):
             "02.01.19.1B.03.F0.08.10.80.B8.F4.E1.22.C6.F2.D3.A7.67.5D.A4.9F.47.F6.B6.A2.22.8B.53.2B.29.74",
             "cmd: 0x31, param: 0x00, args: [32,0,0]",
             "id: 0xD2135C22, index: 2, tx: 128, seed: 0x2B53",
-            "fan_0: ['on'] / {'sub_type': '6speed', 'on': False}",
+            "fan_0: ['on'] / {'speed_count': 6, 'on': False}",
         ),
         # FAN Direction Reverse
         (

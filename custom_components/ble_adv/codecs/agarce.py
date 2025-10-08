@@ -15,9 +15,8 @@ from .const import (
     ATTR_PRESET,
     ATTR_PRESET_BREEZE,
     ATTR_SPEED,
-    ATTR_SUB_TYPE,
+    ATTR_SPEED_COUNT,
     FAN_TYPE,
-    FAN_TYPE_6SPEED,
 )
 from .models import (
     BleAdvCodec,
@@ -79,7 +78,7 @@ class AgarceEncoder(BleAdvCodec):
             if enc_cmd.arg2 & 0x10:
                 attr_chg.append(ATTR_OSC)
             attrs = {
-                ATTR_SUB_TYPE: FAN_TYPE_6SPEED,
+                ATTR_SPEED_COUNT: 6,
                 ATTR_SPEED: enc_cmd.arg0 & 0x0F,
                 ATTR_ON: (enc_cmd.arg0 & 0x80) != 0,
                 ATTR_DIR: (enc_cmd.arg0 & 0x10) == 0,
@@ -167,7 +166,7 @@ class AgarceEncoder(BleAdvCodec):
         if base_type == FAN_TYPE:
             return [
                 {
-                    ATTR_SUB_TYPE: {FAN_TYPE_6SPEED},
+                    ATTR_SPEED_COUNT: {6},
                     ATTR_PRESET: {ATTR_PRESET_BREEZE},
                     ATTR_SPEED: set(range(6)),
                     ATTR_ON: {True, False},

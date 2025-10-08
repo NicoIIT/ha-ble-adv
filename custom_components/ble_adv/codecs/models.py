@@ -8,12 +8,10 @@ from dataclasses import dataclass
 from typing import Any, Self
 
 from .const import (
+    ATTR_SPEED_COUNT,
     ATTR_SUB_TYPE,
     DEVICE_TYPE,
     FAN_TYPE,
-    FAN_TYPE_3SPEED,
-    FAN_TYPE_6SPEED,
-    FAN_TYPE_100SPEED,
     LIGHT_TYPE,
     LIGHT_TYPE_CWW,
     LIGHT_TYPE_ONOFF,
@@ -171,14 +169,11 @@ class CommonMatcher:
 class EntityMatcher(CommonMatcher):
     """Matcher for Entity."""
 
-    def __init__(self, base_type: str, index: int, sub_type: str | None = None, enforced_sub_type: bool = True) -> None:
+    def __init__(self, base_type: str, index: int) -> None:
         super().__init__()
         self._base_type: str = base_type
-        self._sub_type: str | None = sub_type
         self._index: int = index
         self._actions: list[str] = []
-        if (sub_type is not None) and enforced_sub_type:
-            self.eqs[ATTR_SUB_TYPE] = sub_type
 
     def __repr__(self) -> str:
         return f"{self._base_type}_{self._index} / {self._actions}"
@@ -206,9 +201,7 @@ class EntityMatcher(CommonMatcher):
 
     def get_supported_features(self) -> tuple[str, int, dict[str, Any]]:
         """Get Features."""
-        feats: dict[str, Any] = {**self.eqs}
-        feats[ATTR_SUB_TYPE] = self._sub_type
-        return (self._base_type, self._index, feats)
+        return (self._base_type, self._index, {**self.eqs})
 
 
 class FanCmd(EntityMatcher):
@@ -218,46 +211,75 @@ class FanCmd(EntityMatcher):
         super().__init__(FAN_TYPE, index)
 
 
-class Fan3SpeedCmd(EntityMatcher):
+class FanNSpeedCmd(EntityMatcher):
+    """Specific N level speed Fan Matcher."""
+
+    def __init__(self, index: int, nb_speed: int) -> None:
+        super().__init__(FAN_TYPE, index)
+        self.eqs[ATTR_SPEED_COUNT] = nb_speed
+
+
+class Fan3SpeedCmd(FanNSpeedCmd):
     """Specific 3 level speed Fan Matcher."""
 
     def __init__(self, index: int = 0) -> None:
-        super().__init__(FAN_TYPE, index, FAN_TYPE_3SPEED)
+        super().__init__(index, 3)
 
 
-class Fan6SpeedCmd(EntityMatcher):
+class Fan4SpeedCmd(FanNSpeedCmd):
+    """Specific 4 level speed Fan Matcher."""
+
+    def __init__(self, index: int = 0) -> None:
+        super().__init__(index, 4)
+
+
+class Fan6SpeedCmd(FanNSpeedCmd):
     """Specific 6 level speed Fan Matcher."""
 
     def __init__(self, index: int = 0) -> None:
-        super().__init__(FAN_TYPE, index, FAN_TYPE_6SPEED)
+        super().__init__(index, 6)
 
 
-class Fan100SpeedCmd(EntityMatcher):
+class Fan8SpeedCmd(FanNSpeedCmd):
+    """Specific 8 level speed Fan Matcher."""
+
+    def __init__(self, index: int = 0) -> None:
+        super().__init__(index, 8)
+
+
+class Fan100SpeedCmd(FanNSpeedCmd):
     """Specific 100 level speed Fan Matcher."""
 
     def __init__(self, index: int = 0) -> None:
-        super().__init__(FAN_TYPE, index, FAN_TYPE_100SPEED)
+        super().__init__(index, 100)
 
 
 class LightCmd(EntityMatcher):
     """Specific Light Base Matcher."""
 
     def __init__(self, index: int = 0) -> None:
-        super().__init__(LIGHT_TYPE, index, LIGHT_TYPE_ONOFF, False)
+        super().__init__(LIGHT_TYPE, index)
+
+    def get_supported_features(self) -> tuple[str, int, dict[str, Any]]:
+        """Get Features."""
+        base_type, index, feats = super().get_supported_features()
+        return (base_type, index, {**feats, ATTR_SUB_TYPE: LIGHT_TYPE_ONOFF})
 
 
 class RGBLightCmd(EntityMatcher):
     """Specific RGB Light Matcher."""
 
     def __init__(self, index: int = 0) -> None:
-        super().__init__(LIGHT_TYPE, index, LIGHT_TYPE_RGB)
+        super().__init__(LIGHT_TYPE, index)
+        self.eqs[ATTR_SUB_TYPE] = LIGHT_TYPE_RGB
 
 
 class CTLightCmd(EntityMatcher):
     """Specific RGB Light Matcher."""
 
     def __init__(self, index: int = 0) -> None:
-        super().__init__(LIGHT_TYPE, index, LIGHT_TYPE_CWW)
+        super().__init__(LIGHT_TYPE, index)
+        self.eqs[ATTR_SUB_TYPE] = LIGHT_TYPE_CWW
 
 
 class DeviceCmd(EntityMatcher):

@@ -296,7 +296,9 @@
     "fan": {
       "options": {
         "3speed": "Ventilateur à 3 niveaux",
+        "4speed": "Ventilateur à 4 niveaux",
         "6speed": "Ventilateur à 6 niveaux",
+        "8speed": "Ventilateur à 8 niveaux",
         "100speed": "Ventilateur à 100 niveaux",
         "none": "Aucun"
       }

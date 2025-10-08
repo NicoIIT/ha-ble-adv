@@ -171,14 +171,14 @@ class TestEncoderZhimeiWithDupes(_TestEncoderBase):
             "02.01.19.0B.03.55.02.22.02.C0.D3.02.00.00.10",
             "cmd: 0xD3, param: 0x00, args: [2,0,0]",
             "id: 0x0000C002, index: 2, tx: 34, seed: 0x0000",
-            "fan_0: ['on', 'speed'] / {'sub_type': '6speed', 'on': True, 'speed': 2.0}",
+            "fan_0: ['on', 'speed'] / {'speed_count': 6, 'on': True, 'speed': 2.0}",
         ),
         (
             "zhimei_fan_v1",
             "02.01.19.1B.03.48.46.4B.4A.9E.82.B6.3A.8C.35.5F.18.14.3A.7F.80.63.4F.29.AB.10.11.12.13.14.15",
             "cmd: 0xD3, param: 0x00, args: [2,0,0]",
             "id: 0x0000C002, index: 2, tx: 34, seed: 0x00B5",
-            "fan_0: ['on', 'speed'] / {'sub_type': '6speed', 'on': True, 'speed': 2.0}",
+            "fan_0: ['on', 'speed'] / {'speed_count': 6, 'on': True, 'speed': 2.0}",
         ),
         # FAN OFF
         (
@@ -762,14 +762,14 @@ class TestEncoderZhimeiFanRemoteNoDirect(_TestEncoderFull):
             "55.FF.6B.01.6A.0E.00.00.00.38",
             "cmd: 0x0E, param: 0x00, args: [0,0,0]",
             "id: 0x00006A01, index: 255, tx: 107, seed: 0x0000",
-            "fan_0: ['on'] / {'sub_type': '6speed', 'on': False}",
+            "fan_0: ['on'] / {'speed_count': 6, 'on': False}",
         ),
         (
             "zhimei_fan_vr1",
             "1E.FF.6B.01.6A.48.46.4B.4A.E4.75.33.F1.6C.EF.19.0B.45.55.DF.DB.50.24.31.8A.10.11.12.13.14.15",
             "cmd: 0x0E, param: 0x00, args: [0,0,0]",
             "id: 0x00006A01, index: 255, tx: 107, seed: 0x006C",
-            "fan_0: ['on'] / {'sub_type': '6speed', 'on': False}",
+            "fan_0: ['on'] / {'speed_count': 6, 'on': False}",
         ),
         # Fan Speed 1
         (
@@ -777,14 +777,14 @@ class TestEncoderZhimeiFanRemoteNoDirect(_TestEncoderFull):
             "55.FF.20.01.6A.03.00.00.00.E2",
             "cmd: 0x03, param: 0x00, args: [0,0,0]",
             "id: 0x00006A01, index: 255, tx: 32, seed: 0x0000",
-            "fan_0: ['on', 'speed'] / {'sub_type': '6speed', 'on': True, 'speed': 1}",
+            "fan_0: ['on', 'speed'] / {'speed_count': 6, 'on': True, 'speed': 1}",
         ),
         (
             "zhimei_fan_vr1",
             "1E.FF.20.01.6A.48.46.4B.4A.07.47.0B.D0.8D.CC.F6.E1.68.9F.1A.CB.00.DA.70.37.10.11.12.13.14.15",
             "cmd: 0x03, param: 0x00, args: [0,0,0]",
             "id: 0x00006A01, index: 255, tx: 32, seed: 0x0021",
-            "fan_0: ['on', 'speed'] / {'sub_type': '6speed', 'on': True, 'speed': 1}",
+            "fan_0: ['on', 'speed'] / {'speed_count': 6, 'on': True, 'speed': 1}",
         ),
         # Fan Speed 2
         (
@@ -792,14 +792,14 @@ class TestEncoderZhimeiFanRemoteNoDirect(_TestEncoderFull):
             "55.FF.22.01.6A.05.00.00.00.E6",
             "cmd: 0x05, param: 0x00, args: [0,0,0]",
             "id: 0x00006A01, index: 255, tx: 34, seed: 0x0000",
-            "fan_0: ['on', 'speed'] / {'sub_type': '6speed', 'on': True, 'speed': 2}",
+            "fan_0: ['on', 'speed'] / {'speed_count': 6, 'on': True, 'speed': 2}",
         ),
         (
             "zhimei_fan_vr1",
             "1E.FF.22.01.6A.48.46.4B.4A.23.6D.31.B4.B1.B0.DA.BF.84.AF.0C.FB.F0.C2.AD.6B.10.11.12.13.14.15",
             "cmd: 0x05, param: 0x00, args: [0,0,0]",
             "id: 0x00006A01, index: 255, tx: 34, seed: 0x0023",
-            "fan_0: ['on', 'speed'] / {'sub_type': '6speed', 'on': True, 'speed': 2}",
+            "fan_0: ['on', 'speed'] / {'speed_count': 6, 'on': True, 'speed': 2}",
         ),
         # Fan Speed 3
         (
@@ -807,14 +807,14 @@ class TestEncoderZhimeiFanRemoteNoDirect(_TestEncoderFull):
             "55.FF.24.01.6A.08.00.00.00.EB",
             "cmd: 0x08, param: 0x00, args: [0,0,0]",
             "id: 0x00006A01, index: 255, tx: 36, seed: 0x0000",
-            "fan_0: ['on', 'speed'] / {'sub_type': '6speed', 'on': True, 'speed': 3}",
+            "fan_0: ['on', 'speed'] / {'speed_count': 6, 'on': True, 'speed': 3}",
         ),
         (
             "zhimei_fan_vr1",
             "1E.FF.24.01.6A.48.46.4B.4A.E1.A9.6D.F6.6F.F2.1C.0C.42.EA.1B.BC.B1.17.7D.E3.10.11.12.13.14.15",
             "cmd: 0x08, param: 0x00, args: [0,0,0]",
             "id: 0x00006A01, index: 255, tx: 36, seed: 0x0025",
-            "fan_0: ['on', 'speed'] / {'sub_type': '6speed', 'on': True, 'speed': 3}",
+            "fan_0: ['on', 'speed'] / {'speed_count': 6, 'on': True, 'speed': 3}",
         ),
         # Fan Speed 4
         (
@@ -822,14 +822,14 @@ class TestEncoderZhimeiFanRemoteNoDirect(_TestEncoderFull):
             "55.FF.27.01.6A.0A.00.00.00.F0",
             "cmd: 0x0A, param: 0x00, args: [0,0,0]",
             "id: 0x00006A01, index: 255, tx: 39, seed: 0x0000",
-            "fan_0: ['on', 'speed'] / {'sub_type': '6speed', 'on': True, 'speed': 4}",
+            "fan_0: ['on', 'speed'] / {'speed_count': 6, 'on': True, 'speed': 4}",
         ),
         (
             "zhimei_fan_vr1",
             "1E.FF.27.01.6A.48.46.4B.4A.E4.B1.6F.F1.6C.EF.19.07.45.1C.DA.0C.81.DD.E8.16.10.11.12.13.14.15",
             "cmd: 0x0A, param: 0x00, args: [0,0,0]",
             "id: 0x00006A01, index: 255, tx: 39, seed: 0x0028",
-            "fan_0: ['on', 'speed'] / {'sub_type': '6speed', 'on': True, 'speed': 4}",
+            "fan_0: ['on', 'speed'] / {'speed_count': 6, 'on': True, 'speed': 4}",
         ),
         # Fan Speed 5
         (
@@ -837,14 +837,14 @@ class TestEncoderZhimeiFanRemoteNoDirect(_TestEncoderFull):
             "55.FF.29.01.6A.0D.00.00.00.F5",
             "cmd: 0x0D, param: 0x00, args: [0,0,0]",
             "id: 0x00006A01, index: 255, tx: 41, seed: 0x0000",
-            "fan_0: ['on', 'speed'] / {'sub_type': '6speed', 'on': True, 'speed': 5}",
+            "fan_0: ['on', 'speed'] / {'speed_count': 6, 'on': True, 'speed': 5}",
         ),
         (
             "zhimei_fan_vr1",
             "1E.FF.29.01.6A.48.46.4B.4A.1C.67.2D.B9.A4.B7.E1.C4.7D.2B.57.8D.72.5E.D3.E7.10.11.12.13.14.15",
             "cmd: 0x0D, param: 0x00, args: [0,0,0]",
             "id: 0x00006A01, index: 255, tx: 41, seed: 0x002A",
-            "fan_0: ['on', 'speed'] / {'sub_type': '6speed', 'on': True, 'speed': 5}",
+            "fan_0: ['on', 'speed'] / {'speed_count': 6, 'on': True, 'speed': 5}",
         ),
         # Fan Speed 6
         (
@@ -852,14 +852,14 @@ class TestEncoderZhimeiFanRemoteNoDirect(_TestEncoderFull):
             "55.FF.2B.01.6A.0F.00.00.00.F9",
             "cmd: 0x0F, param: 0x00, args: [0,0,0]",
             "id: 0x00006A01, index: 255, tx: 43, seed: 0x0000",
-            "fan_0: ['on', 'speed'] / {'sub_type': '6speed', 'on': True, 'speed': 6}",
+            "fan_0: ['on', 'speed'] / {'speed_count': 6, 'on': True, 'speed': 6}",
         ),
         (
             "zhimei_fan_vr1",
             "1E.FF.2B.01.6A.48.46.4B.4A.9E.EB.AD.37.26.35.5F.44.FF.A8.D6.10.F5.D1.09.27.10.11.12.13.14.15",
             "cmd: 0x0F, param: 0x00, args: [0,0,0]",
             "id: 0x00006A01, index: 255, tx: 43, seed: 0x002C",
-            "fan_0: ['on', 'speed'] / {'sub_type': '6speed', 'on': True, 'speed': 6}",
+            "fan_0: ['on', 'speed'] / {'speed_count': 6, 'on': True, 'speed': 6}",
         ),
         # Fan Breeze
         (

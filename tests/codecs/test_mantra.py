@@ -88,7 +88,7 @@ class TestEncoderMantra(_TestEncoderBase):
             "02.01.1A.15.FF.4E.6F.72.0E.04.60.06.4E.73.1F.A7.B4.FF.D0.3C.40.D7.4A.D8.D6",
             "cmd: 0x03, param: 0x01, args: [22,0,0]",
             "id: 0x0000C5F0, index: 0, tx: 1120, seed: 0x0000",
-            "fan_0: ['speed'] / {'sub_type': '6speed', 'on': True, 'speed': 4.258064516129032}",
+            "fan_0: ['speed'] / {'speed_count': 6, 'on': True, 'speed': 4.258064516129032}",
         ),
         # FAN OFF
         (

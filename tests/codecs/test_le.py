@@ -88,7 +88,7 @@ class TestEncoderLe(_TestEncoderBase):
             "02.01.19.1A.FF.FF.FF.FF.FF.0C.01.5F.74.E3.8C.76.99.71.A9.89.89.19.00.00.00.00.00.00.00.00",
             "cmd: 0x21, param: 0x01, args: [1,0,0]",
             "id: 0x8CE3745F, index: 17, tx: 249, seed: 0x0000",
-            "fan_0: ['on', 'speed'] / {'sub_type': '3speed', 'on': True, 'speed': 1}",
+            "fan_0: ['on', 'speed'] / {'speed_count': 3, 'on': True, 'speed': 1}",
         ),
         # FAN SPEED 2
         (
@@ -96,7 +96,7 @@ class TestEncoderLe(_TestEncoderBase):
             "02.01.1A.1A.FF.FF.FF.FF.FF.0C.01.5F.74.E3.8C.76.99.72.A9.89.8A.07.00.00.00.00.00.00.00.00",
             "cmd: 0x21, param: 0x01, args: [2,0,0]",
             "id: 0x8CE3745F, index: 17, tx: 250, seed: 0x0000",
-            "fan_0: ['on', 'speed'] / {'sub_type': '3speed', 'on': True, 'speed': 2}",
+            "fan_0: ['on', 'speed'] / {'speed_count': 3, 'on': True, 'speed': 2}",
         ),
         # FAN OFF
         (
@@ -112,7 +112,7 @@ class TestEncoderLe(_TestEncoderBase):
             "02.01.19.1A.FF.FF.FF.FF.FF.0C.01.5F.74.E3.8C.76.99.74.A9.89.08.87.00.00.00.00.00.00.00.00",
             "cmd: 0x21, param: 0x01, args: [128,0,0]",
             "id: 0x8CE3745F, index: 17, tx: 252, seed: 0x0000",
-            "fan_0: ['dir'] / {'sub_type': '3speed', 'dir': True}",
+            "fan_0: ['dir'] / {'speed_count': 3, 'dir': True}",
         ),
         # FAN Direction Reverse
         (
@@ -120,7 +120,7 @@ class TestEncoderLe(_TestEncoderBase):
             "02.01.1A.1A.FF.FF.FF.FF.FF.0C.01.5F.74.E3.8C.76.99.75.A9.89.09.85.00.00.00.00.00.00.00.00",
             "cmd: 0x21, param: 0x01, args: [129,0,0]",
             "id: 0x8CE3745F, index: 17, tx: 253, seed: 0x0000",
-            "fan_0: ['dir'] / {'sub_type': '3speed', 'dir': False}",
+            "fan_0: ['dir'] / {'speed_count': 3, 'dir': False}",
         ),
     ],
 )

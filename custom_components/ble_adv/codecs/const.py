@@ -3,9 +3,6 @@
 DEVICE_TYPE = "device"
 
 FAN_TYPE = "fan"
-FAN_TYPE_3SPEED = "3speed"
-FAN_TYPE_6SPEED = "6speed"
-FAN_TYPE_100SPEED = "100speed"
 
 LIGHT_TYPE = "light"
 LIGHT_TYPE_ONOFF = "onoff"
@@ -42,6 +39,7 @@ ATTR_EFFECT_RGB = "rgb"
 ATTR_EFFECT_RGBK = "rgbk"
 
 ATTR_SPEED = "speed"
+ATTR_SPEED_COUNT = "speed_count"
 ATTR_DIR = "dir"
 ATTR_OSC = "osc"
 ATTR_PRESET = "preset"
