@@ -46,7 +46,7 @@ class TestEncoderMantra(_TestEncoderBase):
         (
             "mantra_v0",
             "02.01.1A.15.FF.4E.6F.72.0E.04.47.06.4F.56.12.48.B2.6F.51.6E.EC.EF.53.6F.77",
-            "cmd: 0x02, param: 0x00, args: [44,1,6]",
+            "cmd: 0x02, param: 0x00, args: [44,1,6,44,255]",
             "id: 0x0000C5F0, index: 0, tx: 1095, seed: 0x0000",
             "light_0: ['cold', 'warm'] / {'sub_type': 'cww', 'warm': 0.0, 'cold': 0.17254901960784313, 'br': 0.17254901960784313, 'ctr': 1.0}",
         ),
@@ -54,7 +54,7 @@ class TestEncoderMantra(_TestEncoderBase):
         (
             "mantra_v0",
             "02.01.1A.15.FF.4E.6F.72.0E.04.4B.06.4F.5A.C1.47.F5.A2.7F.46.64.A7.63.34.01",
-            "cmd: 0x02, param: 0x00, args: [255,7,6]",
+            "cmd: 0x02, param: 0x00, args: [255,7,6,255,255]",
             "id: 0x0000C5F0, index: 0, tx: 1099, seed: 0x0000",
             "light_0: ['cold', 'warm'] / {'sub_type': 'cww', 'warm': 0.0, 'cold': 1.0, 'br': 1.0, 'ctr': 1.0}",
         ),
@@ -62,7 +62,7 @@ class TestEncoderMantra(_TestEncoderBase):
         (
             "mantra_v0",
             "02.01.1A.15.FF.4E.6F.72.0E.04.53.06.4F.43.67.59.7A.38.23.16.D2.3B.02.24.ED",
-            "cmd: 0x02, param: 0x00, args: [255,7,6]",
+            "cmd: 0x02, param: 0x00, args: [255,7,6,255,255]",
             "id: 0x0000C5F0, index: 0, tx: 1107, seed: 0x0000",
             "light_0: ['cold', 'warm'] / {'sub_type': 'cww', 'warm': 0.0, 'cold': 1.0, 'br': 1.0, 'ctr': 1.0}",
         ),
@@ -70,7 +70,7 @@ class TestEncoderMantra(_TestEncoderBase):
         (
             "mantra_v0",
             "02.01.1A.15.FF.4E.6F.72.0E.04.5A.06.4F.4A.E9.12.4F.E0.D1.5F.4D.01.A0.CA.42",
-            "cmd: 0x02, param: 0xFF, args: [0,7,0]",
+            "cmd: 0x02, param: 0xFF, args: [0,7,0,255,0]",
             "id: 0x0000C5F0, index: 0, tx: 1114, seed: 0x0000",
             "light_0: ['cold', 'warm'] / {'sub_type': 'cww', 'warm': 1.0, 'cold': 0.0, 'br': 1.0, 'ctr': 0.0}",
         ),

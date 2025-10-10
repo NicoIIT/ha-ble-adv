@@ -15,8 +15,6 @@ from .const import (
     ATTR_PRESET,
     ATTR_PRESET_BREEZE,
     ATTR_SPEED,
-    ATTR_SPEED_COUNT,
-    FAN_TYPE,
 )
 from .models import (
     BleAdvCodec,
@@ -25,6 +23,7 @@ from .models import (
     BleAdvEntAttr,
     CTLightCmd,
     DeviceCmd,
+    Fan6SpeedCmd,
     LightCmd,
     Trans,
 )
@@ -45,48 +44,6 @@ class AgarceEncoder(BleAdvCodec):
         pivot0 = seed & 0xFF
         pivot1 = seed >> 8
         return bytearray([x ^ self.MATRIX[i % 8] ^ (pivot0 if (((i + 1) / 2 % 2) < 1) else pivot1) for i, x in enumerate(buffer)])
-
-    def ent_to_enc(self, ent_attr: BleAdvEntAttr) -> list[BleAdvEncCmd]:
-        """Convert Entity Attributes to list of Encoder Attributes, OVERRIDEN."""
-        if ent_attr.base_type == FAN_TYPE and ent_attr.index == 0:
-            enc_cmd = BleAdvEncCmd(0x80)
-            enc_cmd.arg0 = 0x80 if ent_attr.attrs[ATTR_ON] else 0x00
-            enc_cmd.arg0 |= ent_attr.attrs[ATTR_SPEED]
-            enc_cmd.arg0 |= 0x00 if ent_attr.attrs[ATTR_DIR] else 0x10
-            enc_cmd.arg0 |= 0x20 if ent_attr.attrs[ATTR_PRESET] == ATTR_PRESET_BREEZE else 0x00
-            enc_cmd.arg1 = int(ent_attr.attrs[ATTR_OSC])
-            enc_cmd.arg2 = 0x01 if ATTR_SPEED in ent_attr.chg_attrs else 0x00
-            enc_cmd.arg2 |= 0x02 if ATTR_DIR in ent_attr.chg_attrs else 0x00
-            enc_cmd.arg2 |= 0x04 if ATTR_PRESET in ent_attr.chg_attrs else 0x00
-            enc_cmd.arg2 |= 0x08 if ATTR_ON in ent_attr.chg_attrs else 0x00
-            enc_cmd.arg2 |= 0x10 if ATTR_OSC in ent_attr.chg_attrs else 0x00
-            return [enc_cmd]
-        return super().ent_to_enc(ent_attr)
-
-    def enc_to_ent(self, enc_cmd: BleAdvEncCmd) -> list[BleAdvEntAttr]:
-        """Convert Encoder Attributes to list of Entity Attributes, OVERRIDEN."""
-        if enc_cmd.cmd == 0x80:
-            attr_chg = []
-            if enc_cmd.arg2 & 0x01:
-                attr_chg.append(ATTR_SPEED)
-            if enc_cmd.arg2 & 0x02:
-                attr_chg.append(ATTR_DIR)
-            if enc_cmd.arg2 & 0x04:
-                attr_chg.append(ATTR_PRESET)
-            if enc_cmd.arg2 & 0x08:
-                attr_chg.append(ATTR_ON)
-            if enc_cmd.arg2 & 0x10:
-                attr_chg.append(ATTR_OSC)
-            attrs = {
-                ATTR_SPEED_COUNT: 6,
-                ATTR_SPEED: enc_cmd.arg0 & 0x0F,
-                ATTR_ON: (enc_cmd.arg0 & 0x80) != 0,
-                ATTR_DIR: (enc_cmd.arg0 & 0x10) == 0,
-                ATTR_OSC: enc_cmd.arg1 != 0,
-                ATTR_PRESET: ATTR_PRESET_BREEZE if (enc_cmd.arg0 & 0x20) else None,
-            }
-            return [BleAdvEntAttr(attr_chg, attrs, FAN_TYPE, 0)]
-        return super().enc_to_ent(enc_cmd)
 
     def decrypt(self, buffer: bytes) -> bytes | None:
         """Decrypt / unwhiten an incoming raw buffer into a readable buffer."""
@@ -161,20 +118,59 @@ class AgarceEncoder(BleAdvCodec):
             ]
         )
 
-    def get_supported_features(self, base_type: str) -> list[dict[str, set[Any]]]:
-        """Get the featues supported by the translators."""
-        if base_type == FAN_TYPE:
-            return [
-                {
-                    ATTR_SPEED_COUNT: {6},
-                    ATTR_PRESET: {ATTR_PRESET_BREEZE},
-                    ATTR_SPEED: set(range(6)),
-                    ATTR_ON: {True, False},
-                    ATTR_DIR: {True, False},
-                    ATTR_OSC: {True, False},
-                }
-            ]
-        return super().get_supported_features(base_type)
+
+class AgarceFanTrans(Trans):
+    """Argrace specific Fan Translator for complex args handling."""
+
+    def __init__(self) -> None:
+        class _AgarceFanEnt(Fan6SpeedCmd):
+            def __init__(self) -> None:
+                """Init with forced actions."""
+                super().__init__()
+                self._actions = [ATTR_ON, ATTR_SPEED, ATTR_DIR, ATTR_OSC, ATTR_PRESET]
+
+            def get_supported_features(self) -> tuple[str, int, dict[str, Any]]:
+                """Get Features: Force preset."""
+                base_type, index, feats = super().get_supported_features()
+                return (base_type, index, {**feats, ATTR_PRESET: ATTR_PRESET_BREEZE})
+
+        super().__init__(_AgarceFanEnt(), EncCmd(0x80))
+
+    def ent_to_enc(self, ent_attr: BleAdvEntAttr) -> BleAdvEncCmd:
+        """Apply transformations to Encoder Attributes: direct."""
+        enc_cmd = super().ent_to_enc(ent_attr)
+        enc_cmd.arg0 = 0x80 if ent_attr.attrs[ATTR_ON] else 0x00
+        enc_cmd.arg0 |= ent_attr.attrs[ATTR_SPEED]
+        enc_cmd.arg0 |= 0x00 if ent_attr.attrs[ATTR_DIR] else 0x10
+        enc_cmd.arg0 |= 0x20 if ent_attr.attrs[ATTR_PRESET] == ATTR_PRESET_BREEZE else 0x00
+        enc_cmd.arg1 = int(ent_attr.attrs[ATTR_OSC])
+        enc_cmd.arg2 = 0x01 if ATTR_SPEED in ent_attr.chg_attrs else 0x00
+        enc_cmd.arg2 |= 0x02 if ATTR_DIR in ent_attr.chg_attrs else 0x00
+        enc_cmd.arg2 |= 0x04 if ATTR_PRESET in ent_attr.chg_attrs else 0x00
+        enc_cmd.arg2 |= 0x08 if ATTR_ON in ent_attr.chg_attrs else 0x00
+        enc_cmd.arg2 |= 0x10 if ATTR_OSC in ent_attr.chg_attrs else 0x00
+        return enc_cmd
+
+    def enc_to_ent(self, enc_cmd: BleAdvEncCmd) -> BleAdvEntAttr:
+        """Apply transformations to Entity Attributes: reverse."""
+        ent_attr = super().enc_to_ent(enc_cmd)
+        ent_attr.chg_attrs = []
+        if enc_cmd.arg2 & 0x01:
+            ent_attr.chg_attrs.append(ATTR_SPEED)
+        if enc_cmd.arg2 & 0x02:
+            ent_attr.chg_attrs.append(ATTR_DIR)
+        if enc_cmd.arg2 & 0x04:
+            ent_attr.chg_attrs.append(ATTR_PRESET)
+        if enc_cmd.arg2 & 0x08:
+            ent_attr.chg_attrs.append(ATTR_ON)
+        if enc_cmd.arg2 & 0x10:
+            ent_attr.chg_attrs.append(ATTR_OSC)
+        ent_attr.attrs[ATTR_SPEED] = enc_cmd.arg0 & 0x0F
+        ent_attr.attrs[ATTR_ON] = (enc_cmd.arg0 & 0x80) != 0
+        ent_attr.attrs[ATTR_DIR] = (enc_cmd.arg0 & 0x10) == 0
+        ent_attr.attrs[ATTR_OSC] = enc_cmd.arg1 != 0
+        ent_attr.attrs[ATTR_PRESET] = ATTR_PRESET_BREEZE if (enc_cmd.arg0 & 0x20) else None
+        return ent_attr
 
 
 TRANS = [
@@ -185,6 +181,7 @@ TRANS = [
     Trans(LightCmd().act(ATTR_ON, True), EncCmd(0x10).eq("arg0", 1)).copy(ATTR_CT_REV, "arg1", 100).copy(ATTR_BR, "arg2", 100),
     Trans(LightCmd().act(ATTR_ON, False), EncCmd(0x10).eq("arg0", 0)).copy(ATTR_CT_REV, "arg1", 100).copy(ATTR_BR, "arg2", 100),
     Trans(CTLightCmd().act(ATTR_CT_REV).act(ATTR_BR), EncCmd(0x20)).copy(ATTR_CT_REV, "arg0", 100).copy(ATTR_BR, "arg1", 100),
+    AgarceFanTrans(),
 ]
 
 

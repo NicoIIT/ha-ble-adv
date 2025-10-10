@@ -87,10 +87,13 @@ class ZhimeiEncoderV0(BleAdvCodec):
 class ZhimeiEncoderV1(BleAdvCodec):
     """Zhi Mei V1 encoder."""
 
-    _len = 22
+    _len = 16
 
     MATRIX: ClassVar[list[int]] = [29, 4, 17, 32, 152, 117, 40, 70, 11, 175, 67, 172, 214, 190, 137, 142]
-    PADDING: ClassVar[bytes] = bytes([0x10, 0x11, 0x12, 0x13, 0x14, 0x15])
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.footer([0x10, 0x11, 0x12, 0x13, 0x14, 0x15])
 
     def _crc16(self, buffer: bytes) -> int:
         return crc_hqx(buffer, 0)
@@ -107,9 +110,7 @@ class ZhimeiEncoderV1(BleAdvCodec):
 
     def decrypt(self, buffer: bytes) -> bytes | None:
         """Decrypt / unwhiten an incoming raw buffer into a readable buffer."""
-        if not self.is_eq_buf(self.PADDING, buffer[-len(self.PADDING) :], "Padding"):
-            return None
-        decoded = self._unapply_matrix(buffer[self._header_start_pos : -len(self.PADDING)], 6)
+        decoded = self._unapply_matrix(buffer[self._header_start_pos :], 6)
         if not self.is_eq(self._crc16(decoded[:-3]), int.from_bytes(decoded[-2:], "little"), "CRC"):
             return None
         decoded = decoded[:-2]
@@ -129,7 +130,7 @@ class ZhimeiEncoderV1(BleAdvCodec):
         if buffer[7] != 0xB4:
             buffer = buffer[:9] + self._apply_matrix(buffer[9:], 10)
         buffer += self._crc16(buffer[:-1]).to_bytes(2, "little")
-        buf_matrix = self._apply_matrix(buffer, 6) + self.PADDING
+        buf_matrix = self._apply_matrix(buffer, 6)
         return buffer[2 : 2 + self._header_start_pos] + buf_matrix
 
     def convert_to_enc(self, decoded: bytes) -> tuple[BleAdvEncCmd | None, BleAdvConfig | None]:
@@ -170,8 +171,11 @@ class ZhimeiEncoderV1(BleAdvCodec):
 class ZhimeiEncoderV2(BleAdvCodec):
     """Zhi Mei V2 encoder."""
 
-    _len = 23
-    PADDING: ClassVar[bytes] = bytes([0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17, 0x18, 0x19])
+    _len = 13
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.footer([0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17, 0x18, 0x19])
 
     def _crc16(self, buffer: bytes) -> int:
         pre_cec: int = crc_hqx(reverse_all(buffer), 0xFFFF)
@@ -179,9 +183,7 @@ class ZhimeiEncoderV2(BleAdvCodec):
 
     def decrypt(self, buffer: bytes) -> bytes | None:
         """Decrypt / unwhiten an incoming raw buffer into a readable buffer."""
-        if not self.is_eq_buf(self.PADDING, buffer[-len(self.PADDING) :], "Padding"):
-            return None
-        decoded = whiten(buffer[: -len(self.PADDING)], 0x48)
+        decoded = whiten(buffer, 0x48)
         if not self.is_eq(self._crc16(decoded[:-2]), int.from_bytes(decoded[-2:], "little"), "CRC"):
             return None
         return decoded[:-2]
@@ -189,7 +191,7 @@ class ZhimeiEncoderV2(BleAdvCodec):
     def encrypt(self, buffer: bytes) -> bytes:
         """Encrypt / whiten a readable buffer."""
         buffer += self._crc16(buffer).to_bytes(2, "little")
-        return whiten(buffer, 0x48) + self.PADDING
+        return whiten(buffer, 0x48)
 
     def convert_to_enc(self, decoded: bytes) -> tuple[BleAdvEncCmd | None, BleAdvConfig | None]:
         """Convert a readable buffer into an encoder command and a config."""

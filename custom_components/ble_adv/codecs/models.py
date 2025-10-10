@@ -39,7 +39,7 @@ class BleAdvAdvertisement:
             if part_len > len(rem_data):
                 break
             part_type = rem_data[1]
-            if part_type in [0x03, 0x16, 0xFF]:
+            if part_type in [0x03, 0x05, 0x16, 0xFF]:
                 ble_type = part_type
                 raw_data = rem_data[2 : part_len + 1]
             rem_data = rem_data[part_len + 1 :]
@@ -84,7 +84,10 @@ class BleAdvEncCmd:
         self.cmd = cmd
 
     def __repr__(self) -> str:
-        return f"cmd: 0x{self.cmd:02X}, param: 0x{self.param:02X}, args: [{self.arg0},{self.arg1},{self.arg2}]"
+        args = f"{self.arg0},{self.arg1},{self.arg2}"
+        if self.arg3 != 0 or self.arg4 != 0:
+            args += f",{self.arg3},{self.arg4}"
+        return f"cmd: 0x{self.cmd:02X}, param: 0x{self.param:02X}, args: [{args}]"
 
 
 type AttrType = str | bool | int | float | None
@@ -184,7 +187,7 @@ class EntityMatcher(CommonMatcher):
         return self.eq(action, action_value) if action_value is not None else self
 
     def matches(self, ent_attr: BleAdvEntAttr) -> bool:
-        """Effective match for the incoming Enitity Attributes."""
+        """Effective match for the incoming Entity Attributes."""
         return (
             (self._base_type == ent_attr.base_type)
             and (self._index == ent_attr.index)
@@ -319,12 +322,13 @@ class EncoderMatcher(CommonMatcher):
 class Trans:
     """Base translator."""
 
+    direct: bool = True
+    reverse: bool = True
+
     def __init__(self, ent: EntityMatcher, enc: EncoderMatcher) -> None:
         self.ent = ent
         self.enc = enc
         self._copies = []
-        self.direct = True
-        self.reverse = True
         self._scopy = None
 
     def __repr__(self) -> str:
@@ -404,6 +408,7 @@ class BleAdvCodec(ABC):
         self._header: bytearray = bytearray()  # header is excluded from the data sent to the child encoder
         self._header_start_pos: int = 0
         self._prefix: bytearray = bytearray()  # prefix is included in the data sent to the child encoder
+        self._footer: bytearray = bytearray()  # footer is excluded from the data sent to the child encoder
         self._ble_type: int = 0
         self._ad_flag: int = 0
         self._translators: list[Trans] = []
@@ -448,6 +453,11 @@ class BleAdvCodec(ABC):
     def prefix(self, prefix: list[int]) -> Self:
         """Set prefix."""
         self._prefix = bytearray(prefix)
+        return self
+
+    def footer(self, footer: list[int]) -> Self:
+        """Set footer."""
+        self._footer = bytearray(footer)
         return self
 
     def ble(self, ad_flag: int, ble_type: int) -> Self:
@@ -499,14 +509,16 @@ class BleAdvCodec(ABC):
 
     def decode_adv(self, adv: BleAdvAdvertisement) -> tuple[BleAdvEncCmd | None, BleAdvConfig | None]:
         """Decode Adv into Encoder Attributes / Config."""
+        last_pos = len(adv.raw) - len(self._footer)
         if (
             not self.is_eq(self._ble_type, adv.ble_type, "BLE Type")
-            or not self.is_eq(self._len, len(adv.raw) - len(self._header) - self._header_start_pos, "Length")
+            or not self.is_eq(self._len, last_pos - len(self._header) - self._header_start_pos, "Length")
             or not self.is_eq_buf(self._header, adv.raw[self._header_start_pos :], "Header")
+            or not self.is_eq_buf(self._footer, adv.raw[last_pos:], "footer")
         ):
             return None, None
         self.log_buffer(adv.raw, "Decode/Full")
-        read_buffer = self.decrypt(adv.raw[: self._header_start_pos] + adv.raw[self._header_start_pos + len(self._header) :])
+        read_buffer = self.decrypt(adv.raw[: self._header_start_pos] + adv.raw[self._header_start_pos + len(self._header) : last_pos])
         if read_buffer is None or not self.is_eq_buf(self._prefix, read_buffer, "Prefix"):
             return None, None
         read_buffer = read_buffer[len(self._prefix) :]
@@ -522,7 +534,7 @@ class BleAdvCodec(ABC):
         for read_buffer in self.convert_multi_from_enc(enc_cmd, conf):
             self.log_buffer(read_buffer, "Encode/Decrypted")
             encrypted = self.encrypt(self._prefix + read_buffer)
-            encrypted = encrypted[: self._header_start_pos] + self._header + encrypted[self._header_start_pos :]
+            encrypted = encrypted[: self._header_start_pos] + self._header + encrypted[self._header_start_pos :] + self._footer
             self.log_buffer(encrypted, "Encode/Full")
             advs.append(BleAdvAdvertisement(self._ble_type, encrypted, self._ad_flag))
         return advs
