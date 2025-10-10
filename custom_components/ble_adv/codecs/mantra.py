@@ -19,10 +19,13 @@ from .models import (
     BleAdvCodec,
     BleAdvConfig,
     BleAdvEncCmd,
+    BleAdvEntAttr,
     CTLightCmd,
     DeviceCmd,
     Fan6SpeedCmd,
+    Fan8SpeedCmd,
     FanCmd,
+    FanNSpeedCmd,
     LightCmd,
     Trans,
 )
@@ -97,7 +100,28 @@ class MantraEncoder(BleAdvCodec):
         )
 
 
-TRANS = [
+class TransRemote(Trans):
+    """Specific translator for Remote fixed composed arg0 and arg1."""
+
+    direct = False
+
+    def enc_to_ent(self, enc_cmd: BleAdvEncCmd) -> BleAdvEntAttr:
+        """Overload for complex attribute handling."""
+        ent_attr = super().enc_to_ent(enc_cmd)
+        if ATTR_BR in ent_attr.chg_attrs:
+            ent_attr.attrs[ATTR_BR] = max(((enc_cmd.arg0 & 0x0F) - 1) / 10.0, 0.01)
+        if ATTR_CT_REV in ent_attr.chg_attrs:
+            ent_attr.attrs[ATTR_CT_REV] = ((enc_cmd.arg0 & 0x70) >> 4) / 7.0
+        if ATTR_DIR in ent_attr.chg_attrs:
+            ent_attr.attrs[ATTR_DIR] = not ((enc_cmd.arg1 >> 6) & 1)
+        if ATTR_SPEED in ent_attr.chg_attrs:
+            ent_attr.attrs[ATTR_SPEED] = enc_cmd.arg1 & 0x0F
+        if ATTR_PRESET in ent_attr.chg_attrs:
+            ent_attr.attrs[ATTR_PRESET] = ATTR_PRESET_BREEZE if (enc_cmd.arg1 >> 5) & 1 else ATTR_PRESET_SLEEP if (enc_cmd.arg1 >> 4) & 1 else None
+        return ent_attr
+
+
+TRANS_APP = [
     Trans(DeviceCmd().act(ATTR_ON, False), EncCmd(0x01).eq("param", 0x02)).no_direct(),
     Trans(DeviceCmd().act(ATTR_CMD, ATTR_CMD_TIMER).eq(ATTR_TIME, 60), EncCmd(0x01).eq("param", 0x09)),
     Trans(DeviceCmd().act(ATTR_CMD, ATTR_CMD_TIMER).eq(ATTR_TIME, 120), EncCmd(0x01).eq("param", 0x0A)),
@@ -114,17 +138,37 @@ TRANS = [
     .copy(ATTR_CT_REV, "arg4", 255),
     Trans(FanCmd().act(ATTR_ON, True), EncCmd(0x01).eq("param", 0x07)),
     Trans(FanCmd().act(ATTR_ON, False), EncCmd(0x01).eq("param", 0x08)),
-    Trans(FanCmd().act(ATTR_PRESET, ATTR_PRESET_BREEZE), EncCmd(0x01).eq("param", 0x0D)),  # TENTATIVE
+    Trans(FanCmd().act(ATTR_PRESET, ATTR_PRESET_BREEZE), EncCmd(0x01).eq("param", 0x0D)),
     Trans(FanCmd().act(ATTR_PRESET, ATTR_PRESET_SLEEP), EncCmd(0x01).eq("param", 0x0E)),
     Trans(FanCmd().act(ATTR_DIR, True), EncCmd(0x01).eq("param", 0x12)),  # Forward
     Trans(FanCmd().act(ATTR_DIR, False), EncCmd(0x01).eq("param", 0x14)),  # Reverse
-    # // Trans(FanCmd().act(ATTR_DIR, True), EncCmd(0x01).eq("param", 0x11)).no_reverse(),  # Forward with speed full
-    Trans(Fan6SpeedCmd().act(ATTR_SPEED).eq(ATTR_ON, True), EncCmd(0x03).eq("param", 0x01)).copy(ATTR_SPEED, "arg0", 31.0 / 6.0),
+    Trans(FanNSpeedCmd(0, 31).act(ATTR_SPEED).eq(ATTR_ON, True), EncCmd(0x03).eq("param", 0x01)).copy(ATTR_SPEED, "arg0").no_direct(),
+    Trans(Fan8SpeedCmd().act(ATTR_SPEED).eq(ATTR_ON, True), EncCmd(0x03).eq("param", 0x01)).copy(ATTR_SPEED, "arg0", 31.0 / 8.0).no_reverse(),
+    Trans(Fan6SpeedCmd().act(ATTR_SPEED).eq(ATTR_ON, True), EncCmd(0x03).eq("param", 0x01)).copy(ATTR_SPEED, "arg0", 31.0 / 6.0).no_reverse(),
     Trans(Fan6SpeedCmd().act(ATTR_SPEED, 2).act(ATTR_DIR, True), EncCmd(0x01).eq("param", 0x0F)).no_direct(),
     Trans(Fan6SpeedCmd().act(ATTR_SPEED, 4).act(ATTR_DIR, True), EncCmd(0x01).eq("param", 0x10)).no_direct(),
     Trans(Fan6SpeedCmd().act(ATTR_SPEED, 6).act(ATTR_DIR, True), EncCmd(0x01).eq("param", 0x11)).no_direct(),
 ]
 
+TRANS_REMOTE = [
+    TransRemote(LightCmd().act(ATTR_ON, False), EncCmd(0x10).eq("param", 0x10)),
+    TransRemote(LightCmd().act(ATTR_ON, True), EncCmd(0x10).eq("param", 0x11)),
+    TransRemote(LightCmd().act(ATTR_BR), EncCmd(0x10).eq("param", 0x12)),
+    TransRemote(LightCmd().act(ATTR_BR), EncCmd(0x10).eq("param", 0x13)),
+    TransRemote(LightCmd().act(ATTR_CT_REV), EncCmd(0x10).eq("param", 0x14)),
+    TransRemote(LightCmd().act(ATTR_CT_REV), EncCmd(0x10).eq("param", 0x15)),
+    TransRemote(FanCmd().act(ATTR_ON, False), EncCmd(0x10).eq("param", 0x20)),
+    TransRemote(FanCmd().act(ATTR_ON, True), EncCmd(0x10).eq("param", 0x21)),
+    TransRemote(FanCmd().act(ATTR_DIR), EncCmd(0x10).eq("param", 0x24)),
+    TransRemote(Fan8SpeedCmd().act(ATTR_SPEED), EncCmd(0x10).eq("param", 0x22)),
+    TransRemote(Fan8SpeedCmd().act(ATTR_SPEED), EncCmd(0x10).eq("param", 0x23)),
+    TransRemote(Fan8SpeedCmd().act(ATTR_PRESET).act(ATTR_SPEED), EncCmd(0x10).eq("param", 0x25)),
+    TransRemote(Fan8SpeedCmd().act(ATTR_PRESET).act(ATTR_SPEED), EncCmd(0x10).eq("param", 0x26)),
+]
+
+TRANS = [*TRANS_APP, *TRANS_REMOTE]
+
 CODECS = [
     MantraEncoder().id("mantra_v0").header([0x4E, 0x6F]).prefix([0x72, 0x0E]).ble(0x1A, 0xFF).add_translators(TRANS),
+    MantraEncoder().id("mantra_v0", "ios").header([0x4E, 0x6F]).prefix([0x72, 0x0E]).footer([0x04, 0x03, 0x02, 0x01]).ble(0x1A, 0x05).add_translators(TRANS),
 ]  # fmt: skip
