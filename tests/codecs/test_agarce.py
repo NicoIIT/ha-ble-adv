@@ -4,12 +4,9 @@
 import pytest
 from ble_adv.codecs.agarce import TRANS, AgarceEncoder
 from ble_adv.codecs.const import (
-    ATTR_DIR,
     ATTR_ON,
-    ATTR_OSC,
     ATTR_PRESET,
     ATTR_PRESET_BREEZE,
-    ATTR_SPEED,
     ATTR_SPEED_COUNT,
     ATTR_SUB_TYPE,
     FAN_TYPE,
@@ -190,13 +187,4 @@ def test_supported_features() -> None:
     """Test the specific supported features."""
     codec = AgarceEncoder().add_translators(TRANS)
     assert codec.get_supported_features(LIGHT_TYPE) == [{ATTR_ON: {False, True}, ATTR_SUB_TYPE: {LIGHT_TYPE_ONOFF, LIGHT_TYPE_CWW}}]
-    assert codec.get_supported_features(FAN_TYPE) == [
-        {
-            ATTR_SPEED_COUNT: {6},
-            ATTR_PRESET: {ATTR_PRESET_BREEZE},
-            ATTR_SPEED: {0, 1, 2, 3, 4, 5},
-            ATTR_ON: {False, True},
-            ATTR_DIR: {False, True},
-            ATTR_OSC: {False, True},
-        }
-    ]
+    assert codec.get_supported_features(FAN_TYPE) == [{ATTR_SPEED_COUNT: {6}, ATTR_PRESET: {ATTR_PRESET_BREEZE}}]

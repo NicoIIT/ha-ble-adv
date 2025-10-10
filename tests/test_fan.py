@@ -180,6 +180,7 @@ async def test_fan_preset(device: _Device) -> None:
     device.assert_apply_change(fan, [ATTR_PRESET])
     fan.apply_attrs(BleAdvEntAttr([ATTR_PRESET], {ATTR_ON: True, ATTR_PRESET: "PRES1"}, FAN_TYPE, 3))
     assert fan.preset_mode == "PRES1"
+    assert fan.percentage == 0
     fan.apply_attrs(BleAdvEntAttr([ATTR_SPEED], {ATTR_ON: True, ATTR_SPEED_COUNT: 6, ATTR_SPEED: 3}, FAN_TYPE, 0))
     assert fan.percentage == 50
     assert fan.preset_mode is None
