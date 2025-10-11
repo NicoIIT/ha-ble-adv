@@ -27,10 +27,5 @@ ble_adv:
   # ignored_adapters:
   #   - hci/48
 
-recorder:
-  exclude:
-    event_types:
-      - call_service
-
 automation: !include automations.yaml
 scene: !include scenes.yaml
