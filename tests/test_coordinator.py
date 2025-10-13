@@ -127,12 +127,12 @@ async def test_inject_raw(hass: HomeAssistant) -> None:
 async def test_decode_raw(hass: HomeAssistant) -> None:
     """Test Raw Decoding."""
     coord = BleAdvCoordinator(hass, {"cod1": _Codec()}, ["hci"], 20000, [], [])
-    res = await coord.decode_raw("123")
+    res = coord.decode_raw("123")
     assert res == ["Cannot convert to bytes"]
-    res = await coord.decode_raw("1234")
-    assert res == ["cod1", "12.34", "cmd: 0x10, param: 0x00, args: [0,0,0]", "id: 0x00000001, index: 0, tx: 0, seed: 0x0000", ""]
+    res = coord.decode_raw("1234")
+    assert res == ["cod1", "1234", "cmd: 0x10, param: 0x00, args: [0,0,0]", "id: 0x00000001, index: 0, tx: 0, seed: 0x0000", ""]
     coord.codecs.clear()
-    res = await coord.decode_raw("1234")
+    res = coord.decode_raw("1234")
     assert res == ["Could not be decoded by any known codec"]
 
 
