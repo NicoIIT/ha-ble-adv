@@ -1,4 +1,4 @@
-"""Remotes Unit Tests."""
+"""LE Unit Tests."""
 
 import pytest
 

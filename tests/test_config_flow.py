@@ -97,11 +97,13 @@ async def test_wait_raw_adv_progress(hass: HomeAssistant) -> None:
     assert dict(cfr)["progress_action"] == "listen_raw"
     assert dict(cfr)["description_placeholders"] == {"advs": "\n    None"}
     flow.coordinator.listened_raw_advs = [bytes([0x12, 0x34])]
+    flow.coordinator.decode_raw = mock.Mock(return_value=["cod1", "1234"])
     cfr = mtp.next()
     assert cfr is not None
-    assert dict(cfr)["description_placeholders"] == {"advs": "\n    1234"}
+    assert dict(cfr)["description_placeholders"] == {"advs": '\n    ("cod1","1234")'}
     assert flow.coordinator.listened_raw_advs == []
     flow.coordinator.listened_raw_advs = [bytes([0x56, 0x78])]
+    flow.coordinator.decode_raw = mock.Mock(return_value=["not decoded"])
     cfr = mtp.next()
     assert cfr is not None
     assert dict(cfr)["description_placeholders"] == {"advs": "\n    1234\n    5678"}

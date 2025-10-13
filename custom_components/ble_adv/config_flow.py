@@ -246,8 +246,15 @@ class BleAdvWaitConfigProgress(BleAdvWaitProgress):
         return _ActionResult(name="agg_config", ph={})
 
 
-def _format_advs(raw_advs: list[bytes]) -> str:
-    return "\n    " + "\n    ".join([x.hex().upper() for x in raw_advs]) if raw_advs else "\n    None"
+def _format_advs(coord: BleAdvCoordinator, raw_advs: list[bytes]) -> str:
+    dec_advs: list[str] = []
+    for raw_adv in raw_advs:
+        decoded = coord.decode_raw(raw_adv.hex())
+        if len(decoded) > 1:
+            dec_advs.append('\n    ("' + '","'.join(decoded) + '")')
+        else:
+            dec_advs.append("\n    " + raw_adv.hex().upper())
+    return "".join(dec_advs) if dec_advs else "\n    None"
 
 
 class BleAdvWaitRawAdvProgress(BleAdvWaitProgress):
@@ -264,7 +271,7 @@ class BleAdvWaitRawAdvProgress(BleAdvWaitProgress):
             if raw_adv not in self.raw_advs:
                 self.raw_advs.append(raw_adv)
         coord.listened_raw_advs.clear()
-        return _ActionResult(ph={"advs": _format_advs(self.raw_advs)})
+        return _ActionResult(ph={"advs": _format_advs(coord, self.raw_advs)})
 
 
 class BleAdvConfigHandler:
@@ -340,7 +347,7 @@ class BleAdvConfigFlow(ConfigFlow, domain=DOMAIN):
 
         self._data: dict[str, Any] = {}
         self._finalize_requested: bool = False
-        self._last_inject: dict[str, Any] = {CONF_RAW: "", CONF_INTERVAL: 20, CONF_REPEATS: 9}
+        self._last_inject: dict[str, Any] = {}
 
         self._diags: list[str] = []
         self._return_step_after_diag: str = ""
@@ -456,11 +463,11 @@ class BleAdvConfigFlow(ConfigFlow, domain=DOMAIN):
         data_schema = vol.Schema(
             {
                 vol.Required(CONF_ADAPTER_ID, default=self._last_inject.get(CONF_ADAPTER_ID, None)): vol.In(self.coordinator.get_adapter_ids()),
-                vol.Required(CONF_RAW, default=self._last_inject[CONF_RAW]): selector.TextSelector(selector.TextSelectorConfig()),
-                vol.Optional(CONF_INTERVAL, default=self._last_inject[CONF_INTERVAL]): selector.NumberSelector(
+                vol.Required(CONF_RAW, default=self._last_inject.get(CONF_RAW, "")): selector.TextSelector(selector.TextSelectorConfig()),
+                vol.Optional(CONF_INTERVAL, default=self._last_inject.get(CONF_INTERVAL, 20)): selector.NumberSelector(
                     selector.NumberSelectorConfig(step=10, min=10, max=150, mode=selector.NumberSelectorMode.BOX)
                 ),
-                vol.Optional(CONF_REPEAT, default=self._last_inject[CONF_REPEAT]): selector.NumberSelector(
+                vol.Optional(CONF_REPEAT, default=self._last_inject.get(CONF_REPEAT, 9)): selector.NumberSelector(
                     selector.NumberSelectorConfig(step=1, min=1, max=20, mode=selector.NumberSelectorMode.BOX)
                 ),
             }
@@ -485,15 +492,19 @@ class BleAdvConfigFlow(ConfigFlow, domain=DOMAIN):
     async def async_step_listen_raw_res(self, _: dict[str, Any] | None = None) -> ConfigFlowResult:
         """Listen to all BLE ADV messages result step."""
         return self.async_show_menu(
-            step_id="listen_raw_res", menu_options=["listen_raw", "tools"], description_placeholders={"advs": _format_advs(self._raw_advs)}
+            step_id="listen_raw_res",
+            menu_options=["listen_raw", "tools"],
+            description_placeholders={"advs": _format_advs(self.coordinator, self._raw_advs)},
         )
 
     async def async_step_decode_raw(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         """Decode Raw BLE ADV messages."""
         if user_input is not None:
-            self._decode_res = await self.coordinator.decode_raw(user_input[CONF_RAW])
+            self._decode_res = self.coordinator.decode_raw(user_input[CONF_RAW])
             return await self.async_step_decode_raw_res()
-        data_schema = vol.Schema({vol.Required(CONF_RAW, default=self._last_inject[CONF_RAW]): selector.TextSelector(selector.TextSelectorConfig())})
+        data_schema = vol.Schema(
+            {vol.Required(CONF_RAW, default=self._last_inject.get(CONF_RAW, "")): selector.TextSelector(selector.TextSelectorConfig())}
+        )
         return self.async_show_form(step_id="decode_raw", data_schema=data_schema)
 
     async def async_step_decode_raw_res(self, _: dict[str, Any] | None = None) -> ConfigFlowResult:

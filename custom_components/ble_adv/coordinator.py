@@ -222,7 +222,7 @@ class BleAdvCoordinator:
         await self.advertise(dt[CONF_ADAPTER_ID], dt[CONF_DEVICE_QUEUE], qi)
         return {}
 
-    async def decode_raw(self, raw_adv_str: str) -> list[str]:
+    def decode_raw(self, raw_adv_str: str) -> list[str]:
         """Decode a Raw ADV."""
         try:
             raw_adv = bytes.fromhex(raw_adv_str.replace(".", ""))
@@ -233,7 +233,7 @@ class BleAdvCoordinator:
             enc_cmd, conf = acodec.decode_adv(adv)
             if conf is not None and enc_cmd is not None:
                 ent_attrs = acodec.enc_to_ent(enc_cmd)
-                return [codec_id, raw_adv.hex(".").upper(), repr(enc_cmd), repr(conf), " / ".join([repr(x) for x in ent_attrs])]
+                return [codec_id, raw_adv.hex().upper(), repr(enc_cmd), repr(conf), " / ".join([repr(x) for x in ent_attrs])]
         return ["Could not be decoded by any known codec"]
 
     async def _publish_to_devices(self, adapter_id: str, recv: BleAdvRecvItem) -> None:
