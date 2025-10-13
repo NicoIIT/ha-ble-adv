@@ -52,6 +52,7 @@ def create_entity(options: dict[str, Any], device: BleAdvDevice, index: int) -> 
         light.setup_effects(options.get(CONF_EFFECTS, []))
     elif light_type == LIGHT_TYPE_CWW:
         light = BleAdvLightCWW(light_type, device, index, min_br)
+        light.setup_effects(options.get(CONF_EFFECTS, []))
         light.reverse_cw = bool(options.get(CONF_REVERSED, False))
     elif light_type == LIGHT_TYPE_ONOFF:
         light = BleAdvLightBinary(light_type, device, index)
@@ -87,7 +88,7 @@ class BleAdvLightBinary(BleAdvLightBase):
 
 
 class BleAdvLightWithBrightness(BleAdvLightBase):
-    """Base Light with Brightness."""
+    """Base Light with Brightness and effects."""
 
     def __init__(self, sub_type: str, device: BleAdvDevice, index: int, min_br: float) -> None:
         super().__init__(sub_type, device, index)
@@ -116,7 +117,7 @@ class BleAdvLightWithBrightness(BleAdvLightBase):
 
     def get_attrs(self) -> dict[str, Any]:
         """Get the attrs."""
-        return {**super().get_attrs(), ATTR_BR: self._get_br()}
+        return {**super().get_attrs(), ATTR_BR: self._get_br(), ATTR_EFFECT: self._attr_effect}
 
     def forced_changed_attr_on_start(self) -> list[str]:
         """List Forced changed attributes on start."""
@@ -172,16 +173,7 @@ class BleAdvLightRGB(BleAdvLightWithBrightness):
         """Get the attrs."""
         br = self._get_br()
         r, g, b = self._get_rgb()
-        return {
-            **super().get_attrs(),
-            ATTR_RED: r,
-            ATTR_GREEN: g,
-            ATTR_BLUE: b,
-            ATTR_RED_F: r * br,
-            ATTR_GREEN_F: g * br,
-            ATTR_BLUE_F: b * br,
-            ATTR_EFFECT: self._attr_effect,
-        }
+        return {**super().get_attrs(), ATTR_RED: r, ATTR_GREEN: g, ATTR_BLUE: b, ATTR_RED_F: r * br, ATTR_GREEN_F: g * br, ATTR_BLUE_F: b * br}
 
     def forced_changed_attr_on_start(self) -> list[str]:
         """List Forced changed attributes on start."""
