@@ -84,10 +84,10 @@ async def test_light_cww(device: _Device) -> None:
     assert light.id == (LIGHT_TYPE, 0)
     assert light.supported_color_modes == {ColorMode.COLOR_TEMP}
     assert light.forced_changed_attr_on_start() == []
-    assert light.get_attrs() == {ATTR_ON: False, ATTR_SUB_TYPE: LIGHT_TYPE_CWW, **ctbr(0.0, 1.0, 1.0, 0.0)}
+    assert light.get_attrs() == {ATTR_ON: False, ATTR_SUB_TYPE: LIGHT_TYPE_CWW, **ctbr(0.0, 1.0, 1.0, 0.0), ATTR_EFFECT: None}
     await light.async_turn_on()
     assert light.is_on
-    assert light.get_attrs() == {ATTR_ON: True, ATTR_SUB_TYPE: LIGHT_TYPE_CWW, **ctbr(0.0, 1.0, 1.0, 0.0)}
+    assert light.get_attrs() == {ATTR_ON: True, ATTR_SUB_TYPE: LIGHT_TYPE_CWW, **ctbr(0.0, 1.0, 1.0, 0.0), ATTR_EFFECT: None}
     device.assert_apply_change(light, [ATTR_ON])
     await light.async_turn_on()
     device.assert_no_change()
@@ -97,19 +97,19 @@ async def test_light_cww(device: _Device) -> None:
     assert light.is_on
     await light.async_turn_off()
     assert not light.is_on
-    assert light.get_attrs() == {ATTR_ON: False, ATTR_SUB_TYPE: LIGHT_TYPE_CWW, **ctbr(0.0, 1.0, 1.0, 0.0)}
+    assert light.get_attrs() == {ATTR_ON: False, ATTR_SUB_TYPE: LIGHT_TYPE_CWW, **ctbr(0.0, 1.0, 1.0, 0.0), ATTR_EFFECT: None}
     device.assert_apply_change(light, [ATTR_ON])
     await light.async_turn_on(brightness=127)
     assert light.is_on
-    assert light.get_attrs() == {ATTR_ON: True, ATTR_SUB_TYPE: LIGHT_TYPE_CWW, **ctbr(0.0, 127.0 / 255.0, 127.0 / 255.0, 0.0)}
+    assert light.get_attrs() == {ATTR_ON: True, ATTR_SUB_TYPE: LIGHT_TYPE_CWW, **ctbr(0.0, 127.0 / 255.0, 127.0 / 255.0, 0.0), ATTR_EFFECT: None}
     device.assert_apply_change(light, [ATTR_ON, ATTR_BR, ATTR_WARM, ATTR_COLD])
     await light.async_turn_on(brightness=255, color_temp_kelvin=2000)
     assert light.is_on
-    assert light.get_attrs() == {ATTR_ON: True, ATTR_SUB_TYPE: LIGHT_TYPE_CWW, **ctbr(1.0, 1.0, 0.0, 1.0)}
+    assert light.get_attrs() == {ATTR_ON: True, ATTR_SUB_TYPE: LIGHT_TYPE_CWW, **ctbr(1.0, 1.0, 0.0, 1.0), ATTR_EFFECT: None}
     device.assert_apply_change(light, [ATTR_BR, ATTR_WARM, ATTR_COLD, ATTR_CT, ATTR_CT_REV])
     await light.async_turn_on(color_temp_kelvin=6535)
     assert light.is_on
-    assert light.get_attrs() == {ATTR_ON: True, ATTR_SUB_TYPE: LIGHT_TYPE_CWW, **ctbr(0.0, 1.0, 1.0, 0.0)}
+    assert light.get_attrs() == {ATTR_ON: True, ATTR_SUB_TYPE: LIGHT_TYPE_CWW, **ctbr(0.0, 1.0, 1.0, 0.0), ATTR_EFFECT: None}
     device.assert_apply_change(light, [ATTR_WARM, ATTR_COLD, ATTR_CT, ATTR_CT_REV])
     light.apply_attrs(BleAdvEntAttr([ATTR_BR], {ATTR_BR: 0.5}, LIGHT_TYPE, 0))
     assert light.brightness == 127
@@ -133,10 +133,10 @@ async def test_light_cww_reversed(device: _Device) -> None:
     assert light.id == (LIGHT_TYPE, 0)
     assert light.supported_color_modes == {ColorMode.COLOR_TEMP}
     assert light.forced_changed_attr_on_start() == []
-    assert light.get_attrs() == {ATTR_ON: False, ATTR_SUB_TYPE: LIGHT_TYPE_CWW, **ctbr(1.0, 1.0, 0.0, 1.0)}
+    assert light.get_attrs() == {ATTR_ON: False, ATTR_SUB_TYPE: LIGHT_TYPE_CWW, **ctbr(1.0, 1.0, 0.0, 1.0), ATTR_EFFECT: None}
     await light.async_turn_on()
     assert light.is_on
-    assert light.get_attrs() == {ATTR_ON: True, ATTR_SUB_TYPE: LIGHT_TYPE_CWW, **ctbr(1.0, 1.0, 0.0, 1.0)}
+    assert light.get_attrs() == {ATTR_ON: True, ATTR_SUB_TYPE: LIGHT_TYPE_CWW, **ctbr(1.0, 1.0, 0.0, 1.0), ATTR_EFFECT: None}
     device.assert_apply_change(light, [ATTR_ON])
     await light.async_turn_on()
     device.assert_no_change()
@@ -146,19 +146,19 @@ async def test_light_cww_reversed(device: _Device) -> None:
     assert light.is_on
     await light.async_turn_off()
     assert not light.is_on
-    assert light.get_attrs() == {ATTR_ON: False, ATTR_SUB_TYPE: LIGHT_TYPE_CWW, **ctbr(1.0, 1.0, 0.0, 1.0)}
+    assert light.get_attrs() == {ATTR_ON: False, ATTR_SUB_TYPE: LIGHT_TYPE_CWW, **ctbr(1.0, 1.0, 0.0, 1.0), ATTR_EFFECT: None}
     device.assert_apply_change(light, [ATTR_ON])
     await light.async_turn_on(brightness=123)
     assert light.is_on
-    assert light.get_attrs() == {ATTR_ON: True, ATTR_SUB_TYPE: LIGHT_TYPE_CWW, **ctbr(1.0, 123.0 / 255.0, 0.0, 123.0 / 255.0)}
+    assert light.get_attrs() == {ATTR_ON: True, ATTR_SUB_TYPE: LIGHT_TYPE_CWW, **ctbr(1.0, 123.0 / 255.0, 0.0, 123.0 / 255.0), ATTR_EFFECT: None}
     device.assert_apply_change(light, [ATTR_ON, ATTR_BR, ATTR_WARM, ATTR_COLD])
     await light.async_turn_on(brightness=255, color_temp_kelvin=2000)
     assert light.is_on
-    assert light.get_attrs() == {ATTR_ON: True, ATTR_SUB_TYPE: LIGHT_TYPE_CWW, **ctbr(0.0, 1.0, 1.0, 0.0)}
+    assert light.get_attrs() == {ATTR_ON: True, ATTR_SUB_TYPE: LIGHT_TYPE_CWW, **ctbr(0.0, 1.0, 1.0, 0.0), ATTR_EFFECT: None}
     device.assert_apply_change(light, [ATTR_BR, ATTR_WARM, ATTR_COLD, ATTR_CT, ATTR_CT_REV])
     await light.async_turn_on(color_temp_kelvin=6535)
     assert light.is_on
-    assert light.get_attrs() == {ATTR_ON: True, ATTR_SUB_TYPE: LIGHT_TYPE_CWW, **ctbr(1.0, 1.0, 0.0, 1.0)}
+    assert light.get_attrs() == {ATTR_ON: True, ATTR_SUB_TYPE: LIGHT_TYPE_CWW, **ctbr(1.0, 1.0, 0.0, 1.0), ATTR_EFFECT: None}
     device.assert_apply_change(light, [ATTR_WARM, ATTR_COLD, ATTR_CT, ATTR_CT_REV])
 
 
