@@ -36,6 +36,7 @@ The Protocols supported are the ones used by the following Android Phone Apps (a
 * [Smart Light / Argrace Smart](https://apkpure.com/argrace-smart/ai.argrace.oem) (No RGB, Only the control by device, not the Master Control) (not available on Play Store anymore, seems abandoned)
 * [LE Light Pro / 乐智光Pro](https://openapi.lelight.top/dl/cqan) (not available on Play Store)
 * [RuiXin](https://rx-etech.com/rxzn.html) Sanweyter devices (No RGB, no Timer, Remote Temperature Switch not reflected in HA) (not available on Play Store)
+* [RW.LIGHT](https://play.google.com/store/apps/details?id=com.rw.rwblelight) (No control by Group, No support for AURA / IR / FIBER types)
 * Other (Legacy), removed app from play store: 'FanLamp', 'ControlSwitch', 'Lamp Smart Pro - Soft Lighting / Smart Lighting'
 
 If the protocols of your application are not supported yet you can request for their support [here](https://github.com/NicoIIT/ha-ble-adv/issues/new?template=new_app.yml).
