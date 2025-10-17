@@ -42,7 +42,7 @@ The Protocols supported are the ones used by the following Android Phone Apps (a
 If the protocols of your application are not supported yet you can request for their support [here](https://github.com/NicoIIT/ha-ble-adv/issues/new?template=new_app.yml).
 
 ## Supported Physical Remote
-There are lots of different Physical Remote so it is impossible to know if a Physical Remote is supported witout testing it. Some of them are using the same protocols than the Phone Apps, others are using their own protocol, or even RF or IR...
+There are lots of different Physical Remote so it is impossible to know if a Physical Remote is supported without testing it. Some of them are using the same protocols than the Phone Apps, others are using their own protocol, or even RF or IR...
 
 If your remote is not recognized by the integration then you can check if it could be supported and request for its support, see [How To](https://github.com/NicoIIT/ha-ble-adv/wiki/How-to-know-if-my-Physical-Remote-is-using-BLE-Advertising-to-control-my-device).
 
