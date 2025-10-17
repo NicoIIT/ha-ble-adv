@@ -1,0 +1,42 @@
+# Worklow ran when a new release is published:
+#  - Patch the manifest.json file version with the one of the release
+#  - Build and Upload a ZIP release with this patched version to be used by HACS
+# On top of having the relevant version in manifest without needing to manually bump it,
+# it also allows to have download statistics in HACS
+
+name: Publish
+
+on:
+  release:
+    types:
+      - published
+
+jobs:
+  release_zip_file:
+    name: Publish zip file asset
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - id: domain
+        name: Get Domain name
+        run: echo "name=$(ls custom_components)" >> $GITHUB_OUTPUT
+
+      - name: Set version in manifest
+        run: |
+          sed -i "s/\"version\":\s*\".*\"/\"version\": \"${{ github.event.release.tag_name }}\"/" custom_components/${{ steps.domain.outputs.name }}/manifest.json
+
+      - name: ZIP release
+        run: |
+          cd ${{ github.workspace }}/custom_components/${{ steps.domain.outputs.name }}
+          zip ${{ github.workspace }}/release.zip -r ./
+
+      - name: Upload zip to release
+        uses: softprops/action-gh-release@v2.4.1
+        with:
+          files: ${{ github.workspace }}/release.zip
