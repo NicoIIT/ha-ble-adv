@@ -10,9 +10,10 @@ body:
 
       > [!CAUTION]
       > As a remainder you are asking for help that the maintainer will happily provide if:
-        * you already carefully checked the doc and have not found the answer to your issue
-        * your issue contains the requested info needed by the maintainer to be able to investigate it.
-      If it is not the case the issue will be **immediately closed** referring to one of the [rejection reasons](https://github.com/NicoIIT/ha-ble-adv/wiki/Why-was-my-issue-rejected%3F).
+      > * you already carefully checked the doc and have not found the answer to your issue
+      > * your issue contains the requested info needed by the maintainer to be able to investigate it.
+      >
+      > If it is not the case the issue will be **immediately closed** referring to one of the [rejection reasons](https://github.com/NicoIIT/ha-ble-adv/wiki/Why-was-my-issue-rejected%3F).
 
 - type: textarea
   attributes:
