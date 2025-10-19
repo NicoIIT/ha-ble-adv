@@ -116,6 +116,12 @@ class BleAdvAdapter(ABC):
         self._opened: bool = False
         self._advertise_on_going: bool = False
         self.logger = _AdapterLoggingAdapter(_LOGGER, {"name": self.name})
+        self._diags: deque[str] = deque(maxlen=30)
+
+    def _add_diag(self, msg: str, log_level: int = logging.DEBUG) -> None:
+        """Add a diagnostic log."""
+        self.logger.log(log_level, msg)
+        self._diags.append(f"{datetime.now()} - {msg}")
 
     @property
     def available(self) -> bool:
@@ -125,7 +131,14 @@ class BleAdvAdapter(ABC):
     def diagnostic_dump(self) -> dict[str, Any]:
         """Diagnostic dump."""
         dequeueing = self._dequeue_task is not None and not self._dequeue_task.done() and self._processing
-        return {"type": type(self).__name__, "mac": self.mac, "available": self.available, "queue": self._qlen, "dequeueing": dequeueing}
+        return {
+            "type": type(self).__name__,
+            "mac": self.mac,
+            "available": self.available,
+            "queue": self._qlen,
+            "dequeueing": dequeueing,
+            "logs": list(self._diags),
+        }
 
     async def async_init(self) -> None:
         """Async Init."""
@@ -211,7 +224,7 @@ class BleAdvAdapter(ABC):
                             break
                     self._add_event.clear()
                 if item is not None:
-                    self.logger.debug(f"Advertising - {item}")
+                    self._add_diag(f"Advertising - {item}")
                     await asyncio.wait_for(self._advertise(item), self.MAX_ADV_WAIT)
                     await self._lock_queue_for(self._cur_ind, lock_delay)
                     self._add_event.set()
@@ -305,21 +318,21 @@ class BluetoothHCIAdapter(BleAdvAdapter):
         await self._async_socket.async_setsockopt(SOCK_SOL_HCI, SOCK_HCI_FILTER, self.ADV_FILTER)
         await self._async_socket.async_start_recv()
         self._opened = True
-        self.logger.info(f"Connected - fileno: {fileno}")
+        self._add_diag(f"Connected - fileno: {fileno}", logging.INFO)
 
         # Get LE Features to check if extended advertising is supported / needed
         ret_code, data = await self._send_hci_cmd(self.OCF_LE_READ_LOCAL_SUPPORTED_FEATURES)
         if ret_code == self.HCI_SUCCESS and data is not None:
             features = int.from_bytes(data, "little")
             self._use_ext_adv = bool(features & (1 << 12))
-            self.logger.debug(f"Extended Adv Available: {self._use_ext_adv}")
+            self._add_diag(f"Extended Adv Available: {self._use_ext_adv}")
 
         if not self._use_ext_adv:
             # Check if the HCI Raw advertising is possible or if we need to use mgmt:
             ret_enable = await self._set_advertise_enable(enabled=True)
             ret_disable = await self._set_advertise_enable(enabled=False)
             self._use_mgmt_adv = (ret_enable == self.HCI_DISALLOWED) and (ret_disable == self.HCI_DISALLOWED)
-            self.logger.debug(f"Forced MGMT for ADV: {self._use_mgmt_adv}")
+            self._add_diag(f"Forced MGMT for ADV: {self._use_mgmt_adv}")
 
         # Start Scan
         await self._start_scan()
@@ -344,7 +357,7 @@ class BluetoothHCIAdapter(BleAdvAdapter):
             self._ret_data = data[7:]
             self._cmd_event.set()
 
-    async def _send_hci_cmd(self, cmd_type: int, cmd_data: bytes = bytearray()) -> tuple[int, bytes | None]:
+    async def _send_hci_cmd(self, cmd_type: int, cmd_data: bytes = bytearray(), *, log_on_error: bool = True) -> tuple[int, bytes | None]:
         if not self._opened:
             raise AdapterError("Adapter not available")
         data_len = len(cmd_data)
@@ -357,6 +370,8 @@ class BluetoothHCIAdapter(BleAdvAdapter):
             self._ret_data = None
             await self._async_socket.async_sendall(cmd)
             await asyncio.wait_for(self._cmd_event.wait(), self.CMD_RTO)
+            if self._ret_code != self.HCI_SUCCESS and log_on_error:
+                self._add_diag(f"HCI command {hex(op_code).upper()} failed with return code {hex(self._ret_code).upper()}")
             return self._ret_code, self._ret_data
 
     async def _set_scan_parameters(self, scan_type: int = 0x00, interval: int = 0x10, window: int = 0x10) -> None:
@@ -381,7 +396,7 @@ class BluetoothHCIAdapter(BleAdvAdapter):
                 await self._hci_advertise(min_adv, duration, patched_data)
 
     async def _set_advertise_enable(self, *, enabled: bool = True) -> int:
-        ret, _ = await self._send_hci_cmd(self.OCF_LE_SET_ADVERTISE_ENABLE, bytearray([0x01 if enabled else 0x00]))
+        ret, _ = await self._send_hci_cmd(self.OCF_LE_SET_ADVERTISE_ENABLE, bytearray([0x01 if enabled else 0x00]), log_on_error=enabled)
         return ret
 
     async def _set_advertising_parameter(self, min_interval: int = 0xA0, max_interval: int = 0xA0) -> None:
@@ -406,8 +421,8 @@ class BluetoothHCIAdapter(BleAdvAdapter):
         await self._set_advertising_data(self.FAKE_ADV)
 
     async def _set_ext_advertise_enable(self, *, enabled: bool = True) -> int:
-        enb = 0x01 if enabled else 0x00
-        ret, _ = await self._send_hci_cmd(self.OCF_LE_SET_EXT_ADVERTISE_ENABLE, bytearray([enb, 0x01, self.ADV_INST, 0x00, 0x00, 0x00]))
+        cmd = bytearray([0x01 if enabled else 0x00, 0x01, self.ADV_INST, 0x00, 0x00, 0x00])
+        ret, _ = await self._send_hci_cmd(self.OCF_LE_SET_EXT_ADVERTISE_ENABLE, cmd, log_on_error=enabled)
         return ret
 
     async def _set_ext_advertising_parameter(self, min_interval: int = 0xA0, max_interval: int = 0xA0) -> None:
