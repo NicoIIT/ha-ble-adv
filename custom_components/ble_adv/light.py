@@ -210,50 +210,39 @@ class BleAdvLightCWW(BleAdvLightWithBrightness):
         ]
     )
 
+    # Reverse COLD / WARM problematic
+    # HYPOTHESIS - This is occurring when the Device is wrongly assembled and the Yellow / White lights are inversed
+    # It means the commands issued by the Phone App / Remote are also producing the inverted action on the Device:
+    #   - When the Phone App sends a Yellow command, the Device goes White
+    #   - When the Remote sends a K+ (more White) command, the Device goes more Yellow
+    # HA must ALWAYS be in sync with the Device, and as a consequence:
+    #   - HA must send a Yellow command while it displays White, and White when it displays Yellow
+    #   - When HA listens to a Yellow command (and then the Device is going White), it must go White
+    #   - When HA listens a K+ (more White) command (and then the Device gore more Yellow), it must go more Yellow
     reverse_cw: bool = False
 
     def _set_ct(self, ct_percent: float) -> None:
         """Set Color Temperature from float [0.0 -> 1.0].
 
-        if no 'reversed' option:
-            Input 0.0 for COLD / DEFAULT_MAX_KELVIN
-            Input 1.0 for WARM / DEFAULT_MIN_KELVIN
-        if 'reversed' option:
-            Input 1.0 for COLD / DEFAULT_MAX_KELVIN
-            Input 0.0 for WARM / DEFAULT_MIN_KELVIN
+        Input 0.0 for COLD / DEFAULT_MAX_KELVIN
+        Input 1.0 for WARM / DEFAULT_MIN_KELVIN
         """
         self._attr_effect = None
-        ctr = ct_percent if self.reverse_cw else 1.0 - ct_percent
-        self._attr_color_temp_kelvin = int(DEFAULT_MIN_KELVIN + (DEFAULT_MAX_KELVIN - DEFAULT_MIN_KELVIN) * self._pct(ctr))
-
-    def _add_to_ct(self, step: float) -> None:
-        """Add step to Color Temperature from float [0.0 -> 1.0].
-
-        if no 'reversed' option:
-            add step
-        if 'reversed' option:
-            remove step
-        """
-        self._set_ct((self._get_ct() - step) if self.reverse_cw else (self._get_ct() + step))
+        self._attr_color_temp_kelvin = int(DEFAULT_MIN_KELVIN + (DEFAULT_MAX_KELVIN - DEFAULT_MIN_KELVIN) * self._pct(1.0 - ct_percent))
 
     def _get_ct(self) -> float:
         """Get Color Temperature as float [0.0 -> 1.0].
 
-        if no 'reversed' option:
-            returns 0.0 for COLD / DEFAULT_MAX_KELVIN
-            returns 1.0 for WARM / DEFAULT_MIN_KELVIN
-        if reversed option:
-            returns 1.0 for COLD / DEFAULT_MAX_KELVIN
-            returns 0.0 for WARM / DEFAULT_MIN_KELVIN
+        returns 0.0 for COLD / DEFAULT_MAX_KELVIN
+        returns 1.0 for WARM / DEFAULT_MIN_KELVIN
         """
         kelvin = self._attr_color_temp_kelvin if self._attr_color_temp_kelvin is not None else DEFAULT_MIN_KELVIN
-        ctr = (kelvin - DEFAULT_MIN_KELVIN) / float(DEFAULT_MAX_KELVIN - DEFAULT_MIN_KELVIN)
-        return ctr if self.reverse_cw else 1.0 - ctr
+        return 1.0 - ((kelvin - DEFAULT_MIN_KELVIN) / float(DEFAULT_MAX_KELVIN - DEFAULT_MIN_KELVIN))
 
     def get_attrs(self) -> dict[str, Any]:
         """Get the attrs."""
         br = self._get_br()
-        ct = self._get_ct()
+        ct = 1.0 - self._get_ct() if self.reverse_cw else self._get_ct()
         # //  For constant_brightness
         # //  cold = (1.0 - ct)
         # //  warm = ct
@@ -266,6 +255,14 @@ class BleAdvLightCWW(BleAdvLightWithBrightness):
         forced_attrs = super().forced_changed_attr_on_start()
         return [*forced_attrs, ATTR_CT, ATTR_CT_REV, ATTR_COLD, ATTR_WARM] if self.refresh_on_start else forced_attrs
 
+    def _apply_ct(self, ct_percent: float) -> None:
+        """Apply received CT, reversing it if needed."""
+        self._set_ct(1.0 - ct_percent if self.reverse_cw else ct_percent)
+
+    def _apply_add_to_ct(self, step: float) -> None:
+        """Add step to CT, reversing step if needed."""
+        self._set_ct(self._get_ct() - step if self.reverse_cw else self._get_ct() + step)
+
     def apply_attrs(self, ent_attr: BleAdvEntAttr) -> None:
         """Apply attributes to entity."""
         super().apply_attrs(ent_attr)
@@ -273,15 +270,15 @@ class BleAdvLightCWW(BleAdvLightWithBrightness):
             cold = ent_attr.get_attr_as_float(ATTR_COLD)
             warm = ent_attr.get_attr_as_float(ATTR_WARM)
             self._set_br(max(cold, warm))
-            self._set_ct(1.0 - ((cold / warm) / 2.0) if (cold < warm) else ((warm / cold) / 2.0))
+            self._apply_ct(1.0 - ((cold / warm) / 2.0) if (cold < warm) else ((warm / cold) / 2.0))
             # // For constant brightness:
-            # // self._set_ct(warm / (cold + warm))
+            # // self._apply_ct(warm / (cold + warm))
         elif ATTR_CT in ent_attr.chg_attrs:
-            self._set_ct(ent_attr.get_attr_as_float(ATTR_CT))
+            self._apply_ct(ent_attr.get_attr_as_float(ATTR_CT))
         elif ATTR_CT_REV in ent_attr.chg_attrs:
-            self._set_ct(1.0 - ent_attr.get_attr_as_float(ATTR_CT_REV))
+            self._apply_ct(1.0 - ent_attr.get_attr_as_float(ATTR_CT_REV))
         elif ATTR_CMD in ent_attr.chg_attrs:
             if ent_attr.attrs.get(ATTR_CMD) == ATTR_CMD_CT_UP:
-                self._add_to_ct(ent_attr.get_attr_as_float(ATTR_STEP))
+                self._apply_add_to_ct(ent_attr.get_attr_as_float(ATTR_STEP))
             elif ent_attr.attrs.get(ATTR_CMD) == ATTR_CMD_CT_DOWN:
-                self._add_to_ct(-ent_attr.get_attr_as_float(ATTR_STEP))
+                self._apply_add_to_ct(-ent_attr.get_attr_as_float(ATTR_STEP))
