@@ -99,7 +99,6 @@ class TestEncoderMantra(_TestEncoderBase):
             "id: 0x0000C5F0, index: 0, tx: 1121, seed: 0x0000",
             "fan_0: ['dir'] / {'dir': False}",
         ),
-        # FAN Direction Forward - TO BE VALIDATED / ADDED
         # Fan Sleep mode
         (
             "mantra_v0",
@@ -108,11 +107,10 @@ class TestEncoderMantra(_TestEncoderBase):
             "id: 0x0000C5F0, index: 0, tx: 1122, seed: 0x0000",
             "fan_0: ['preset'] / {'preset': 'sleep'}",
         ),
-        # Fan Breeze mode - TO BE VALIDATED / ADDED
     ],
 )
-class TestEncoderMantraFull(_TestEncoderFull):
-    """Mantra Encoder / Decoder Full tests."""
+class TestEncoderMantraV0Full(_TestEncoderFull):
+    """Mantra Encoder / Decoder V0 Full tests."""
 
 
 @pytest.mark.parametrize(
@@ -267,7 +265,131 @@ class TestEncoderMantraNoReverse(_TestEncoderFull):
         ),
     ],
 )
-class TestEncoderMantraRemote(_TestEncoderFull):
-    """Mantra Encoder / Decoder Remote tests."""
+class TestEncoderMantraV0Remote(_TestEncoderFull):
+    """Mantra Encoder / Decoder V0 Remote tests."""
+
+    _with_reverse = False
+
+
+@pytest.mark.parametrize(
+    _TestEncoderFull.PARAM_NAMES,
+    [
+        # Light ON
+        (
+            "mantra_v1",
+            "02011A15FF4E6F720F050E064D08CD1F02C525577DF1E82471",
+            "cmd: 0x01, param: 0x01, args: [0,0,0]",
+            "id: 0x0000C051, index: 0, tx: 1294, seed: 0x0000",
+            "light_0: ['on'] / {'on': True}",
+        ),
+        # Light OFF
+        (
+            "mantra_v1",
+            "02011A15FF4E6F720F050F064D09DEA1B26BE3D2704093C585",
+            "cmd: 0x01, param: 0x02, args: [0,0,0]",
+            "id: 0x0000C051, index: 0, tx: 1295, seed: 0x0000",
+            "light_0: ['on'] / {'on': False}",
+        ),
+        # FULL COLD, BR 100%
+        (
+            "mantra_v1",
+            "02011A15FF4E6F720F0528064E2CD34EB4FB6283197E8AA124",
+            "cmd: 0x02, param: 0x00, args: [255,7,6,255,255]",
+            "id: 0x0000C051, index: 0, tx: 1320, seed: 0x0000",
+            "light_0: ['cold', 'warm'] / {'sub_type': 'cww', 'warm': 0.0, 'cold': 1.0, 'br': 1.0, 'ctr': 1.0}",
+        ),
+        # FULL WARM, BR 100%
+        (
+            "mantra_v1",
+            "02011A15FF4E6F720F0523064E277A78E07E1DC69D26DF8C62",
+            "cmd: 0x02, param: 0xFF, args: [0,7,0,255,0]",
+            "id: 0x0000C051, index: 0, tx: 1315, seed: 0x0000",
+            "light_0: ['cold', 'warm'] / {'sub_type': 'cww', 'warm': 1.0, 'cold': 0.0, 'br': 1.0, 'ctr': 0.0}",
+        ),
+        # FULL WARM, BR 1%
+        (
+            "mantra_v1",
+            "02011A15FF4E6F720F053C064E39A65F7CAC10FB1CABDBD1BE",
+            "cmd: 0x02, param: 0x00, args: [23,0,6,23,255]",
+            "id: 0x0000C051, index: 0, tx: 1340, seed: 0x0000",
+            "light_0: ['cold', 'warm'] / {'sub_type': 'cww', 'warm': 0.0, 'cold': 0.09019607843137255, 'br': 0.09019607843137255, 'ctr': 1.0}",
+        ),
+    ],
+)
+class TestEncoderMantraV1Full(_TestEncoderFull):
+    """Mantra Encoder / Decoder V1 Full tests."""
+
+
+@pytest.mark.parametrize(
+    _TestEncoderFull.PARAM_NAMES,
+    [
+        # BR+
+        (
+            "mantra_v1",
+            "02011A15FF4E6F720F040C064C1954D2CD5E2E52D7E8FE1313",
+            "cmd: 0x01, param: 0x05, args: [0,0,0]",
+            "id: 0x0000C051, index: 0, tx: 1036, seed: 0x0000",
+            "light_0: ['cmd'] / {'sub_type': 'cww', 'cmd': 'B+', 'step': 0.14285714285714285}",
+        ),
+        # BR-
+        (
+            "mantra_v1",
+            "02011A15FF4E6F720F03FE064B9F367587B46B59033266B9F5",
+            "cmd: 0x01, param: 0x06, args: [0,0,0]",
+            "id: 0x0000C051, index: 0, tx: 1022, seed: 0x0000",
+            "light_0: ['cmd'] / {'sub_type': 'cww', 'cmd': 'B-', 'step': 0.14285714285714285}",
+        ),
+        # K+
+        (
+            "mantra_v1",
+            "02011A15FF4E6F720F02CE064ABFC4F8364655F0DF71456CA7",
+            "cmd: 0x01, param: 0x03, args: [0,0,0]",
+            "id: 0x0000C051, index: 0, tx: 718, seed: 0x0000",
+            "light_0: ['cmd'] / {'sub_type': 'cww', 'cmd': 'K-', 'step': 0.16666666666666666}",
+        ),
+        # K-
+        (
+            "mantra_v1",
+            "02011A15FF4E6F720F02B0064AC6931B2453EFF19E3BB87BC3",
+            "cmd: 0x01, param: 0x04, args: [0,0,0]",
+            "id: 0x0000C051, index: 0, tx: 688, seed: 0x0000",
+            "light_0: ['cmd'] / {'sub_type': 'cww', 'cmd': 'K+', 'step': 0.16666666666666666}",
+        ),
+        # BR 30%
+        (
+            "mantra_v1",
+            "02011A15FF4E6F720F0214064A69756FA4536626C66CDB38C5",
+            "cmd: 0x01, param: 0x0C, args: [0,0,0]",
+            "id: 0x0000C051, index: 0, tx: 532, seed: 0x0000",
+            "light_0: ['br'] / {'br': 0.3}",
+        ),
+        # BR 50%
+        (
+            "mantra_v1",
+            "02011A15FF4E6F720F0222064A5C50D51881499886F3015D27",
+            "cmd: 0x01, param: 0x07, args: [0,0,0]",
+            "id: 0x0000C051, index: 0, tx: 546, seed: 0x0000",
+            "light_0: ['br'] / {'br': 0.5}",
+        ),
+        # BR 70%
+        (
+            "mantra_v1",
+            "02011A15FF4E6F720F023F064A40AB8FE50EC9590B1BF42BED",
+            "cmd: 0x01, param: 0x08, args: [0,0,0]",
+            "id: 0x0000C051, index: 0, tx: 575, seed: 0x0000",
+            "light_0: ['br'] / {'br': 0.7}",
+        ),
+        # BR 100%
+        (
+            "mantra_v1",
+            "02011A15FF4E6F720F026A064A10228CB646DC258726262FA1",
+            "cmd: 0x01, param: 0x09, args: [0,0,0]",
+            "id: 0x0000C051, index: 0, tx: 618, seed: 0x0000",
+            "light_0: ['br'] / {'br': 1.0}",
+        ),
+    ],
+)
+class TestEncoderMantraV1Remote(_TestEncoderFull):
+    """Mantra Encoder / Decoder V1 Remote tests."""
 
     _with_reverse = False

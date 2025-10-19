@@ -3,6 +3,10 @@
 from .const import (
     ATTR_BR,
     ATTR_CMD,
+    ATTR_CMD_BR_DOWN,
+    ATTR_CMD_BR_UP,
+    ATTR_CMD_CT_DOWN,
+    ATTR_CMD_CT_UP,
     ATTR_CMD_TIMER,
     ATTR_COLD,
     ATTR_CT_REV,
@@ -12,6 +16,7 @@ from .const import (
     ATTR_PRESET_BREEZE,
     ATTR_PRESET_SLEEP,
     ATTR_SPEED,
+    ATTR_STEP,
     ATTR_TIME,
     ATTR_WARM,
 )
@@ -121,7 +126,7 @@ class TransRemote(Trans):
         return ent_attr
 
 
-TRANS_APP = [
+TRANS_APP_V0 = [
     Trans(DeviceCmd().act(ATTR_ON, False), EncCmd(0x01).eq("param", 0x02)).no_direct(),
     Trans(DeviceCmd().act(ATTR_CMD, ATTR_CMD_TIMER).eq(ATTR_TIME, 60), EncCmd(0x01).eq("param", 0x09)),
     Trans(DeviceCmd().act(ATTR_CMD, ATTR_CMD_TIMER).eq(ATTR_TIME, 120), EncCmd(0x01).eq("param", 0x0A)),
@@ -150,7 +155,7 @@ TRANS_APP = [
     Trans(Fan6SpeedCmd().act(ATTR_SPEED, 6).act(ATTR_DIR, True), EncCmd(0x01).eq("param", 0x11)).no_direct(),
 ]
 
-TRANS_REMOTE = [
+TRANS_REMOTE_V0 = [
     TransRemote(LightCmd().act(ATTR_ON, False), EncCmd(0x10).eq("param", 0x10)),
     TransRemote(LightCmd().act(ATTR_ON, True), EncCmd(0x10).eq("param", 0x11)),
     TransRemote(LightCmd().act(ATTR_BR), EncCmd(0x10).eq("param", 0x12)),
@@ -166,9 +171,32 @@ TRANS_REMOTE = [
     TransRemote(Fan8SpeedCmd().act(ATTR_PRESET).act(ATTR_SPEED), EncCmd(0x10).eq("param", 0x26)),
 ]
 
-TRANS = [*TRANS_APP, *TRANS_REMOTE]
+TRANS_V0 = [*TRANS_APP_V0, *TRANS_REMOTE_V0]
+
+TRANS_V1 = [
+    Trans(LightCmd().act(ATTR_ON, True), EncCmd(0x01).eq("param", 0x01)),
+    Trans(LightCmd().act(ATTR_ON, False), EncCmd(0x01).eq("param", 0x02)),
+    Trans(CTLightCmd().act(ATTR_COLD).act(ATTR_WARM), EncCmd(0x02))
+    .copy(ATTR_WARM, "param", 255)
+    .copy(ATTR_COLD, "arg0", 255)
+    .copy(ATTR_BR, "arg1", 7)
+    .copy(ATTR_CT_REV, "arg2", 6)
+    .copy(ATTR_BR, "arg3", 255)
+    .copy(ATTR_CT_REV, "arg4", 255),
+    # Remote
+    Trans(CTLightCmd().act(ATTR_CMD, ATTR_CMD_CT_DOWN).eq(ATTR_STEP, 1.0 / 6.0), EncCmd(0x01).eq("param", 0x03)).no_direct(),
+    Trans(CTLightCmd().act(ATTR_CMD, ATTR_CMD_CT_UP).eq(ATTR_STEP, 1.0 / 6.0), EncCmd(0x01).eq("param", 0x04)).no_direct(),
+    Trans(CTLightCmd().act(ATTR_CMD, ATTR_CMD_BR_UP).eq(ATTR_STEP, 1.0 / 7.0), EncCmd(0x01).eq("param", 0x05)).no_direct(),
+    Trans(CTLightCmd().act(ATTR_CMD, ATTR_CMD_BR_DOWN).eq(ATTR_STEP, 1.0 / 7.0), EncCmd(0x01).eq("param", 0x06)).no_direct(),
+    Trans(LightCmd().act(ATTR_BR, 0.3), EncCmd(0x01).eq("param", 0x0C)).no_direct(),
+    Trans(LightCmd().act(ATTR_BR, 0.5), EncCmd(0x01).eq("param", 0x07)).no_direct(),
+    Trans(LightCmd().act(ATTR_BR, 0.7), EncCmd(0x01).eq("param", 0x08)).no_direct(),
+    Trans(LightCmd().act(ATTR_BR, 1.0), EncCmd(0x01).eq("param", 0x09)).no_direct(),
+]
 
 CODECS = [
-    MantraEncoder().id("mantra_v0").header([0x4E, 0x6F]).prefix([0x72, 0x0E]).ble(0x1A, 0xFF).add_translators(TRANS),
-    MantraEncoder().id("mantra_v0", "ios").header([0x4E, 0x6F]).prefix([0x72, 0x0E]).footer([0x04, 0x03, 0x02, 0x01]).ble(0x1A, 0x05).add_translators(TRANS),
+    MantraEncoder().id("mantra_v0").header([0x4E, 0x6F]).prefix([0x72, 0x0E]).ble(0x1A, 0xFF).add_translators(TRANS_V0),
+    MantraEncoder().id("mantra_v0", "ios").header([0x4E, 0x6F]).prefix([0x72, 0x0E]).footer([0x04, 0x03, 0x02, 0x01]).ble(0x1A, 0x05).add_translators(TRANS_V0),
+    MantraEncoder().id("mantra_v1").header([0x4E, 0x6F]).prefix([0x72, 0x0F]).ble(0x1A, 0xFF).add_translators(TRANS_V1),
+    MantraEncoder().id("mantra_v1", "ios").header([0x4E, 0x6F]).prefix([0x72, 0x0F]).footer([0x04, 0x03, 0x02, 0x01]).ble(0x1A, 0x05).add_translators(TRANS_V1),
 ]  # fmt: skip
