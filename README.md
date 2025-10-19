@@ -17,7 +17,7 @@ This integration **is not limited to any specific device type or brand**: it is 
 
 ## Requirements
 * Your Home Assistant must _either_:
-  * Be on a LINUX host, on a Standard HA Install (HAOS) and have a Bluetooth Adapter directly accessible on the Host (internal or via USB) and (even if not strictly necessary) discovered by the [Bluetooth Integration](https://www.home-assistant.io/integrations/bluetooth/). For **advanced** users that defined their own HA docker container (non root or non 'host' network), a solution is available [here](https://github.com/NicoIIT/ha-ble-adv/wiki/Workaround-for-HA-non-'network_mode:-host'-or-non-root-installations).
+  * Be on a LINUX host, on a Standard HA Install (HAOS) and have a Bluetooth Adapter directly accessible on the Host (internal or via USB and not using a VM layer) and (even if not strictly necessary) discovered by the [Bluetooth Integration](https://www.home-assistant.io/integrations/bluetooth/). For **advanced** users that defined their own HA docker container (non root or non 'host' network), a solution is available [here](https://github.com/NicoIIT/ha-ble-adv/wiki/Workaround-for-HA-non-'network_mode:-host'-or-non-root-installations).
   * Have one or several ESPHome [ble_adv_proxy](https://github.com/NicoIIT/esphome-ble_adv_proxy) linked to your Home Assistant instance. If you already have some [bluetooth_proxy](https://esphome.io/components/bluetooth_proxy/) they can easily be extended to `ble_adv_proxy`.
 * Your device can be reached by Bluetooth from the Home Assistant Host or from the `ble_adv_proxy`.
 * Have an up-to-date Home Assistant Core (2025.2.4 minimum) and HACS (2.0.1 minimum)
