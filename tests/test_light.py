@@ -160,6 +160,19 @@ async def test_light_cww_reversed(device: _Device) -> None:
     assert light.is_on
     assert light.get_attrs() == {ATTR_ON: True, ATTR_SUB_TYPE: LIGHT_TYPE_CWW, **ctbr(1.0, 1.0, 0.0, 1.0), ATTR_EFFECT: None}
     device.assert_apply_change(light, [ATTR_WARM, ATTR_COLD, ATTR_CT, ATTR_CT_REV])
+    light.apply_attrs(BleAdvEntAttr([ATTR_BR], {ATTR_BR: 0.5}, LIGHT_TYPE, 0))
+    assert light.brightness == 127
+    light.apply_attrs(BleAdvEntAttr([ATTR_CT], {ATTR_CT: 1.0}, LIGHT_TYPE, 0))
+    assert light.color_temp_kelvin == 6535
+    light.apply_attrs(BleAdvEntAttr([ATTR_CT_REV], {ATTR_CT_REV: 1.0}, LIGHT_TYPE, 0))
+    assert light.color_temp_kelvin == 2000  # CT == 1.0
+    light.apply_attrs(BleAdvEntAttr([ATTR_CMD], {ATTR_CMD: ATTR_CMD_CT_UP, ATTR_STEP: 0.1}, LIGHT_TYPE, 0))  # CT UP (rev) => CT DOWN => K+
+    assert light.color_temp_kelvin == 2453
+    light.apply_attrs(BleAdvEntAttr([ATTR_CMD], {ATTR_CMD: ATTR_CMD_CT_DOWN, ATTR_STEP: 0.1}, LIGHT_TYPE, 0))  # CT DOWN (rev) => CT UP => K-
+    assert light.color_temp_kelvin == 2000
+    light.apply_attrs(BleAdvEntAttr([ATTR_WARM, ATTR_COLD], {ATTR_WARM: 1.0, ATTR_COLD: 0.0}, LIGHT_TYPE, 0))
+    assert light.brightness == 255
+    assert light.color_temp_kelvin == 6535
 
 
 async def test_light_rgb(device: _Device) -> None:
