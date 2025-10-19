@@ -164,21 +164,21 @@ class TestEncoderRuiXinFull(_TestEncoderFull):
             "id: 0x100259C5, index: 0, tx: 75, seed: 0x00E8",
             "light_0: ['br', 'ct'] / {'sub_type': 'cww', 'br': 0.5, 'ct': 0.5}",
         ),
-        # Button K+ (Colder -> K- ...)
+        # Button K+
         (
             "ruixin_v0/r1",
             "1E.FF.00.00.00.52.58.4B.69.72.36.0E.74.74.E6.87.76.76.A0.79.7A.7B.83.85.87.8F.91.65.13.14.15",
             "cmd: 0x28, param: 0x00, args: [0,0,0]",
             "id: 0xFF001272, index: 0, tx: 116, seed: 0x0074",
-            "light_0: ['cmd', 'step'] / {'sub_type': 'cww', 'cmd': 'K-', 'step': 0.08333333333333333}",
+            "light_0: ['cmd', 'step'] / {'sub_type': 'cww', 'cmd': 'K+', 'step': 0.08333333333333333}",
         ),
-        # Button K- (Warmer -> K+ ...)
+        # Button K-
         (
             "ruixin_v0/r1",
             "1E.FF.00.00.00.52.58.4B.69.72.36.0E.6A.6A.DC.7D.6C.6C.95.6F.70.71.79.7B.7D.85.87.5A.13.14.15",
             "cmd: 0x27, param: 0x00, args: [0,0,0]",
             "id: 0xFF001272, index: 0, tx: 106, seed: 0x006A",
-            "light_0: ['cmd', 'step'] / {'sub_type': 'cww', 'cmd': 'K+', 'step': 0.08333333333333333}",
+            "light_0: ['cmd', 'step'] / {'sub_type': 'cww', 'cmd': 'K-', 'step': 0.08333333333333333}",
         ),
         # Button BR+
         (
