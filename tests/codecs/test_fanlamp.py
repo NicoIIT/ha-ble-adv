@@ -657,35 +657,35 @@ class TestEncoderFanlampFull(_TestEncoderFull):
             "id: 0x00014057, index: 0, tx: 44, seed: 0xEF02",
             "light_0: ['cold', 'warm'] / {'sub_type': 'cww', 'cold': 0.1, 'warm': 0.1}",
         ),
-        # Remote K+
+        # Remote K-
         (
             "remote_v3",
             "02.01.02.1B.16.F0.08.10.00.4E.00.41.82.1D.99.50.D6.C5.ED.04.3F.DF.56.16.BB.55.2B.F3.19.EF.66",
             "cmd: 0x21, param: 0x00, args: [24,0,0]",
             "id: 0x03309759, index: 0, tx: 212, seed: 0x19F3",
-            "light_0: ['cmd'] / {'sub_type': 'cww', 'cmd': 'K+', 'step': 0.1}",
+            "light_0: ['cmd'] / {'sub_type': 'cww', 'cmd': 'K-', 'step': 0.1}",
         ),
         (
             "remote_v1",
             "1E.FF.56.55.18.87.52.B6.5F.2B.5E.00.FC.31.51.5C.14.91.08.24.0A.10.E4.CA.18.22.6E.E3.A3.60.57",
             "cmd: 0x21, param: 0x18, args: [0,0,0]",
             "id: 0x00019075, index: 0, tx: 212, seed: 0x6BDC",
-            "light_0: ['cmd'] / {'sub_type': 'cww', 'cmd': 'K+', 'step': 0.1}",
+            "light_0: ['cmd'] / {'sub_type': 'cww', 'cmd': 'K-', 'step': 0.1}",
         ),
-        # Remote K-
+        # Remote K+
         (
             "remote_v3",
             "02.01.02.1B.16.F0.08.10.00.11.58.42.0C.3F.44.F3.C9.02.18.C1.50.34.04.84.E7.37.E0.F5.4F.4D.78",
             "cmd: 0x21, param: 0x00, args: [36,0,0]",
             "id: 0x03309759, index: 0, tx: 216, seed: 0x4FF5",
-            "light_0: ['cmd'] / {'sub_type': 'cww', 'cmd': 'K-', 'step': 0.1}",
+            "light_0: ['cmd'] / {'sub_type': 'cww', 'cmd': 'K+', 'step': 0.1}",
         ),
         (
             "remote_v1",
             "1E.FF.56.55.18.87.52.B6.5F.2B.5E.00.FC.31.51.5C.14.91.08.24.0A.20.D8.80.52.0A.24.BB.83.60.57",
             "cmd: 0x21, param: 0x24, args: [0,0,0]",
             "id: 0x00019075, index: 0, tx: 216, seed: 0x7F8E",
-            "light_0: ['cmd'] / {'sub_type': 'cww', 'cmd': 'K-', 'step': 0.1}",
+            "light_0: ['cmd'] / {'sub_type': 'cww', 'cmd': 'K+', 'step': 0.1}",
         ),
     ],
 )

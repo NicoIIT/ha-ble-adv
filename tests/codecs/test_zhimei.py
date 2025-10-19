@@ -655,35 +655,35 @@ class TestEncoderZhimeiNoReverse(_TestEncoderFull):
             "id: 0x00006A01, index: 255, tx: 7, seed: 0x0008",
             "light_0: ['cmd'] / {'sub_type': 'cww', 'cmd': 'B-', 'step': 0.166}",
         ),
-        # K+
+        # K-
         (
             "zhimei_fan_vr0",
             "55.FF.15.01.6A.0B.00.00.00.DF",
             "cmd: 0x0B, param: 0x00, args: [0,0,0]",
             "id: 0x00006A01, index: 255, tx: 21, seed: 0x0000",
-            "light_0: ['cmd'] / {'sub_type': 'cww', 'cmd': 'K+', 'step': 0.166}",
+            "light_0: ['cmd'] / {'sub_type': 'cww', 'cmd': 'K-', 'step': 0.166}",
         ),
         (
             "zhimei_fan_vr1",
             "1E.FF.15.01.6A.48.46.4B.4A.E1.96.5E.F6.6F.F2.1C.0B.42.7A.9C.2C.21.87.87.0E.10.11.12.13.14.15",
             "cmd: 0x0B, param: 0x00, args: [0,0,0]",
             "id: 0x00006A01, index: 255, tx: 21, seed: 0x0016",
-            "light_0: ['cmd'] / {'sub_type': 'cww', 'cmd': 'K+', 'step': 0.166}",
+            "light_0: ['cmd'] / {'sub_type': 'cww', 'cmd': 'K-', 'step': 0.166}",
         ),
-        # K-
+        # K+
         (
             "zhimei_fan_vr0",
             "55.FF.0D.01.6A.09.00.00.00.D5",
             "cmd: 0x09, param: 0x00, args: [0,0,0]",
             "id: 0x00006A01, index: 255, tx: 13, seed: 0x0000",
-            "light_0: ['cmd'] / {'sub_type': 'cww', 'cmd': 'K-', 'step': 0.166}",
+            "light_0: ['cmd'] / {'sub_type': 'cww', 'cmd': 'K+', 'step': 0.166}",
         ),
         (
             "zhimei_fan_vr1",
             "1E.FF.0D.01.6A.48.46.4B.4A.9E.CD.8F.37.26.35.5F.3E.FF.9B.F3.21.06.EE.6E.38.10.11.12.13.14.15",
             "cmd: 0x09, param: 0x00, args: [0,0,0]",
             "id: 0x00006A01, index: 255, tx: 13, seed: 0x000E",
-            "light_0: ['cmd'] / {'sub_type': 'cww', 'cmd': 'K-', 'step': 0.166}",
+            "light_0: ['cmd'] / {'sub_type': 'cww', 'cmd': 'K+', 'step': 0.166}",
         ),
         # Night Mode (TOGGLE?)
         (

@@ -345,7 +345,7 @@ class TestEncoderMantraV1Full(_TestEncoderFull):
             "02011A15FF4E6F720F02CE064ABFC4F8364655F0DF71456CA7",
             "cmd: 0x01, param: 0x03, args: [0,0,0]",
             "id: 0x0000C051, index: 0, tx: 718, seed: 0x0000",
-            "light_0: ['cmd'] / {'sub_type': 'cww', 'cmd': 'K-', 'step': 0.16666666666666666}",
+            "light_0: ['cmd'] / {'sub_type': 'cww', 'cmd': 'K+', 'step': 0.16666666666666666}",
         ),
         # K-
         (
@@ -353,7 +353,7 @@ class TestEncoderMantraV1Full(_TestEncoderFull):
             "02011A15FF4E6F720F02B0064AC6931B2453EFF19E3BB87BC3",
             "cmd: 0x01, param: 0x04, args: [0,0,0]",
             "id: 0x0000C051, index: 0, tx: 688, seed: 0x0000",
-            "light_0: ['cmd'] / {'sub_type': 'cww', 'cmd': 'K+', 'step': 0.16666666666666666}",
+            "light_0: ['cmd'] / {'sub_type': 'cww', 'cmd': 'K-', 'step': 0.16666666666666666}",
         ),
         # BR 30%
         (
