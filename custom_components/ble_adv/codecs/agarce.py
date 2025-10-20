@@ -1,6 +1,5 @@
 """Smart Light (Agarce) codecs."""
 
-from random import randint
 from typing import Any, ClassVar
 
 from .const import (
@@ -37,6 +36,7 @@ class AgarceEncoder(BleAdvCodec):
     interval: int = 10
     repeat: int = 60
     _len = 18
+    _seed_max = 0xFFF5
 
     MATRIX: ClassVar[list[int]] = [0xAA, 0xBB, 0xCC, 0xDD, 0x5A, 0xA5, 0xA5, 0x5A]
 
@@ -102,7 +102,7 @@ class AgarceEncoder(BleAdvCodec):
     def convert_from_enc(self, enc_cmd: BleAdvEncCmd, conf: BleAdvConfig) -> bytes:
         """Convert an encoder command and a config into a readable buffer."""
         uid = conf.id.to_bytes(4, "little")
-        seed = (conf.seed if conf.seed != 0 else randint(1, 0xFFF5)).to_bytes(2, "little")
+        seed = conf.seed.to_bytes(2, "little")
         return seed + bytes(
             [
                 conf.tx_count,

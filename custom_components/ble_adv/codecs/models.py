@@ -5,6 +5,7 @@ import logging
 from abc import ABC, abstractmethod
 from binascii import hexlify
 from dataclasses import dataclass
+from random import randint
 from typing import Any, Self
 
 from .const import (
@@ -395,6 +396,7 @@ class BleAdvCodec(ABC):
     _len: int = 0
     _tx_step: int = 1
     _tx_max: int = 125
+    _seed_max = 0
     debug_mode: bool = False
     duration: int = 750
     interval: int = 30
@@ -530,6 +532,8 @@ class BleAdvCodec(ABC):
         conf.tx_count = (conf.tx_count + self._tx_step) % self._tx_max
         if conf.tx_count == 0:
             conf.app_restart_count = (conf.app_restart_count + 1) % 255
+        if conf.seed == 0 and self._seed_max > 0:
+            conf.seed = randint(1, self._seed_max)
         advs: list[BleAdvAdvertisement] = []
         for read_buffer in self.convert_multi_from_enc(enc_cmd, conf):
             self.log_buffer(read_buffer, "Encode/Decrypted")

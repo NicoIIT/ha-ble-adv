@@ -293,6 +293,12 @@ def test_codec() -> None:
     conf = BleAdvConfig()
     assert repr(codec.encode_advs(BleAdvEncCmd(0x10), conf)[0]) == "Type: 0x16, raw: 55.56.74.65.73.74"
     assert conf.tx_count == 1
+    assert conf.seed == 0
+    codec._seed_max = 0xF5  # noqa: SLF001
+    codec._tx_step = 2  # noqa: SLF001
+    codec.encode_advs(BleAdvEncCmd(0x10), conf)
+    assert conf.tx_count == 3
+    assert conf.seed != 0
     assert codec.decode_adv(BleAdvAdvertisement(0x16, _from_dotted("55.56.74.65.73.74"))) == (BleAdvEncCmd(0x10), BleAdvConfig())
     assert codec.decode_adv(BleAdvAdvertisement(0x16, _from_dotted("00.00.74.65.73.74"))) == (None, None)
     assert codec.decode_adv(BleAdvAdvertisement(0x00, _from_dotted("55.56.74.65.73.74"))) == (None, None)

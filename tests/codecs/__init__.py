@@ -27,6 +27,8 @@ class _TestEncoderBase:
         enc_cmd, conf = codec.decode_adv(adv)
         assert conf is not None
         assert enc_cmd is not None
+        if conf.seed != 0:
+            assert codec._seed_max != 0  # noqa: SLF001
         reenc = codec.encode_advs(enc_cmd, conf)[0]
         assert reenc == adv
         conf.seed = 0

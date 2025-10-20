@@ -1,7 +1,6 @@
 """RW.Light."""
 
 from binascii import crc_hqx
-from random import randint
 from typing import Self
 
 from .const import (
@@ -41,6 +40,7 @@ class RwEncoder(BleAdvCodec):
     """RW encoder."""
 
     _len = 18
+    _seed_max = 0xF5
 
     def _crc16(self, buffer: bytes) -> int:
         """CRC16 CCITT computing."""
@@ -124,9 +124,8 @@ class RwEncoder(BleAdvCodec):
 
     def convert_from_enc(self, enc_cmd: BleAdvEncCmd, conf: BleAdvConfig) -> bytes:
         """Convert an encoder command and a config into a readable buffer."""
-        seed = conf.seed if conf.seed != 0 else randint(1, 0xF5)
         uid = conf.id.to_bytes(4, "little")
-        return bytes([enc_cmd.cmd, conf.tx_count, *uid, conf.index, enc_cmd.arg0, enc_cmd.arg1, enc_cmd.arg2, seed])
+        return bytes([enc_cmd.cmd, conf.tx_count, *uid, conf.index, enc_cmd.arg0, enc_cmd.arg1, enc_cmd.arg2, conf.seed])
 
 
 class TransRGB(Trans):
