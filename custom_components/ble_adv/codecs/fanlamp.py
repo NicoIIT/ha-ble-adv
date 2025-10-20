@@ -1,7 +1,6 @@
 """Fanlamp Pro Encoders."""
 
 from binascii import crc_hqx
-from random import randint
 from typing import ClassVar
 
 from Crypto.Cipher import AES
@@ -128,6 +127,8 @@ class FanLampEncoderV1b(FanLampEncoderV1Base):
 class FanLampEncoderV1(FanLampEncoderV1Base):
     """FanLamp V1 encoder."""
 
+    _seed_max = 0xFFF5
+
     def __init__(self, arg2: int, arg2_only_on_pair: bool = True, xor1: bool = False, supp_prefix: int = 0, forced_crc2: int = 0) -> None:
         """Init with args."""
         super().__init__(supp_prefix, forced_crc2)
@@ -181,12 +182,11 @@ class FanLampEncoderV1(FanLampEncoderV1Base):
         obuf.append(self._get_arg2(enc_cmd.cmd, enc_cmd.arg2))
         obuf.append(conf.tx_count)
         obuf.append(self._header[0] if (self._arg2 == 0x00 and is_pair_cmd) else enc_cmd.param)
-        seed = conf.seed if conf.seed != 0 else randint(0, 0xFFF5)
-        seed8 = seed & 0xFF
+        seed8 = conf.seed & 0xFF
         obuf.append(seed8 ^ 1 if self._xor1 else seed8 ^ ((conf.id >> 16) & 0xFF))
         obuf.append(seed8 ^ 1 if self._xor1 else seed8)
-        obuf += seed.to_bytes(2)
-        obuf += self._crc16(obuf, seed ^ 0xFFFF).to_bytes(2)
+        obuf += conf.seed.to_bytes(2)
+        obuf += self._crc16(obuf, conf.seed ^ 0xFFFF).to_bytes(2)
         if self._with_crc2:
             obuf += self._crc2(obuf).to_bytes(2)
         else:
@@ -196,6 +196,8 @@ class FanLampEncoderV1(FanLampEncoderV1Base):
 
 class FanLampEncoderV2(FanLampEncoder):
     """FanLamp V2 encoder."""
+
+    _seed_max = 0xFFF5
 
     XBOXES: ClassVar[list[int]] = [
         0xB7, 0xFD, 0x93, 0x26, 0x36, 0x3F, 0xF7, 0xCC, 0x34, 0xA5, 0xE5, 0xF1, 0x71, 0xD8, 0x31, 0x15,
@@ -277,7 +279,7 @@ class FanLampEncoderV2(FanLampEncoder):
         """Convert an encoder command and a config into a readable buffer."""
         dt = self._device_type.to_bytes(2, "little")
         uid = conf.id.to_bytes(4, "little")
-        seed = (conf.seed if conf.seed != 0 else randint(1, 0xFFF5)).to_bytes(2, "little")  # seed artificially pushed at the end of decoded buffer
+        seed = conf.seed.to_bytes(2, "little")  # seed artificially pushed at the end of decoded buffer
         return bytes([conf.tx_count, *dt, *uid, conf.index, enc_cmd.cmd, 0, enc_cmd.param, enc_cmd.arg0, enc_cmd.arg1, enc_cmd.arg2, *seed])
 
 

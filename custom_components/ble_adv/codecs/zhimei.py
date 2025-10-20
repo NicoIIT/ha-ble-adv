@@ -88,6 +88,7 @@ class ZhimeiEncoderV1(BleAdvCodec):
     """Zhi Mei V1 encoder."""
 
     _len = 16
+    _seed_max = 0xF5
 
     MATRIX: ClassVar[list[int]] = [29, 4, 17, 32, 152, 117, 40, 70, 11, 175, 67, 172, 214, 190, 137, 142]
 
@@ -151,21 +152,7 @@ class ZhimeiEncoderV1(BleAdvCodec):
     def convert_from_enc(self, enc_cmd: BleAdvEncCmd, conf: BleAdvConfig) -> bytes:
         """Convert an encoder command and a config into a readable buffer."""
         uid = (conf.id & 0xFFFF).to_bytes(4, "little")
-        return bytes(
-            [
-                0xFF,
-                conf.seed & 0xFF,
-                conf.tx_count,
-                *uid,
-                enc_cmd.cmd,
-                conf.index,
-                0xFF,
-                conf.tx_count,
-                enc_cmd.arg0,
-                enc_cmd.arg1,
-                enc_cmd.arg2,
-            ]
-        )
+        return bytes([0xFF, conf.seed, conf.tx_count, *uid, enc_cmd.cmd, conf.index, 0xFF, conf.tx_count, enc_cmd.arg0, enc_cmd.arg1, enc_cmd.arg2])
 
 
 class ZhimeiEncoderV2(BleAdvCodec):
