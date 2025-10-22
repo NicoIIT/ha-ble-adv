@@ -72,6 +72,7 @@ class BleAdvBaseDevice:
 
     async def apply_cmd(self, enc_cmd: BleAdvEncCmd) -> None:
         """Apply command."""
+        self.config.seed = 0
         advs: list[BleAdvAdvertisement] = self.codec.encode_advs(enc_cmd, self.config)
         for adapter_id in self.adapter_ids:
             qi = BleAdvQueueItem(enc_cmd.cmd, self.repeat, self.duration, self.interval, [x.to_raw() for x in advs], self.codec.ign_duration)
