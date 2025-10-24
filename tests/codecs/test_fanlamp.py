@@ -35,6 +35,7 @@ class TestMultiEncoderFanlampV0(_TestMultiEncoderBase):
         ("lampsmart_pro_v3/s2", 0x03, "F0.08.30.82.36.3C.FD.5A.1B.3E.A5.75.1A.7D.77.0F.91.80.FF.0C.8F.C6.53.2B.8C.CA"),
         ("lampsmart_pro_vi1", 0x03, "F9.08.49.13.F0.69.25.4E.31.51.BA.AE.25.02.99.C1.BA.7C.71.94.84.55.18.CA.EC.4C"),
         ("lampsmart_pro_vi3", 0x03, "F0.08.21.80.0B.B5.DA.CF.F3.B5.A7.A0.3B.E9.1C.FC.27.A9.3A.34.0E.2D.3F.57.B9.81"),
+        ("lampsmart_pro_v3/s2_1", 0x03, "F0.08.20.82.FD.02.93.5C.89.FD.9B.F1.D8.DF.08.52.B2.EA.71.77.D7.69.3F.57.DE.AD"),
         ("lampsmart_pro_v1/r1", 0xFF, "62.55.18.87.52.B6.5F.2B.5E.00.FC.31.51.CC.3D.95.8F.29.CB.56.BA.C8.1A.E1.6C.73.7E.60.57"),  # PAIR
         ("lampsmart_pro_v1/r1", 0xFF, "62.55.18.87.52.B6.5F.2B.5E.00.FC.31.51.50.3D.95.08.24.CB.3B.FC.AE.7C.88.0A.CB.89.60.57"),  # Light Toogle
         ("lampsmart_pro_v3/r1", 0x16, "F0.08.10.00.EA.44.8A.9E.16.71.9D.AB.3F.D0.3A.70.1E.AB.BB.7F.86.41.8D.BE.E9.57"),
