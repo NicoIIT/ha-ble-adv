@@ -219,9 +219,10 @@ class BleAdvWaitProgress(BleAdvProgressFlowBase):
 class BleAdvWaitConfigProgress(BleAdvWaitProgress):
     """Listen to configurations."""
 
-    def __init__(self, flow: BleAdvConfigFlow, step_id: str, max_duration: float, wait_agg: float = 0) -> None:
+    def __init__(self, flow: BleAdvConfigFlow, step_id: str, max_duration: float, wait_agg: float = 0, with_match: bool = False) -> None:
         super().__init__(flow, step_id, max_duration)
-        self._wait_agg = wait_agg
+        self._wait_agg: float = wait_agg
+        self._with_match: bool = with_match
         self._agg_mode: bool = False
         self.configs: dict[str, list[_CodecConfig]] = {}
         self._flow.coordinator.start_listening(max_duration + wait_agg)
@@ -234,7 +235,8 @@ class BleAdvWaitConfigProgress(BleAdvWaitProgress):
     def _evaluate(self) -> _ActionResult:
         coord = self._flow.coordinator
         for adapter_id, codec_id, match_id, config in coord.listened_decoded_confs:
-            self._add_config(adapter_id, _CodecConfig(match_id, config.id, config.index))
+            if self._with_match:
+                self._add_config(adapter_id, _CodecConfig(match_id, config.id, config.index))
             self._add_config(adapter_id, _CodecConfig(codec_id, config.id, config.index))
         coord.listened_decoded_confs.clear()
 
@@ -568,7 +570,7 @@ class BleAdvConfigFlow(ConfigFlow, domain=DOMAIN):
     async def async_step_wait_config(self, _: dict[str, Any] | None = None) -> ConfigFlowResult:
         """Wait for listened config Step."""
         if self._progress is None:
-            self._progress = BleAdvWaitConfigProgress(self, "wait_config", WAIT_MAX_SECONDS, 3)
+            self._progress = BleAdvWaitConfigProgress(self, "wait_config", WAIT_MAX_SECONDS, 3, True)
         if (flow_res := self._progress.next()) is not None:
             return flow_res
         self._confs = BleAdvConfigHandler(cast("BleAdvWaitConfigProgress", self._progress).configs)

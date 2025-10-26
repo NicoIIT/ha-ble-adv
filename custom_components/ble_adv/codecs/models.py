@@ -137,6 +137,7 @@ class BleAdvConfig:
     tx_count: int = 0
     app_restart_count: int = 1
     seed: int = 0
+    prev_cmd: BleAdvEncCmd | None = None
 
     def __init__(self, config_id: int = 0, index: int = 0) -> None:
         self.id: int = config_id
@@ -402,7 +403,6 @@ class BleAdvCodec(ABC):
     interval: int = 30
     repeat: int = 9
     ign_duration: int = 12000
-    multi_advs: bool = False
 
     def __init__(self) -> None:
         self.codec_id: str = ""
@@ -504,6 +504,10 @@ class BleAdvCodec(ABC):
     def ent_to_enc(self, ent_attr: BleAdvEntAttr) -> list[BleAdvEncCmd]:
         """Convert Entity Attributes to list of Encoder Attributes."""
         return [trans.ent_to_enc(ent_attr) for trans in self._translators if trans.matches_ent(ent_attr)]
+
+    def consolidate(self, enc_cmd: BleAdvEncCmd, __: BleAdvEncCmd | None) -> BleAdvEncCmd | None:  # enc_cmd is first param, prev_cmd is second
+        """Check if the enc_cmd should be kept, discarded or updated based on prev_cmd. Returns None if to be discarded."""
+        return enc_cmd
 
     def enc_to_ent(self, enc_cmd: BleAdvEncCmd) -> list[BleAdvEntAttr]:
         """Convert Encoder Attributes to list of Entity Attributes."""
