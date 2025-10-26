@@ -18,6 +18,7 @@ class _Codec(mock.MagicMock):
     encode_advs = mock.MagicMock(return_value=[BleAdvAdvertisement(0xFF, b"bouhbouh")])
     enc_to_ent = mock.MagicMock(return_value=[])
     ign_duration = 2
+    consolidate = mock.MagicMock(return_value=BleAdvEncCmd(0x20))
 
 
 class _Device(BleAdvBaseDevice):
@@ -29,11 +30,9 @@ def _get_codecs() -> dict[str, BleAdvCodec]:
     cod1 = _Codec()
     cod1.codec_id = "cod1"
     cod1.match_id = "cod1"
-    cod1.multi_advs = False
     cod2 = _Codec()
     cod2.codec_id = "cod2/a"
     cod2.match_id = "cod2"
-    cod2.multi_advs = False
     return {cod1.codec_id: cod1, cod2.codec_id: cod2}
 
 
@@ -70,6 +69,37 @@ async def test_coordinator(hass: HomeAssistant) -> None:
     coord.remove_device(dev2)
     assert coord.has_available_adapters()
     await coord.async_final()
+
+
+async def test_device_pub(hass: HomeAssistant) -> None:
+    """Test device publication."""
+    codecs = _get_codecs()
+    cod1: BleAdvCodec = codecs["cod1"]
+    coord = BleAdvCoordinator(hass, codecs, ["hci"], 20000, [], [])
+    dev1 = _Device(coord, "dev1", "cod1", ["esp-test"])
+    dev1.add_listener("cod1", BleAdvConfig(1, 0))
+    assert dev1.config.prev_cmd is None
+    coord.add_device(dev1)
+    t1 = MockEspProxy(hass, "esp-test")
+    await t1.setup()
+    base_adv1 = b"base_adv_nb1"
+    adv1 = BleAdvAdvertisement(0xFF, base_adv1, 0x1A)
+    await coord.handle_raw_adv("esp-test", "", bytes(adv1.to_raw()))
+    cod1.consolidate.assert_called_once_with(BleAdvEncCmd(0x10), None)  # type: ignore[mock]
+    cod1.consolidate.reset_mock()  # type: ignore[mock]
+    recv1 = coord._dec_last_advs.get(base_adv1)  # noqa: SLF001
+    assert recv1 is not None
+    assert recv1.pub_devices == {"dev1"}
+    assert recv1.enc_cmd.cmd == 0x10
+    assert dev1.config.prev_cmd == BleAdvEncCmd(0x10)
+    dev1.config.prev_cmd = BleAdvEncCmd(0x20)
+    base_adv2 = b"base_adv_nb2"
+    adv2 = BleAdvAdvertisement(0xFF, base_adv2, 0x1A)
+    await coord.handle_raw_adv("esp-test", "", bytes(adv2.to_raw()))
+    cod1.consolidate.assert_called_once_with(BleAdvEncCmd(0x10), BleAdvEncCmd(0x20))  # type: ignore[mock]
+    recv2 = coord._dec_last_advs.get(base_adv2)  # noqa: SLF001
+    assert recv2 is not None
+    assert dev1.config.prev_cmd == BleAdvEncCmd(0x10)
 
 
 async def test_listening(hass: HomeAssistant) -> None:

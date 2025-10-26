@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import logging
 import sys
+from copy import copy
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from typing import Any
@@ -90,10 +91,10 @@ class BleAdvRecvItem:
     """Received Adv and its related info."""
 
     del_time: datetime
-    match_id: str
+    codec: BleAdvCodec
     pub_devices: set[str]
     conf: BleAdvConfig
-    ent_attrs: list[BleAdvEntAttr]
+    enc_cmd: BleAdvEncCmd
 
 
 class BleAdvCoordinator:
@@ -240,8 +241,11 @@ class BleAdvCoordinator:
     async def _publish_to_devices(self, adapter_id: str, recv: BleAdvRecvItem) -> None:
         # Publish to any device that matches, if not already done
         for device in self._devices:
-            if device.unique_id not in recv.pub_devices and device.match(recv.match_id, adapter_id, recv.conf):
-                await device.async_on_command(recv.ent_attrs)
+            if device.unique_id not in recv.pub_devices and device.match(recv.codec.match_id, adapter_id, recv.conf):
+                cons_cmd = copy(recv.enc_cmd)  # work on a copy to avoid the alteration of the command
+                if (cons_cmd := recv.codec.consolidate(cons_cmd, device.config.prev_cmd)) is not None:
+                    await device.async_on_command(recv.codec.enc_to_ent(cons_cmd))
+                device.config.prev_cmd = recv.enc_cmd
                 recv.pub_devices.add(device.unique_id)
 
     def _handle_listening(self, adapter_id: str, _: str, raw_adv: bytes) -> None:
@@ -297,15 +301,9 @@ class BleAdvCoordinator:
                 acodec = self.codecs[codec_id]
                 enc_cmd, conf = acodec.decode_adv(adv)
                 if conf is not None and enc_cmd is not None:
-                    ent_attrs = acodec.enc_to_ent(enc_cmd)
-                    recv = BleAdvRecvItem(now + timedelta(milliseconds=acodec.ign_duration), acodec.match_id, set(), conf, ent_attrs)
-                    _LOGGER.debug(f"[{codec_id}] {conf} / {enc_cmd} / {ent_attrs}")
+                    recv = BleAdvRecvItem(now + timedelta(milliseconds=acodec.ign_duration), acodec, set(), conf, enc_cmd)
                     await self._publish_to_devices(adapter_id, recv)
-                    if acodec.multi_advs:
-                        for reenc_adv in acodec.encode_advs(enc_cmd, conf):
-                            self._dec_last_advs[reenc_adv.raw] = recv
-                    else:
-                        self._dec_last_advs[adv.raw] = recv
+                    self._dec_last_advs[adv.raw] = recv
 
             # Not decoded by in_used codecs: consider raw and ignored during the next standard ign_duration
             if not recv:

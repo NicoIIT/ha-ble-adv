@@ -52,24 +52,6 @@ class _TestEncoderBase:
                     assert enc_cmd is None
 
 
-class _TestMultiEncoderBase:
-    PARAM_NAMES: tuple[str, str, str] = ("enc_name", "ble_type", "data")
-
-    def test_encoding(self, enc_name: str, ble_type: int, data: str) -> None:
-        adv = BleAdvAdvertisement(ble_type, _from_dotted(data))
-        codec = CODECS[enc_name]
-        codec.debug_mode = True
-        enc_cmd, conf = codec.decode_adv(adv)
-        assert conf is not None
-        assert enc_cmd is not None
-        reencs = codec.encode_advs(enc_cmd, conf)
-        assert adv in reencs
-        conf.id += 0x01
-        reencs2 = codec.encode_advs(enc_cmd, conf)
-        for reenc in reencs2:
-            assert repr(codec.decode_adv(reenc)) == repr((enc_cmd, conf))
-
-
 class _TestEncoderFull:
     PARAM_NAMES: tuple[str, str, str, str, str] = ("enc_name", "raw", "enc_str", "conf_str", "ent_str")
 

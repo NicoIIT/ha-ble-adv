@@ -1,12 +1,17 @@
 """FanLamp pro Unit Tests."""
 
-import pytest
+# ruff: noqa: S101
 
-from . import _TestEncoderBase, _TestEncoderFull, _TestMultiEncoderBase
+from copy import copy
+
+import pytest
+from ble_adv.codecs.models import BleAdvAdvertisement, BleAdvCodec, BleAdvEncCmd
+
+from . import CODECS, _TestEncoderBase, _TestEncoderFull
 
 
 @pytest.mark.parametrize(
-    _TestMultiEncoderBase.PARAM_NAMES,
+    _TestEncoderBase.PARAM_NAMES,
     [
         ("fanlamp_pro_v1/r0", 0xFF, "F0.FF.B6.5F.2B.5E.00.FC.31.51.D0.7E.99.08.24.CB.3B.FC.31.A3.F4.55.E8.CF.A7.52"),  # Light ON
         ("fanlamp_pro_v1/r0", 0xFF, "F0.FF.B6.5F.2B.5E.00.FC.31.51.D0.7E.99.08.24.CB.BB.FC.70.67.F4.55.E8.4F.D0.7D"),  # Light ON
@@ -14,10 +19,32 @@ from . import _TestEncoderBase, _TestEncoderFull, _TestMultiEncoderBase
         ("fanlamp_pro_v1/r0", 0xFF, "F0.FF.B6.5F.2B.5E.00.FC.31.51.D0.7E.99.08.24.CB.FB.FC.70.67.F4.55.A8.CF.4F.DA"),  # Light ON
         ("fanlamp_pro_v1/r0", 0xFF, "F0.FF.B6.5F.2B.5E.00.FC.31.51.2E.7E.99.08.24.CB.BB.FC.70.67.F4.55.E8.4F.07.2A"),  # ALL OFF
         ("fanlamp_pro_v1/r0", 0xFF, "F0.FF.B6.5F.2B.5E.00.FC.31.51.D8.7E.99.08.24.CB.BB.FC.70.67.F4.55.E8.4F.B3.92"),  # Fan OFF / Pair
+        ("fanlamp_pro_v1/r0", 0xFF, "F0FFB65F2B5E00FC3151B8469B0824CA3BFCD1A3F45528CFF39E"),  # B+, step 0
     ],
 )
-class TestMultiEncoderFanlampV0(_TestMultiEncoderBase):
-    """FanlampV0 Multi Encoder tests."""
+class TestEncoderFanlampV0R0(_TestEncoderBase):
+    """FanlampV0 / R0 Encoder tests."""
+
+
+@pytest.mark.parametrize(
+    _TestEncoderBase.PARAM_NAMES,
+    [
+        ("fanlamp_pro_v1/r1", 0xFF, "F0FFB65F2B5E00FC3151942B998824CBBBFC71A3F45568CFA919"),
+        ("fanlamp_pro_v1/r1", 0xFF, "F0FFB65F2B5E00FC3151942B998824CB7BFC71A3F45568CFA919"),
+        ("fanlamp_pro_v1/r1", 0xFF, "F0FFB65F2B5E00FC3151942B998824CBFBFC71A3F45568CFA919"),
+        ("fanlamp_pro_v1/r1", 0xFF, "F0FFB65F2B5E00FC3151942B998824CB1BFC71A3F45568CFA919"),
+    ],
+)
+class TestEncoderFanlampV0R1(_TestEncoderBase):
+    """FanlampV0 / R1 Encoder tests."""
+
+
+@pytest.mark.parametrize(
+    _TestEncoderBase.PARAM_NAMES,
+    [],
+)
+class TestEncoderFanlampTest(_TestEncoderBase):
+    """Fanlamp tests."""
 
 
 @pytest.mark.parametrize(
@@ -103,28 +130,6 @@ class TestEncoderFanlampDupe(_TestEncoderBase):
             "cmd: 0x28, param: 0x00, args: [0,0,0]",
             "id: 0x01FB1E1B, index: 0, tx: 83, seed: 0xBE8D",
             "device_0: ['cmd'] / {'cmd': 'pair'}",
-        ),
-        # Timer 2H (120min / 7200s)
-        (
-            "fanlamp_pro_v3",
-            "02.01.1A.1B.03.F0.08.20.80.B8.FA.E1.22.C6.F2.D3.A7.67.2D.A4.9F.1F.F6.B6.FD.E0.8B.53.2B.D7.97",
-            "cmd: 0x41, param: 0x00, args: [120,0,0]",
-            "id: 0xD2135C22, index: 2, tx: 142, seed: 0x2B53",
-            "device_0: ['cmd'] / {'cmd': 'timer', 's': 7200.0}",
-        ),
-        (
-            "fanlamp_pro_v1",
-            "02.01.19.1B.03.77.F8.B6.5F.2B.5E.00.FC.31.51.52.FE.D2.16.24.0A.C5.FC.42.2C.F4.DA.A0.DB.D7.A0",
-            "cmd: 0x51, param: 0x00, args: [120,0,0]",
-            "id: 0x003D5022, index: 2, tx: 127, seed: 0x00F1",
-            "device_0: ['cmd'] / {'cmd': 'timer', 's': 7200.0}",
-        ),
-        (
-            "fanlamp_pro_v2",
-            "02.01.19.1B.03.F0.08.10.80.B8.FA.E1.22.C6.F2.D3.A7.67.2D.A4.9F.1F.F6.B6.A2.22.8B.53.2B.3B.6E",
-            "cmd: 0x41, param: 0x00, args: [120,0,0]",
-            "id: 0xD2135C22, index: 2, tx: 142, seed: 0x2B53",
-            "device_0: ['cmd'] / {'cmd': 'timer', 's': 7200.0}",
         ),
         # MAIN LIGHT OFF
         (
@@ -553,6 +558,28 @@ class TestEncoderFanlampFull(_TestEncoderFull):
             "id: 0xD2135C22, index: 2, tx: 146, seed: 0x2B53",
             "device_0: ['on'] / {'on': False}",
         ),
+        # Timer 2H (120min / 7200s)
+        (
+            "fanlamp_pro_v3",
+            "02.01.1A.1B.03.F0.08.20.80.B8.FA.E1.22.C6.F2.D3.A7.67.2D.A4.9F.1F.F6.B6.FD.E0.8B.53.2B.D7.97",
+            "cmd: 0x41, param: 0x00, args: [120,0,0]",
+            "id: 0xD2135C22, index: 2, tx: 142, seed: 0x2B53",
+            "device_0: ['cmd'] / {'cmd': 'timer', 's': 7200.0}",
+        ),
+        (
+            "fanlamp_pro_v1",
+            "02.01.19.1B.03.77.F8.B6.5F.2B.5E.00.FC.31.51.52.FE.D2.16.24.0A.C5.FC.42.2C.F4.DA.A0.DB.D7.A0",
+            "cmd: 0x51, param: 0x00, args: [120,0,0]",
+            "id: 0x003D5022, index: 2, tx: 127, seed: 0x00F1",
+            "device_0: ['cmd'] / {'cmd': 'timer', 's': 7200.0}",
+        ),
+        (
+            "fanlamp_pro_v2",
+            "02.01.19.1B.03.F0.08.10.80.B8.FA.E1.22.C6.F2.D3.A7.67.2D.A4.9F.1F.F6.B6.A2.22.8B.53.2B.3B.6E",
+            "cmd: 0x41, param: 0x00, args: [120,0,0]",
+            "id: 0xD2135C22, index: 2, tx: 142, seed: 0x2B53",
+            "device_0: ['cmd'] / {'cmd': 'timer', 's': 7200.0}",
+        ),
         # Light Brightness Half / Full Toggle
         (
             "lampsmart_pro_v1/r1",
@@ -694,3 +721,263 @@ class TestEncoderFanlampNoReverse(_TestEncoderFull):
     """Fanlamp Encoder / Decoder No Reverse tests."""
 
     _with_reverse = False
+
+
+@pytest.mark.parametrize(
+    _TestEncoderFull.PARAM_NAMES,
+    [
+        # ALL OFF
+        (
+            "fanlamp_pro_v1/r0",
+            "0201191BFFF0FFB65F2B5E00FC31512E7E990824CBBBFC7067F455E84F072A",
+            "cmd: 0x6F, param: 0x00, args: [0,0,0,1,0]",
+            "id: 0x00008023, index: 0, tx: 0, seed: 0x0000",
+            "device_0: ['on'] / {'on': False}",
+        ),
+        # TIMER 1H
+        (
+            "fanlamp_pro_v1/r0",
+            "0201191BFFF0FFB65F2B5E00FC31515A7E993424CBBBFC7067F455E84F8998",
+            "cmd: 0x41, param: 0x00, args: [60,0,0,1,0]",
+            "id: 0x00008023, index: 0, tx: 0, seed: 0x0000",
+            "device_0: ['cmd'] / {'cmd': 'timer', 's': 3600.0}",
+        ),
+        # TIMER 2H
+        (
+            "fanlamp_pro_v1/r0",
+            "0201191BFFF0FFB65F2B5E00FC31515A7E991624CBBBFC7067F455E84F21D1",
+            "cmd: 0x41, param: 0x00, args: [120,0,0,1,0]",
+            "id: 0x00008023, index: 0, tx: 0, seed: 0x0000",
+            "device_0: ['cmd'] / {'cmd': 'timer', 's': 7200.0}",
+        ),
+        # TIMER 4H
+        (
+            "fanlamp_pro_v1/r0",
+            "0201191BFFF0FFB65F2B5E00FC31515A7E990724CBBBFC7067F455E84FF5F5",
+            "cmd: 0x41, param: 0x00, args: [240,0,0,1,0]",
+            "id: 0x00008023, index: 0, tx: 0, seed: 0x0000",
+            "device_0: ['cmd'] / {'cmd': 'timer', 's': 14400.0}",
+        ),
+        # Light ON
+        (
+            "fanlamp_pro_v1/r0",
+            "0201191BFFF0FFB65F2B5E00FC3151D07E990824CB3BFC31A3F455E8CFA752",
+            "cmd: 0x10, param: 0x00, args: [0,0,0]",
+            "id: 0x00008023, index: 0, tx: 0, seed: 0x0000",
+            "light_0: ['on'] / {'on': True}",
+        ),
+        # Light OFF
+        (
+            "fanlamp_pro_v1/r0",
+            "0201191BFFF0FFB65F2B5E00FC3151507E990824CB3BFC31A3F455E8CF79D4",
+            "cmd: 0x11, param: 0x00, args: [0,0,0]",
+            "id: 0x00008023, index: 0, tx: 0, seed: 0x0000",
+            "light_0: ['on'] / {'on': False}",
+        ),
+        # FAN SPEED 1
+        (
+            "fanlamp_pro_v1/r0",
+            "0201191BFFF0FFB65F2B5E00FC3151947E998824CB3BFC31A3F45528CFC0BA",
+            "cmd: 0x32, param: 0x00, args: [1,0,0]",
+            "id: 0x00008023, index: 0, tx: 0, seed: 0x0000",
+            "fan_0: ['on', 'speed'] / {'speed_count': 6, 'on': True, 'speed': 1.0}",
+        ),
+        # FAN SPEED 2
+        (
+            "fanlamp_pro_v1/r0",
+            "0201191BFFF0FFB65F2B5E00FC3151947E994824CB3BFCD1A3F455A8CF01EB",
+            "cmd: 0x32, param: 0x00, args: [2,0,0]",
+            "id: 0x00008023, index: 0, tx: 0, seed: 0x0000",
+            "fan_0: ['on', 'speed'] / {'speed_count': 6, 'on': True, 'speed': 2.0}",
+        ),
+        # FAN SPEED 3
+        (
+            "fanlamp_pro_v1/r0",
+            "0201191BFFF0FFB65F2B5E00FC3151947E99C824CB3BFCF1A3F45548CFE315",
+            "cmd: 0x32, param: 0x00, args: [3,0,0]",
+            "id: 0x00008023, index: 0, tx: 0, seed: 0x0000",
+            "fan_0: ['on', 'speed'] / {'speed_count': 6, 'on': True, 'speed': 3.0}",
+        ),
+        # FAN SPEED 4
+        (
+            "fanlamp_pro_v1/r0",
+            "0201191BFFF0FFB65F2B5E00FC3151947E992824CB3BFCD1A3F45548CF172D",
+            "cmd: 0x32, param: 0x00, args: [4,0,0]",
+            "id: 0x00008023, index: 0, tx: 0, seed: 0x0000",
+            "fan_0: ['on', 'speed'] / {'speed_count': 6, 'on': True, 'speed': 4.0}",
+        ),
+        # FAN SPEED 5
+        (
+            "fanlamp_pro_v1/r0",
+            "0201191BFFF0FFB65F2B5E00FC3151947E99A824CB3BFCB1A3F455A8CF24D1",
+            "cmd: 0x32, param: 0x00, args: [5,0,0]",
+            "id: 0x00008023, index: 0, tx: 0, seed: 0x0000",
+            "fan_0: ['on', 'speed'] / {'speed_count': 6, 'on': True, 'speed': 5.0}",
+        ),
+        # FAN SPEED 6
+        (
+            "fanlamp_pro_v1/r0",
+            "0201191BFFF0FFB65F2B5E00FC3151947E996824CB3BFC31A3F45548CF0162",
+            "cmd: 0x32, param: 0x00, args: [6,0,0]",
+            "id: 0x00008023, index: 0, tx: 0, seed: 0x0000",
+            "fan_0: ['on', 'speed'] / {'speed_count': 6, 'on': True, 'speed': 6.0}",
+        ),
+        # FAN OFF
+        (
+            "fanlamp_pro_v1/r0",
+            "0201191BFFF0FFB65F2B5E00FC3151547E990824CB3BFC71A3F455B4CB6219",
+            "cmd: 0x31, param: 0x00, args: [0,0,0]",
+            "id: 0x00008023, index: 0, tx: 0, seed: 0x0000",
+            "fan_0: ['on'] / {'on': False}",
+        ),
+        # FAN DIR TOGGLE and ON
+        (
+            "fanlamp_pro_v1/r0",
+            "0201191BFFF0FFB65F2B5E00FC31513A7E990824CB3BFC51A3F45568CF632B",
+            "cmd: 0x47, param: 0x00, args: [0,0,0]",
+            "id: 0x00008023, index: 0, tx: 0, seed: 0x0000",
+            "fan_0: ['on', 'dir'] / {'on': True, 'dir': 'toggle'}",
+        ),
+        # FAN BREEZE
+        (
+            "fanlamp_pro_v1/r0",
+            "0201191BFFF0FFB65F2B5E00FC3151147E994824CB3BFC51A3F45528CFB1E4",
+            "cmd: 0x33, param: 0x00, args: [2,0,0]",
+            "id: 0x00008023, index: 0, tx: 0, seed: 0x0000",
+            "fan_0: ['preset'] / {'preset': 'breeze'}",
+        ),
+        # BR-
+        (
+            "fanlamp_pro_v1/r1",
+            "0201001BFFF0FFB65F2B5E00FC3151782B990824CA7BFC71A3F45568CFA919",
+            "cmd: 0x05, param: 0x00, args: [0,0,128,2,0]",
+            "id: 0x00008089, index: 0, tx: 0, seed: 0x0000",
+            "light_0: ['cmd'] / {'sub_type': 'cww', 'cmd': 'B-', 'step': 0.08}",
+        ),
+        # BR+
+        (
+            "fanlamp_pro_v1/r1",
+            "0201001BFFF0FFB65F2B5E00FC3151F82B990824CA7BFC71A3F45568CFA919",
+            "cmd: 0x04, param: 0x00, args: [0,0,128,2,0]",
+            "id: 0x00008089, index: 0, tx: 0, seed: 0x0000",
+            "light_0: ['cmd'] / {'sub_type': 'cww', 'cmd': 'B+', 'step': 0.08}",
+        ),
+        # K+
+        (
+            "fanlamp_pro_v1/r1",
+            "0201001BFFF0FFB65F2B5E00FC3151B82B990824CA7BFC71A3F45568CFA919",
+            "cmd: 0x06, param: 0x00, args: [0,0,128,2,0]",
+            "id: 0x00008089, index: 0, tx: 0, seed: 0x0000",
+            "light_0: ['cmd'] / {'sub_type': 'cww', 'cmd': 'K+', 'step': 0.08}",
+        ),
+        # K-
+        (
+            "fanlamp_pro_v1/r1",
+            "0201001BFFF0FFB65F2B5E00FC3151382B990824CAFBFC71A3F45568CFA919",
+            "cmd: 0x07, param: 0x00, args: [0,0,128,3,0]",
+            "id: 0x00008089, index: 0, tx: 0, seed: 0x0000",
+            "light_0: ['cmd'] / {'sub_type': 'cww', 'cmd': 'K-', 'step': 0.12}",
+        ),
+        # TEMP 3000K FULL WARM
+        (
+            "fanlamp_pro_v1/r0",
+            "0201191BFFF0FFB65F2B5E00FC31515C7E9908DBCB3BFCD1A3F45568CFCAE6",
+            "cmd: 0x21, param: 0x00, args: [0,255,0]",
+            "id: 0x00008023, index: 0, tx: 0, seed: 0x0000",
+            "light_0: ['cold', 'warm'] / {'sub_type': 'cww', 'cold': 0.0, 'warm': 1.0}",
+        ),
+        # TEMP 4000K (Medium)
+        (
+            "fanlamp_pro_v1/r0",
+            "0201191BFFF0FFB65F2B5E00FC31515C7E99F7DBCB3BFCD1A3F45568CF5736",
+            "cmd: 0x21, param: 0x00, args: [255,255,0]",
+            "id: 0x00008023, index: 0, tx: 0, seed: 0x0000",
+            "light_0: ['cold', 'warm'] / {'sub_type': 'cww', 'cold': 1.0, 'warm': 1.0}",
+        ),
+        # TEMP 6000K FULL COLD
+        (
+            "fanlamp_pro_v1/r0",
+            "0201191BFFF0FFB65F2B5E00FC31515C7E99F724CB3BFCD1A3F45568CFE116",
+            "cmd: 0x21, param: 0x00, args: [255,0,0]",
+            "id: 0x00008023, index: 0, tx: 0, seed: 0x0000",
+            "light_0: ['cold', 'warm'] / {'sub_type': 'cww', 'cold': 1.0, 'warm': 0.0}",
+        ),
+        # NIGHT MODE
+        (
+            "fanlamp_pro_v1/r0",
+            "0201191BFFF0FFB65F2B5E00FC31511C7E990824CB3BFCB1A3F45568CFA202",
+            "cmd: 0x23, param: 0x00, args: [0,0,0]",
+            "id: 0x00008023, index: 0, tx: 0, seed: 0x0000",
+            "light_0: ['cold', 'warm'] / {'sub_type': 'cww', 'cold': 0.1, 'warm': 0.1}",
+        ),
+        # Beep Toggle (not implemented / "cmd: 0x48, param: 0x00, args: [0,0,0]")
+        # 02.01.19.1B.FF.F0.FF.B6.5F.2B.5E.00.FC.31.51.CA.7E.99.08.24.CB.7B.FC.70.67.F4.55.28.CF.01.59
+        # 02.01.19.1B.FF.F0.FF.B6.5F.2B.5E.00.FC.31.51.CA.7E.99.08.24.CB.FB.FC.70.67.F4.55.A8.CF.2F.1E
+    ],
+)
+class TestEncoderFanlampRemoteV0(_TestEncoderFull):
+    """Fanlamp Encoder / Decoder No Reverse tests."""
+
+    _with_reverse = False
+
+
+def _get_cmd(codec: BleAdvCodec, buffer: str) -> BleAdvEncCmd:
+    (enc_cmd, _) = codec.decode_adv(BleAdvAdvertisement(0xFF, bytes.fromhex(buffer.replace(".", ""))))
+    assert enc_cmd is not None
+    return enc_cmd
+
+
+def test_consolidate_std() -> None:
+    """Test consolidate for standard button."""
+    codec = CODECS["fanlamp_pro_v1/r0"]
+    enc_cmd1 = _get_cmd(codec, "F0.FF.B6.5F.2B.5E.00.FC.31.51.D0.7E.99.08.24.CB.3B.FC.31.A3.F4.55.E8.CF.A7.52")
+    assert enc_cmd1.cmd == 0x10
+    assert enc_cmd1.arg2 == 0x00
+    assert enc_cmd1.arg3 == 0x00
+    assert codec.consolidate(copy(enc_cmd1), enc_cmd1) is not None
+    enc_cmd2 = _get_cmd(codec, "F0.FF.B6.5F.2B.5E.00.FC.31.51.D0.7E.99.08.24.CB.BB.FC.70.67.F4.55.E8.4F.D0.7D")
+    assert enc_cmd2.cmd == 0x10
+    assert enc_cmd2.arg2 == 0x00
+    assert enc_cmd2.arg3 == 0x01
+    assert codec.consolidate(copy(enc_cmd2), enc_cmd1) is None
+    enc_cmd3 = _get_cmd(codec, "F0.FF.B6.5F.2B.5E.00.FC.31.51.D0.7E.99.08.24.CB.7B.FC.70.67.F4.55.28.CF.61.9D")
+    assert enc_cmd3.cmd == 0x10
+    assert enc_cmd3.arg2 == 0x00
+    assert enc_cmd3.arg3 == 0x02
+    assert codec.consolidate(copy(enc_cmd3), enc_cmd2) is None
+    enc_cmd4 = _get_cmd(codec, "F0.FF.B6.5F.2B.5E.00.FC.31.51.D0.7E.99.08.24.CB.FB.FC.70.67.F4.55.A8.CF.4F.DA")
+    assert enc_cmd4.cmd == 0x10
+    assert enc_cmd4.arg2 == 0x00
+    assert enc_cmd4.arg3 == 0x03
+    assert codec.consolidate(copy(enc_cmd4), enc_cmd3) is None
+
+
+def test_consolidate_plus() -> None:
+    """Test consolidate for B+ button."""
+    codec = CODECS["fanlamp_pro_v1/r1"]
+    enc_cmd1 = _get_cmd(codec, "F0FFB65F2B5E00FC3151782B990824CABBFC71A3F45568CFA919")
+    assert enc_cmd1.cmd == 0x05
+    assert enc_cmd1.arg2 == 0x80
+    assert enc_cmd1.arg3 == 0x01
+    assert codec.consolidate(copy(enc_cmd1), None) is not None
+    assert codec.consolidate(copy(enc_cmd1), enc_cmd1) is None
+    enc_cmd2 = _get_cmd(codec, "F0FFB65F2B5E00FC3151782B990824CA7BFC71A3F45568CFA919")
+    assert enc_cmd2.cmd == 0x05
+    assert enc_cmd2.arg2 == 0x80
+    assert enc_cmd2.arg3 == 0x02
+    cons_cmd = codec.consolidate(copy(enc_cmd2), enc_cmd1)
+    assert cons_cmd is not None
+    assert cons_cmd.arg3 == 0x01
+    enc_cmd3 = _get_cmd(codec, "F0FFB65F2B5E00FC3151782B990824CAFBFC71A3F45568CFA919")
+    assert enc_cmd3.cmd == 0x05
+    assert enc_cmd3.arg2 == 0x80
+    assert enc_cmd3.arg3 == 0x03
+    cons_cmd = codec.consolidate(copy(enc_cmd3), enc_cmd2)
+    assert cons_cmd is not None
+    assert cons_cmd.arg3 == 0x01
+    enc_cmd4 = _get_cmd(codec, "F0FFB65F2B5E00FC3151782B9908244AFBFC71A3F45568CFA919")
+    assert enc_cmd4.cmd == 0x05
+    assert enc_cmd4.arg2 == 0x81
+    assert enc_cmd4.arg3 == 0x03
+    assert codec.consolidate(copy(enc_cmd4), enc_cmd3) is None
+    assert codec.consolidate(copy(enc_cmd1), enc_cmd4) is not None
