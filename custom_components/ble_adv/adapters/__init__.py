@@ -267,6 +267,8 @@ class BluetoothHCIAdapter(BleAdvAdapter):
     OCF_LE_SET_EXT_ADVERTISING_PARAMETERS = 0x36
     OCF_LE_SET_EXT_ADVERTISING_DATA = 0x37
     OCF_LE_SET_EXT_ADVERTISE_ENABLE = 0x39
+    OCF_LE_SET_EXT_SCAN_PARAMETERS = 0x41
+    OCF_LE_SET_EXT_SCAN_ENABLE = 0x42
     ADV_FILTER = struct.pack(
         "<LLLHxx",
         1 << HCI_EVENT_PKT,
@@ -376,10 +378,17 @@ class BluetoothHCIAdapter(BleAdvAdapter):
 
     async def _set_scan_parameters(self, scan_type: int = 0x00, interval: int = 0x10, window: int = 0x10) -> None:
         cmd = bytearray([scan_type]) + interval.to_bytes(2, "little") + window.to_bytes(2, "little")
-        await self._send_hci_cmd(self.OCF_LE_SET_SCAN_PARAMETERS, cmd + bytearray([0x00, 0x00]))
+        if self._use_ext_adv:
+            await self._send_hci_cmd(self.OCF_LE_SET_EXT_SCAN_PARAMETERS, bytearray([0x00, 0x00, 0x01]) + cmd)
+        else:
+            await self._send_hci_cmd(self.OCF_LE_SET_SCAN_PARAMETERS, cmd + bytearray([0x00, 0x00]))
 
     async def _set_scan_enable(self, *, enabled: bool = True) -> None:
-        await self._send_hci_cmd(self.OCF_LE_SET_SCAN_ENABLE, bytearray([0x01 if enabled else 0x00, 0x00]))
+        en_int = 0x01 if enabled else 0x00
+        if self._use_ext_adv:
+            await self._send_hci_cmd(self.OCF_LE_SET_EXT_SCAN_ENABLE, bytearray([en_int, 0x00, 0x00, 0x00, 0x00, 0x00]))
+        else:
+            await self._send_hci_cmd(self.OCF_LE_SET_SCAN_ENABLE, bytearray([en_int, 0x00]))
 
     async def _advertise(self, item: BleAdvAdapterAdvItem) -> None:
         """Advertise the 'data' for the given interval."""
