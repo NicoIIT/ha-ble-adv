@@ -120,9 +120,9 @@ INIT_CALLS_EXT_ADV = [
     ("bind", ((0,),)),
     ("setsockopt", (0, 2, b"\x10\x00\x00\x00\x00@\x00\x00\x00\x00\x00@\x00\x00\x00\x00")),
     ("op_call", 0x03, b""),  # LE Features
-    ("op_call", 0x0C, b"\x00\x00"),  # Disable Scan
-    ("op_call", 0x0B, b"\x00\x10\x00\x10\x00\x00\x00"),  # Scan Parameters
-    ("op_call", 0x0C, b"\x01\x00"),  # Enable Scan
+    ("op_call", 0x42, b"\x00\x00\x00\x00\x00\x00"),  # Disable EXT Scan
+    ("op_call", 0x41, b"\x00\x00\x01\x00\x10\x00\x10\x00"),  # EXT Scan Parameters
+    ("op_call", 0x42, b"\x01\x00\x00\x00\x00\x00"),  # Enable EXT Scan
 ]
 
 
