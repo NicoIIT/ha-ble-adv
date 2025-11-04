@@ -456,8 +456,10 @@ FLCODECS = [
     FanLampEncoderV1(0x83, False, True).fid("remote_v1", FLV1).forced_crc2(0x9372).header([0x56, 0x55, 0x18, 0x87, 0x52]).ble(0x00, 0xFF).add_translators(TRANS_FANLAMP_VR1),
     FanLampEncoderV1R0().id(FLV1, "r0").header([0xF0, 0xFF]).ble(0x19,0xFF).add_rev_only_trans(TRANS_FANLAMP_V1),
     FanLampEncoderV1R1().id(FLV1, "r1").forced_crc2(0x00).header([0xF0, 0xFF]).ble(0x19,0xFF).add_rev_only_trans(TRANS_FANLAMP_V1),
+    FanLampEncoderV1(0x83, False, True).id(FLV1, "r3").forced_crc2(0x9372).header([0x55, 0x55, 0x18, 0x87, 0x52]).ble(0x00, 0xFF).add_translators(TRANS_FANLAMP_VR1),
     FanLampEncoderV2(0x0400, False).fid("remote_v2", FLV2).header([0xF0, 0x08]).prefix([0x10, 0x00, 0x56]).ble(0x02, 0x16).add_translators(TRANS_FANLAMP_VR2),
     FanLampEncoderV2(0x0400, True).fid("remote_v3", FLV3).header([0xF0, 0x08]).prefix([0x10, 0x00, 0x56]).ble(0x02, 0x16).add_translators(TRANS_FANLAMP_VR2),
+    FanLampEncoderV2(0x0400, True).id(FLV3, "r3").header([0xF0, 0x08]).prefix([0x10, 0x00, 0x55]).ble(0x02, 0x16).add_translators(TRANS_FANLAMP_VR2),
 ]  # fmt: skip
 
 LSCODECS = [
