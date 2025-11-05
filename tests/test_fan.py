@@ -158,17 +158,18 @@ async def test_fan_preset(device: _Device) -> None:
     await fan.async_set_preset_mode("PRES1")
     assert fan.preset_mode == "PRES1"
     assert fan.is_on
-    assert fan.get_attrs() == {ATTR_ON: True, ATTR_SPEED_COUNT: 6, ATTR_DIR: True, ATTR_OSC: False, ATTR_PRESET: "PRES1", ATTR_SPEED: 0}
+    assert fan.get_attrs() == {ATTR_ON: True, ATTR_SPEED_COUNT: 6, ATTR_DIR: True, ATTR_OSC: False, ATTR_PRESET: "PRES1", ATTR_SPEED: 6}
+    assert fan.percentage == 0
     device.assert_apply_change(fan, [ATTR_ON, ATTR_PRESET])
     await fan.async_set_preset_mode("PRES1")
     device.assert_no_change()
     await fan.async_turn_off()
     assert not fan.is_on
-    assert fan.get_attrs() == {ATTR_ON: False, ATTR_SPEED_COUNT: 6, ATTR_DIR: True, ATTR_OSC: False, ATTR_PRESET: "PRES1", ATTR_SPEED: 0}
+    assert fan.get_attrs() == {ATTR_ON: False, ATTR_SPEED_COUNT: 6, ATTR_DIR: True, ATTR_OSC: False, ATTR_PRESET: "PRES1", ATTR_SPEED: 6}
     device.assert_apply_change(fan, [ATTR_ON])
     await fan.async_turn_on()
     assert fan.is_on
-    assert fan.get_attrs() == {ATTR_ON: True, ATTR_SPEED_COUNT: 6, ATTR_DIR: True, ATTR_OSC: False, ATTR_PRESET: "PRES1", ATTR_SPEED: 0}
+    assert fan.get_attrs() == {ATTR_ON: True, ATTR_SPEED_COUNT: 6, ATTR_DIR: True, ATTR_OSC: False, ATTR_PRESET: "PRES1", ATTR_SPEED: 6}
     device.assert_apply_change(fan, [ATTR_ON, ATTR_PRESET])
     await fan.async_turn_on(percentage=50)
     assert fan.is_on
@@ -176,11 +177,15 @@ async def test_fan_preset(device: _Device) -> None:
     device.assert_apply_change(fan, [ATTR_SPEED])
     await fan.async_turn_on(preset_mode="PRES2")
     assert fan.is_on
-    assert fan.get_attrs() == {ATTR_ON: True, ATTR_SPEED_COUNT: 6, ATTR_DIR: True, ATTR_OSC: False, ATTR_PRESET: "PRES2", ATTR_SPEED: 0}
+    assert fan.get_attrs() == {ATTR_ON: True, ATTR_SPEED_COUNT: 6, ATTR_DIR: True, ATTR_OSC: False, ATTR_PRESET: "PRES2", ATTR_SPEED: 3}
     device.assert_apply_change(fan, [ATTR_PRESET])
-    fan.apply_attrs(BleAdvEntAttr([ATTR_PRESET], {ATTR_ON: True, ATTR_PRESET: "PRES1"}, FAN_TYPE, 3))
+    fan.apply_attrs(BleAdvEntAttr([ATTR_PRESET], {ATTR_ON: True, ATTR_PRESET: "PRES1"}, FAN_TYPE, 0))
     assert fan.preset_mode == "PRES1"
     assert fan.percentage == 0
-    fan.apply_attrs(BleAdvEntAttr([ATTR_SPEED], {ATTR_ON: True, ATTR_SPEED_COUNT: 6, ATTR_SPEED: 3}, FAN_TYPE, 0))
-    assert fan.percentage == 50
+    fan.apply_attrs(BleAdvEntAttr([ATTR_SPEED], {ATTR_ON: True, ATTR_SPEED_COUNT: 6, ATTR_SPEED: 6}, FAN_TYPE, 0))
+    assert fan.percentage == 100
     assert fan.preset_mode is None
+    fan.apply_attrs(BleAdvEntAttr([ATTR_PRESET], {ATTR_ON: True, ATTR_PRESET: "PRES1"}, FAN_TYPE, 0))
+    assert fan.preset_mode == "PRES1"
+    fan.apply_attrs(BleAdvEntAttr([ATTR_PRESET], {ATTR_ON: True, ATTR_PRESET: None}, FAN_TYPE, 0))
+    assert fan.percentage == 100
