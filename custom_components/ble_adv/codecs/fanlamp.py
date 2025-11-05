@@ -325,6 +325,7 @@ def _get_fan_translators() -> list[Trans]:
         Trans(FanCmd().act(ATTR_ON, True).act(ATTR_DIR, ATTR_CMD_TOGGLE), EncCmd(0x47)).no_direct(),
         Trans(FanCmd().act(ATTR_OSC, True), EncCmd(0x16).eq("arg0", 1)),
         Trans(FanCmd().act(ATTR_OSC, False), EncCmd(0x16).eq("arg0", 0)),
+        Trans(FanCmd().act(ATTR_PRESET).eq(ATTR_PRESET, None), EncCmd(0x33).eq("arg0", 0)).no_direct(),
         Trans(FanCmd().act(ATTR_PRESET, ATTR_PRESET_SLEEP), EncCmd(0x33).eq("arg0", 1)),
         Trans(FanCmd().act(ATTR_PRESET, ATTR_PRESET_BREEZE), EncCmd(0x33).eq("arg0", 2)),
     ]

@@ -8,6 +8,7 @@ from .models import BleAdvCodec
 from .remotes import CODECS as REMOTES_CODECS
 from .ruixin import CODECS as RUIXIN_CODECS
 from .rw import CODECS as RW_CODECS
+from .smartelfin import CODECS as SMARTELFIN_CODECS
 from .zhijia import CODECS as ZHIJIA_CODECS
 from .zhimei import CODECS as ZHIMEI_CODECS
 
@@ -22,6 +23,7 @@ PHONE_APPS = {
     "LE Light": ["lelight"],
     "RuiXin": ["ruixin_v0"],
     "RW.LIGHT": ["rwlight_mix"],
+    "Smart Elfin": ["fanlamp_pro_v3/se", "smartelfin_v0"],
 }
 
 
@@ -38,6 +40,7 @@ def get_codec_list() -> list[BleAdvCodec]:
         *LE_CODECS,
         *RUIXIN_CODECS,
         *RW_CODECS,
+        *SMARTELFIN_CODECS,
     ]
 
 
