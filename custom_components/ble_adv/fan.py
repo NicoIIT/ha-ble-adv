@@ -78,7 +78,7 @@ class BleAdvFan(BleAdvEntity, FanEntity):
             BleAdvStateAttribute(ATTR_PERCENTAGE, 100, [ATTR_SPEED], [ATTR_PRESET_MODE]),
             BleAdvStateAttribute(ATTR_DIRECTION, DIRECTION_FORWARD, [ATTR_DIR]),
             BleAdvStateAttribute(ATTR_OSCILLATING, False, [ATTR_OSC]),
-            BleAdvStateAttribute(ATTR_PRESET_MODE, None, [ATTR_PRESET], [ATTR_PERCENTAGE]),
+            BleAdvStateAttribute(ATTR_PRESET_MODE, None, [ATTR_PRESET]),
         ]
     )
     _attr_direction = None
@@ -104,6 +104,12 @@ class BleAdvFan(BleAdvEntity, FanEntity):
     def current_direction(self) -> str | None:
         """Return the current direction of the fan."""
         return self._attr_direction
+
+    # redefining 'percentage' in order to consider it 0 when a preset mode is setup
+    @property
+    def percentage(self) -> int | None:
+        """Return the percentage of the fan."""
+        return self._attr_percentage if self._attr_preset_mode is None else 0
 
     def get_attrs(self) -> dict[str, Any]:
         """Get the attrs."""
@@ -141,9 +147,7 @@ class BleAdvFan(BleAdvEntity, FanEntity):
             speed_count = ent_attr.attrs.get(ATTR_SPEED_COUNT, self._attr_speed_count)
             self._attr_percentage = ranged_value_to_percentage((1, speed_count), ent_attr.attrs[ATTR_SPEED])
         if ATTR_PRESET in ent_attr.chg_attrs:
-            self._attr_preset_mode = ent_attr.attrs[ATTR_PRESET] if ent_attr.attrs[ATTR_PRESET] != "" else None
-            if self._attr_preset_mode is not None:
-                self._attr_percentage = 0
+            self._attr_preset_mode = ent_attr.attrs[ATTR_PRESET]
 
     async def async_turn_on(self, percentage: int | None = None, preset_mode: str | None = None, **kwargs) -> None:  # noqa: ANN003
         """Turn Entity on / set percentage / preset mode. Percentage is taking precedence over preset_mode."""
