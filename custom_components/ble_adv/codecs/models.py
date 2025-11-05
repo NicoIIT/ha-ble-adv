@@ -40,7 +40,7 @@ class BleAdvAdvertisement:
             if part_len > len(rem_data):
                 break
             part_type = rem_data[1]
-            if part_type in [0x03, 0x05, 0x16, 0xFF]:
+            if part_type in [0x03, 0x05, 0x07, 0x16, 0xFF] and ble_type == 0x00:
                 ble_type = part_type
                 raw_data = rem_data[2 : part_len + 1]
             rem_data = rem_data[part_len + 1 :]
