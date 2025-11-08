@@ -1,7 +1,5 @@
 """Smart Elfin App."""
 
-from typing import ClassVar
-
 from .const import (
     ATTR_BR,
     ATTR_CMD,
@@ -46,7 +44,10 @@ class SmartElfinEncoder(BleAdvCodec):
 
     _len = 12
     _tx_max: int = 0xFE
-    _FIXED: ClassVar[bytes] = bytes([0x64, 0xE5, 0xE3, 0xBA])
+    _tx_step: int = 2
+    _FIXED: bytes = bytes([0x64, 0xE5, 0xE3, 0xBA])
+    second_type: int = 0x16
+    second_raw: bytes = bytes([0x00] * 8)
 
     def decrypt(self, buffer: bytes) -> bytes | None:
         """Decrypt / unwhiten an incoming raw buffer into a readable buffer."""

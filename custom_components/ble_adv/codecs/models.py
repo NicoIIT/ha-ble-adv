@@ -34,39 +34,49 @@ class BleAdvAdvertisement:
     def FromRaw(cls, raw_adv: bytes) -> Self:  # noqa: N802
         """Build an Advertisement from raw."""
         ble_type = 0x00
+        sec_type = 0x00
+        sec_raw = None
         rem_data = raw_adv
         while len(rem_data) > 2:
             part_len = rem_data[0]
             if part_len > len(rem_data):
                 break
             part_type = rem_data[1]
-            if part_type in [0x03, 0x05, 0x07, 0x16, 0xFF] and ble_type == 0x00:
-                ble_type = part_type
-                raw_data = rem_data[2 : part_len + 1]
+            if part_type in [0x03, 0x05, 0x07, 0x16, 0xFF]:
+                if ble_type == 0x00:
+                    ble_type = part_type
+                    raw_data = rem_data[2 : part_len + 1]
+                else:
+                    sec_type = part_type
+                    sec_raw = rem_data[2 : part_len + 1]
             rem_data = rem_data[part_len + 1 :]
         if ble_type == 0:
             raw_data = raw_adv
-        return cls(ble_type, raw_data)
+        return cls(ble_type, raw_data, 0, sec_type, sec_raw)
 
-    def __init__(self, ble_type: int, raw: bytes, ad_flag: int = 0) -> None:
+    def __init__(self, ble_type: int, raw: bytes, ad_flag: int = 0, sec_type: int = 0, sec_raw: bytes | None = None) -> None:
         self.ble_type: int = ble_type
         self.raw: bytes = raw
         self.ad_flag = ad_flag
+        self.second_type: int = sec_type
+        self.second_raw: bytes | None = sec_raw
 
     def __repr__(self) -> str:
         """Repr."""
-        return f"Type: 0x{self.ble_type:02X}, raw: {'.'.join(f'{x:02X}' for x in self.raw)}"
+        sec_part = f", Sec Type: 0x{self.second_type}" if self.second_raw is not None else ""
+        return f"Type: 0x{self.ble_type:02X}, raw: {'.'.join(f'{x:02X}' for x in self.raw)}{sec_part}"
 
     def __hash__(self) -> int:
         return hash((self.ble_type, self.raw))
 
     def __eq__(self, comp: Self) -> bool:
-        return (self.ble_type == comp.ble_type) and (self.raw == comp.raw)
+        return (self.ble_type == comp.ble_type) and (self.raw == comp.raw) and (self.second_type == comp.second_type)
 
     def to_raw(self) -> bytes:
         """Get the raw buffer."""
         full_raw = bytearray([len(self.raw) + 1, self.ble_type]) + self.raw if self.ble_type != 0 else self.raw
-        return full_raw if self.ad_flag == 0 else bytearray([0x02, 0x01, self.ad_flag]) + full_raw
+        second_raw = bytearray([len(self.second_raw) + 1, self.second_type]) + self.second_raw if self.second_raw is not None else bytes([])
+        return full_raw if self.ad_flag == 0 else bytearray([0x02, 0x01, self.ad_flag]) + full_raw + second_raw
 
 
 @dataclass
@@ -403,6 +413,8 @@ class BleAdvCodec(ABC):
     interval: int = 30
     repeat: int = 9
     ign_duration: int = 12000
+    second_type: int = 0
+    second_raw: bytes | None = None
 
     def __init__(self) -> None:
         self.codec_id: str = ""
@@ -544,7 +556,7 @@ class BleAdvCodec(ABC):
             encrypted = self.encrypt(self._prefix + read_buffer)
             encrypted = encrypted[: self._header_start_pos] + self._header + encrypted[self._header_start_pos :] + self._footer
             self.log_buffer(encrypted, "Encode/Full")
-            advs.append(BleAdvAdvertisement(self._ble_type, encrypted, self._ad_flag))
+            advs.append(BleAdvAdvertisement(self._ble_type, encrypted, self._ad_flag, self.second_type, self.second_raw))
         return advs
 
     def is_eq(self, ref: int, comp: int, msg: str) -> bool:

@@ -15,13 +15,13 @@ def _from_dotted(data: str) -> bytes:
     return bytes.fromhex(data.replace(".", ""))
 
 
-class _TestEncoderBase:
-    PARAM_NAMES: tuple[str, str, str] = ("enc_name", "ble_type", "data")
+class _TestEncoderBaseSec:
+    PARAM_NAMES: tuple[str, str, str, str, str] = ("enc_name", "ble_type", "data", "sec_type", "sec_raw")
 
     _dupe_allowed = False
 
-    def test_encoding(self, enc_name: str, ble_type: int, data: str) -> None:
-        adv = BleAdvAdvertisement(ble_type, _from_dotted(data))
+    def test_encoding(self, enc_name: str, ble_type: int, data: str, sec_type: int, sec_raw: str) -> None:
+        adv = BleAdvAdvertisement(ble_type, _from_dotted(data), 0, sec_type, _from_dotted(sec_raw))
         codec = CODECS[enc_name]
         codec.debug_mode = True
         enc_cmd, conf = codec.decode_adv(adv)
@@ -44,12 +44,21 @@ class _TestEncoderBase:
         assert conf2.tx_count in (conf.tx_count, 0)
         assert enc_cmd2 == enc_cmd
         if not self._dupe_allowed:
-            adv = BleAdvAdvertisement(ble_type, _from_dotted(data))
+            adv = BleAdvAdvertisement(ble_type, _from_dotted(data), 0, sec_type, _from_dotted(sec_raw))
             for codec_id, codec in CODECS.items():
                 if codec_id != enc_name:
                     enc_cmd, conf = codec.decode_adv(adv)
                     assert conf is None
                     assert enc_cmd is None
+
+
+class _TestEncoderBase(_TestEncoderBaseSec):
+    PARAM_NAMES: tuple[str, str, str] = ("enc_name", "ble_type", "data")
+
+    _dupe_allowed = False
+
+    def test_encoding(self, enc_name: str, ble_type: int, data: str) -> None:
+        return super().test_encoding(enc_name, ble_type, data, 0, "")
 
 
 class _TestEncoderFull:
