@@ -2,17 +2,26 @@
 
 import pytest
 
-from . import _TestEncoderBase, _TestEncoderFull
+from . import _TestEncoderBase, _TestEncoderBaseSec, _TestEncoderFull
 
 
 @pytest.mark.parametrize(
     _TestEncoderBase.PARAM_NAMES,
     [
-        ("smartelfin_v0", 0x07, "5746545895B13D3864E5E3BA00FB0103"),
         ("fanlamp_pro_v3/se", 0x03, "F0081080822A727FB6B7541A6D2BB6A6AF675C904775906DAB03"),
     ],
 )
 class TestEncoderSmartElfin(_TestEncoderBase):
+    """Smart Elfin Encoder tests."""
+
+
+@pytest.mark.parametrize(
+    _TestEncoderBaseSec.PARAM_NAMES,
+    [
+        ("smartelfin_v0", 0x07, "5746545895B13D3864E5E3BA00FB0103", 0x16, "000084C7B141C2F7"),
+    ],
+)
+class TestEncoderSmartElfin2(_TestEncoderBaseSec):
     """Smart Elfin Encoder tests."""
 
 
