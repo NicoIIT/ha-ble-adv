@@ -403,21 +403,21 @@ class TestEncoderFanlampDupe(_TestEncoderBase):
             "02.01.19.1B.03.77.F8.B6.5F.2B.5E.00.FC.31.51.14.FE.D2.48.24.0A.63.FC.C9.A7.F4.51.FF.F3.EA.45",
             "cmd: 0x33, param: 0x00, args: [2,0,0]",
             "id: 0x003D5022, index: 2, tx: 26, seed: 0x0020",
-            "fan_0: ['preset'] / {'preset': 'breeze'}",
+            "fan_0: ['on', 'preset'] / {'on': True, 'preset': 'breeze'}",
         ),
         (
             "fanlamp_pro_v2",
             "02.01.19.1B.03.F0.08.10.80.B8.5D.E1.22.C6.F2.D3.A7.67.5F.A4.9F.65.F6.B6.A2.22.8B.53.2B.06.9C",
             "cmd: 0x33, param: 0x00, args: [2,0,0]",
             "id: 0xD2135C22, index: 2, tx: 41, seed: 0x2B53",
-            "fan_0: ['preset'] / {'preset': 'breeze'}",
+            "fan_0: ['on', 'preset'] / {'on': True, 'preset': 'breeze'}",
         ),
         (
             "fanlamp_pro_v3",
             "02.01.1A.1B.03.F0.08.20.80.B8.5D.E1.22.C6.F2.D3.A7.67.5F.A4.9F.65.F6.B6.5E.1D.8B.53.2B.97.07",
             "cmd: 0x33, param: 0x00, args: [2,0,0]",
             "id: 0xD2135C22, index: 2, tx: 41, seed: 0x2B53",
-            "fan_0: ['preset'] / {'preset': 'breeze'}",
+            "fan_0: ['on', 'preset'] / {'on': True, 'preset': 'breeze'}",
         ),
         # Second Light OFF
         (
@@ -678,14 +678,14 @@ class TestEncoderFanlampFull(_TestEncoderFull):
             "02.01.02.1B.16.F0.08.10.00.FE.1B.AA.BB.59.3A.64.88.1F.FB.1A.50.3E.8B.9B.AF.71.61.AD.A4.52.3A",
             "cmd: 0x23, param: 0x00, args: [0,0,0]",
             "id: 0x02227574, index: 0, tx: 44, seed: 0xA4AD",
-            "light_0: ['cold', 'warm'] / {'sub_type': 'cww', 'cold': 0.1, 'warm': 0.1}",
+            "light_0: ['on', 'cold', 'warm'] / {'sub_type': 'cww', 'on': True, 'cold': 0.1, 'warm': 0.1}",
         ),
         (
             "remote_v1",
             "1E.FF.56.55.18.87.52.B6.5F.2B.5E.00.FC.31.51.1C.50.9A.08.24.0A.0F.FC.B1.63.03.15.6D.9D.60.57",
             "cmd: 0x23, param: 0x00, args: [0,0,0]",
             "id: 0x00014057, index: 0, tx: 44, seed: 0xEF02",
-            "light_0: ['cold', 'warm'] / {'sub_type': 'cww', 'cold': 0.1, 'warm': 0.1}",
+            "light_0: ['on', 'cold', 'warm'] / {'sub_type': 'cww', 'on': True, 'cold': 0.1, 'warm': 0.1}",
         ),
         # Remote K-
         (
@@ -846,7 +846,7 @@ class TestEncoderFanlampNoReverse(_TestEncoderFull):
             "0201191BFFF0FFB65F2B5E00FC3151147E994824CB3BFC51A3F45528CFB1E4",
             "cmd: 0x33, param: 0x00, args: [2,0,0]",
             "id: 0x00008023, index: 0, tx: 0, seed: 0x0000",
-            "fan_0: ['preset'] / {'preset': 'breeze'}",
+            "fan_0: ['on', 'preset'] / {'on': True, 'preset': 'breeze'}",
         ),
         # BR-
         (
@@ -910,7 +910,7 @@ class TestEncoderFanlampNoReverse(_TestEncoderFull):
             "0201191BFFF0FFB65F2B5E00FC31511C7E990824CB3BFCB1A3F45568CFA202",
             "cmd: 0x23, param: 0x00, args: [0,0,0]",
             "id: 0x00008023, index: 0, tx: 0, seed: 0x0000",
-            "light_0: ['cold', 'warm'] / {'sub_type': 'cww', 'cold': 0.1, 'warm': 0.1}",
+            "light_0: ['on', 'cold', 'warm'] / {'sub_type': 'cww', 'on': True, 'cold': 0.1, 'warm': 0.1}",
         ),
         # Beep Toggle (not implemented / "cmd: 0x48, param: 0x00, args: [0,0,0]")
         # 02.01.19.1B.FF.F0.FF.B6.5F.2B.5E.00.FC.31.51.CA.7E.99.08.24.CB.7B.FC.70.67.F4.55.28.CF.01.59
