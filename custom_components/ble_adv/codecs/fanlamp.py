@@ -325,9 +325,11 @@ def _get_fan_translators() -> list[Trans]:
         Trans(FanCmd().act(ATTR_ON, True).act(ATTR_DIR, ATTR_CMD_TOGGLE), EncCmd(0x47)).no_direct(),
         Trans(FanCmd().act(ATTR_OSC, True), EncCmd(0x16).eq("arg0", 1)),
         Trans(FanCmd().act(ATTR_OSC, False), EncCmd(0x16).eq("arg0", 0)),
+        Trans(FanCmd().act(ATTR_PRESET, ATTR_PRESET_SLEEP), EncCmd(0x33).eq("arg0", 1)).no_reverse(),
+        Trans(FanCmd().act(ATTR_PRESET, ATTR_PRESET_BREEZE), EncCmd(0x33).eq("arg0", 2)).no_reverse(),
         Trans(FanCmd().act(ATTR_PRESET).eq(ATTR_PRESET, None), EncCmd(0x33).eq("arg0", 0)).no_direct(),
-        Trans(FanCmd().act(ATTR_PRESET, ATTR_PRESET_SLEEP), EncCmd(0x33).eq("arg0", 1)),
-        Trans(FanCmd().act(ATTR_PRESET, ATTR_PRESET_BREEZE), EncCmd(0x33).eq("arg0", 2)),
+        Trans(FanCmd().act(ATTR_ON, True).act(ATTR_PRESET, ATTR_PRESET_SLEEP), EncCmd(0x33).eq("arg0", 1)).no_direct(),
+        Trans(FanCmd().act(ATTR_ON, True).act(ATTR_PRESET, ATTR_PRESET_BREEZE), EncCmd(0x33).eq("arg0", 2)).no_direct(),
     ]
 
 
@@ -369,7 +371,7 @@ def _get_cww_translators(param_attr: str, cold_attr: str, warm_attr: str) -> lis
         Trans(CTLightCmd().act(ATTR_COLD).act(ATTR_WARM), EncCmd(0x21).eq(param_attr, 0))
         .copy(ATTR_COLD, cold_attr, 255)
         .copy(ATTR_WARM, warm_attr, 255),
-        Trans(CTLightCmd().act(ATTR_COLD, 0.1).act(ATTR_WARM, 0.1), EncCmd(0x23)).no_direct(),  # night mode
+        Trans(CTLightCmd().act(ATTR_ON, True).act(ATTR_COLD, 0.1).act(ATTR_WARM, 0.1), EncCmd(0x23)).no_direct(),  # night mode
         Trans(CTLightCmd().act(ATTR_COLD).act(ATTR_WARM), EncCmd(0x21).eq(param_attr, 0x40))
         .copy(ATTR_COLD, cold_attr, 255)
         .copy(ATTR_WARM, warm_attr, 255)
