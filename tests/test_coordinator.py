@@ -9,6 +9,7 @@ from ble_adv.codecs.models import BleAdvAdvertisement, BleAdvCodec, BleAdvConfig
 from ble_adv.const import CONF_ADAPTER_ID, CONF_DEVICE_QUEUE, CONF_DURATION, CONF_INTERVAL, CONF_RAW, CONF_REPEAT
 from ble_adv.coordinator import BleAdvBaseDevice, BleAdvCoordinator
 from homeassistant.core import HomeAssistant
+from homeassistant.loader import Manifest
 
 from tests.conftest import MockEspProxy
 
@@ -168,6 +169,14 @@ async def test_decode_raw(hass: HomeAssistant) -> None:
 
 async def test_full_diagnostics(hass: HomeAssistant) -> None:
     """Test Full Diagnostics."""
-    coord = BleAdvCoordinator(hass, {}, ["hci"], 20000, [], [])
-    diag = await coord.full_diagnostic_dump()
-    assert len(diag["coordinator"]) > 0
+
+    class _MockIntegration:
+        manifest = Manifest({"domain": "ble_adv", "version": "1.0"})
+
+    async def _mock_async_get_integration(_: HomeAssistant, __: str) -> _MockIntegration:
+        return _MockIntegration()
+
+    with mock.patch("ble_adv.coordinator.async_get_integration", side_effect=_mock_async_get_integration):
+        coord = BleAdvCoordinator(hass, {}, ["hci"], 20000, [], [])
+        diag = await coord.full_diagnostic_dump()
+        assert len(diag["coordinator"]) > 0

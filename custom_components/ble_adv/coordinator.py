@@ -9,9 +9,11 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta
 from typing import Any
 
+from homeassistant.components.diagnostics import async_format_manifest
 from homeassistant.const import EVENT_HOMEASSISTANT_STOP
 from homeassistant.core import Event, HomeAssistant
 from homeassistant.helpers.system_info import async_get_system_info
+from homeassistant.loader import async_get_integration
 
 from .adapters import BleAdvBtHciManager, BleAdvQueueItem
 from .codecs.models import BleAdvAdvertisement, BleAdvCodec, BleAdvConfig, BleAdvEncCmd, BleAdvEntAttr
@@ -331,5 +333,9 @@ class BleAdvCoordinator:
         hass_sys_info = await async_get_system_info(self.hass)
         hass_sys_info["run_as_root"] = hass_sys_info["user"] == "root"
         del hass_sys_info["user"]
-        entries = {entry_id: self.hass.config_entries.async_get_entry(entry_id) for entry_id in self.hass.data.get(DOMAIN, {})}
-        return {"home_assistant": hass_sys_info, "coordinator": self.diagnostic_dump(), "entries": entries}
+        return {
+            "home_assistant": hass_sys_info,
+            "manifest": async_format_manifest((await async_get_integration(self.hass, DOMAIN)).manifest),
+            "coordinator": self.diagnostic_dump(),
+            "entries": {entry_id: self.hass.config_entries.async_get_entry(entry_id) for entry_id in self.hass.data.get(DOMAIN, {})},
+        }
