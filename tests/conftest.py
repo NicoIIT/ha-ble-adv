@@ -1,12 +1,15 @@
 """Init for HA tests."""
 
+from collections.abc import AsyncGenerator
 from typing import Any
 from unittest import mock
 
 import pytest
 import voluptuous as vol
+from ble_adv import async_setup, get_coordinator
 from ble_adv.codecs.models import BleAdvEntAttr
 from ble_adv.const import CONF_LAST_VERSION, DOMAIN
+from ble_adv.coordinator import BleAdvCoordinator
 from ble_adv.device import BleAdvEntity
 from ble_adv.esp_adapters import (
     CONF_ATTR_DEVICE_ID,
@@ -131,3 +134,12 @@ async def create_base_entry(hass: HomeAssistant, entry_id: str | None, data: dic
     if entry_id is not None:
         hass.data.setdefault(DOMAIN, {})[conf.entry_id] = _Device()
     return conf
+
+
+@pytest.fixture
+async def coord(hass: HomeAssistant) -> AsyncGenerator[BleAdvCoordinator]:
+    """Get Basic coordinator with no hci adapter."""
+    await async_setup(hass, {DOMAIN: {"ignored_adapters": ["hci"]}})
+    coord = await get_coordinator(hass)
+    yield coord
+    await coord.async_final()

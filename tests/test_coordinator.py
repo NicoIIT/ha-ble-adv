@@ -37,12 +37,10 @@ def _get_codecs() -> dict[str, BleAdvCodec]:
     return {cod1.codec_id: cod1, cod2.codec_id: cod2}
 
 
-async def test_coordinator(hass: HomeAssistant) -> None:
+async def test_coordinator(hass: HomeAssistant, coord: BleAdvCoordinator) -> None:
     """Test coordinator."""
-    codecs = _get_codecs()
-    coord = BleAdvCoordinator(hass, codecs, ["hci"], 20000, [], [])
+    coord.codecs = _get_codecs()
     assert list(coord.codecs.keys()) == ["cod1", "cod2/a"]
-    await coord.async_init()
     assert coord.get_adapter_ids() == []
     dev1 = _Device(coord, "dev1", "cod1", ["esp-test"])
     coord.add_device(dev1)
@@ -61,6 +59,7 @@ async def test_coordinator(hass: HomeAssistant) -> None:
     await coord.handle_raw_adv("esp-test", "", adv.to_raw())
     await coord.handle_raw_adv("esp-test", "", b"invalid_adv")
     await coord.advertise("esp-test", "q1", qi)
+    await coord._esp_bt_manager.adapters["esp-test"].drain()  # noqa: SLF001
     coord.remove_device(dev1)
 
     dev2 = _Device(coord, "dev1", "cod1", ["other"])
@@ -69,14 +68,13 @@ async def test_coordinator(hass: HomeAssistant) -> None:
     await coord.handle_raw_adv("esp-test", "", adv2.to_raw())
     coord.remove_device(dev2)
     assert coord.has_available_adapters()
-    await coord.async_final()
 
 
-async def test_device_pub(hass: HomeAssistant) -> None:
+async def test_device_pub(hass: HomeAssistant, coord: BleAdvCoordinator) -> None:
     """Test device publication."""
     codecs = _get_codecs()
     cod1: BleAdvCodec = codecs["cod1"]
-    coord = BleAdvCoordinator(hass, codecs, ["hci"], 20000, [], [])
+    coord.codecs = _get_codecs()
     dev1 = _Device(coord, "dev1", "cod1", ["esp-test"])
     dev1.add_listener("cod1", BleAdvConfig(1, 0))
     assert dev1.config.prev_cmd is None
@@ -103,9 +101,9 @@ async def test_device_pub(hass: HomeAssistant) -> None:
     assert dev1.config.prev_cmd == BleAdvEncCmd(0x10)
 
 
-async def test_listening(hass: HomeAssistant) -> None:
+async def test_listening(coord: BleAdvCoordinator) -> None:
     """Test listening mode."""
-    coord = BleAdvCoordinator(hass, _get_codecs(), ["hci"], 20000, [], [])
+    coord.codecs = _get_codecs()
     coord.start_listening(0.1)
     assert coord.is_listening()
     raw_adv = bytes([0x03, 0xFF, 0x12, 0x34, 0x12, 0x34, 0x12, 0x34])
@@ -118,28 +116,26 @@ async def test_listening(hass: HomeAssistant) -> None:
     assert not coord.is_listening()
 
 
-async def test_ign_cid(hass: HomeAssistant) -> None:
+async def test_ign_cid(coord: BleAdvCoordinator) -> None:
     """Test Ignored Company IDs."""
-    coord = BleAdvCoordinator(hass, {}, ["hci"], 20000, [0x3412], [])
+    coord.ign_cids = {0x3412}
     coord.start_listening(0.1)
-    raw_adv = bytes([0x03, 0xFF, 0x12, 0x34])
+    raw_adv = bytes([0x03, 0xFF, 0x12, 0x34, 0x12, 0x34, 0x12, 0x34])
     await coord.handle_raw_adv("aaa", "mac1", raw_adv)
     assert coord.listened_raw_advs == []
 
 
-async def test_ign_mac(hass: HomeAssistant) -> None:
+async def test_ign_mac(coord: BleAdvCoordinator) -> None:
     """Test Ignored Macs."""
-    coord = BleAdvCoordinator(hass, {}, ["hci"], 20000, [], ["mac1"])
+    coord.ign_macs = {"mac1"}
     coord.start_listening(0.1)
-    raw_adv = bytes([0x03, 0xFF, 0x12, 0x34])
+    raw_adv = bytes([0x03, 0xFF, 0x12, 0x34, 0x12, 0x34, 0x12, 0x34])
     await coord.handle_raw_adv("aaa", "mac1", raw_adv)
     assert coord.listened_raw_advs == []
 
 
-async def test_inject_raw(hass: HomeAssistant) -> None:
+async def test_inject_raw(hass: HomeAssistant, coord: BleAdvCoordinator) -> None:
     """Test Raw Injection."""
-    coord = BleAdvCoordinator(hass, {}, ["hci"], 20000, [], [])
-    await coord.async_init()
     coord.advertise = mock.AsyncMock()
     t1 = MockEspProxy(hass, "esp-test")
     await t1.setup()
@@ -155,9 +151,9 @@ async def test_inject_raw(hass: HomeAssistant) -> None:
     await coord.async_final()
 
 
-async def test_decode_raw(hass: HomeAssistant) -> None:
+async def test_decode_raw(coord: BleAdvCoordinator) -> None:
     """Test Raw Decoding."""
-    coord = BleAdvCoordinator(hass, {"cod1": _Codec()}, ["hci"], 20000, [], [])
+    coord.codecs = {"cod1": _Codec()}
     res = coord.decode_raw("123")
     assert res == ["Cannot convert to bytes"]
     res = coord.decode_raw("1234")
@@ -167,7 +163,7 @@ async def test_decode_raw(hass: HomeAssistant) -> None:
     assert res == ["Could not be decoded by any known codec"]
 
 
-async def test_full_diagnostics(hass: HomeAssistant) -> None:
+async def test_full_diagnostics(coord: BleAdvCoordinator) -> None:
     """Test Full Diagnostics."""
 
     class _MockIntegration:
@@ -177,6 +173,5 @@ async def test_full_diagnostics(hass: HomeAssistant) -> None:
         return _MockIntegration()
 
     with mock.patch("ble_adv.coordinator.async_get_integration", side_effect=_mock_async_get_integration):
-        coord = BleAdvCoordinator(hass, {}, ["hci"], 20000, [], [])
         diag = await coord.full_diagnostic_dump()
         assert len(diag["coordinator"]) > 0
