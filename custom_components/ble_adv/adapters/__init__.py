@@ -533,9 +533,9 @@ class BleAdvBtManager:
 
     async def _add_adapter(self, adapter_name: str, adapter_id: str, adapter: BleAdvAdapter) -> None:
         self._add_diag(f"Adding adapter '{adapter_name}'/'{adapter_id}' of type {type(adapter).__name__}")
+        await adapter.async_init()
         self._id_to_name[adapter_id] = adapter_name
         self._adapters[adapter_name] = adapter
-        await self._adapters[adapter_name].async_init()
         await self._adapter_event_callback(adapter_name, True)
 
     async def _remove_adapter(self, adapter_name: str) -> None:
@@ -554,6 +554,7 @@ class BleAdvBtHciManager(BleAdvBtManager):
 
     MGMT_CMD_RTO: float = 3.0
     RECONNECT_RTO: float = 1.0
+    NB_INIT_RETRY: int = 8
     CONF_HCI: str = "hci"
 
     def __init__(self, adv_recv_callback: AdvRecvCallback, adapter_event_callback: AdapterEventCallback, ign_adapters: list[str]) -> None:
@@ -579,11 +580,7 @@ class BleAdvBtHciManager(BleAdvBtManager):
         """Diagnostic dump."""
         return {**super().diagnostic_dump(), "supported_by_host": self.supported_by_host}
 
-    async def async_init(self) -> None:
-        """Init the handler: init the MGMT Socket and the discovered adapters."""
-        if self._disabled:
-            self._add_diag("HCI Adapters disabled.", logging.INFO)
-            return
+    async def _init_mgmt(self) -> list[tuple[int, str]]:
         if self._mgmt_sock is None:
             self._mgmt_sock = create_async_socket()
         fileno = await self._mgmt_sock.async_init("mgmt", self._mgmt_recv, self._mgmt_close, True)
@@ -591,23 +588,66 @@ class BleAdvBtHciManager(BleAdvBtManager):
         self._add_diag(f"MGMT Connected - fileno: {fileno}", logging.INFO)
         self._mgmt_opened = True
         # Controller Index List
+        adapt_info: list[tuple[int, str]] = []
         _, index_resp = await self.send_mgmt_cmd(0xFFFF, 0x03, b"")
         nb = lb(index_resp[0:2])
         self._add_diag(f"MGMT Nb HCI Adapters: {nb}")
         for i in range(nb):
             dev_id = lb(index_resp[2 * (i + 1) : 2 * (i + 2)])
+            _, info_resp = await self.send_mgmt_cmd(dev_id, 0x04, b"")
+            btaddr = ":".join([f"{x:02X}" for x in reversed(info_resp[0:6])])
+            adapt_info.append((dev_id, btaddr))
+        return adapt_info
+
+    async def async_init(self) -> None:
+        """Init the handler: init the MGMT Socket and the discovered adapters, with fixed retry (8)."""
+        await self._async_init_retry(self.NB_INIT_RETRY, self.RECONNECT_RTO)
+
+    async def _async_init_retry(self, nb_retry: int = 1, wait_retry: float = 1.0) -> None:
+        """Init the handler: init the MGMT Socket and the discovered adapters, with retry."""
+        if self._disabled:
+            self._add_diag("HCI Adapters disabled.", logging.INFO)
+            return
+
+        # Acquire MGMT connection and get adapter infos, with retry
+        nb_retry_mgmt = nb_retry
+        adapt_info: list[tuple[int, str]] | None = None
+        while adapt_info is None and nb_retry_mgmt > 0:
+            nb_retry_mgmt -= 1
             try:
-                _, info_resp = await self.send_mgmt_cmd(dev_id, 0x04, b"")
-                btaddr = ":".join([f"{x:02X}" for x in reversed(info_resp[0:6])])
-                self._add_diag(f"MGMT - HCI Adapter {self.CONF_HCI}{dev_id} btaddr: {btaddr}")
-                name = f"{self.CONF_HCI}/{btaddr}"
-                if any(name.startswith(ign_adapt) for ign_adapt in self._ign_adapters):
-                    self._add_diag(f"MGMT - HCI Adapter {name} ignored as per config")
-                else:
-                    adapter = BluetoothHCIAdapter(name, dev_id, btaddr, self.send_mgmt_cmd, self._adv_recv, self._hci_adapter_error)
-                    await self._add_adapter(name, str(dev_id), adapter)
+                adapt_info = await self._init_mgmt()
             except BaseException as exc:
-                self._add_diag(f"MGMT - Unable to use adapter {self.CONF_HCI}{dev_id} - {exc}", logging.ERROR)
+                self._add_diag(f"Failed MGMT connection - {exc}. {nb_retry_mgmt} remaining retries, waiting {wait_retry}s before next try")
+                await self.async_final()
+                await asyncio.sleep(wait_retry)
+
+        if adapt_info is None:
+            self._add_diag("MGMT - Failed to connect.", logging.ERROR)
+            return
+
+        self._add_diag(f"MGMT - HCI Adapters: {adapt_info}")
+
+        # Try to connect to each adapter one after the other, and retry until OK
+        nb_retry_adapt = nb_retry
+        failed_adapt: list[tuple[int, str]] = adapt_info
+        while len(failed_adapt) > 0 and nb_retry_adapt > 0:
+            nb_retry_adapt -= 1
+            rem_failed_adapt: list[tuple[int, str]] = []
+            for dev_id, btaddr in failed_adapt:
+                name = f"{self.CONF_HCI}/{btaddr}"
+                adapter = BluetoothHCIAdapter(name, dev_id, btaddr, self.send_mgmt_cmd, self._adv_recv, self._hci_adapter_error)
+                try:
+                    await self._add_adapter(name, str(dev_id), adapter)
+                except BaseException as exc:
+                    self._add_diag(f"Failed HCI Adapter init - {exc}. {nb_retry_adapt} remaining retries, waiting {wait_retry}s before next try.")
+                    await adapter.async_final()
+                    rem_failed_adapt.append((dev_id, btaddr))
+            failed_adapt = rem_failed_adapt
+            if len(failed_adapt) > 0:
+                await asyncio.sleep(wait_retry)
+
+        if len(failed_adapt) > 0:
+            self._add_diag(f"Failed to init HCI Adapters: {failed_adapt}", logging.ERROR)
 
     async def async_final(self) -> None:
         """Finalize: Stop Discovery and clean adapters."""
@@ -646,21 +686,14 @@ class BleAdvBtHciManager(BleAdvBtManager):
         if self._reconnecting:
             return
         self._reconnecting = True
-        self._reset_task = asyncio.create_task(self._acquire_connection())
+        self._reset_task = asyncio.create_task(self._reacquire_connection())
 
-    async def _acquire_connection(self) -> None:
-        """Securely acquire connection."""
+    async def _reacquire_connection(self) -> None:
+        """Securely reacquire connection."""
         await self.async_final()
-        nb_attempt = 0
-        while self._reconnecting:
-            await asyncio.sleep(self.RECONNECT_RTO)
-            nb_attempt += 1
-            try:
-                await self.async_init()
-                self._reconnecting = False
-            except Exception as exc:
-                _LOGGER.debug(f"Reconnect failed ({nb_attempt}): {exc}, retrying..")
-                await self.async_final()
+        await asyncio.sleep(self.RECONNECT_RTO)
+        await self._async_init_retry(300, self.RECONNECT_RTO)
+        self._reconnecting = False
 
     async def send_mgmt_cmd(self, device_id: int, cmd_type: int, cmd_data: bytes = bytearray()) -> tuple[int, bytes]:
         """Send a MGMT command."""
