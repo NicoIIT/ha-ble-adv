@@ -3,7 +3,8 @@
 # ruff: noqa: S101
 from unittest import mock
 
-from ble_adv import async_migrate_entry, async_setup, async_setup_entry, async_unload_entry, get_coordinator
+import pytest
+from ble_adv import async_migrate_entry, async_setup, async_setup_entry, async_unload_entry
 from ble_adv.const import (
     CONF_ADAPTER_ID,
     CONF_ADAPTER_IDS,
@@ -25,12 +26,14 @@ from ble_adv.const import (
     CONF_USE_DIR,
     DOMAIN,
 )
+from ble_adv.coordinator import BleAdvCoordinator
 from homeassistant.const import CONF_DEVICE, CONF_NAME
 from homeassistant.core import HomeAssistant
 
 from .conftest import create_base_entry
 
 
+@pytest.mark.usefixtures("coord")
 async def test_setup(hass: HomeAssistant) -> None:
     """Test component setup."""
     await async_setup(hass, {})
@@ -64,14 +67,12 @@ BASE_CONF = {
 BASE_CONF_W_REMOTE = {**BASE_CONF, CONF_REMOTE: BASE_REMOTE_CONF}
 
 
-async def test_setup_entry(hass: HomeAssistant) -> None:
+async def test_setup_entry(hass: HomeAssistant, coord: BleAdvCoordinator) -> None:
     """Test entry with latest config."""
     entry = await create_base_entry(hass, "idlast", BASE_CONF_W_REMOTE)
     hass.config_entries.async_forward_entry_setups = mock.AsyncMock()
-    await async_setup(hass, {DOMAIN: {"ignored_adapters": ["hci"]}})
     await async_setup_entry(hass, entry)
     assert entry.entry_id in hass.data[DOMAIN]
-    coord = await get_coordinator(hass)
     coord.inject_raw = mock.AsyncMock(return_value={"test": "error"})
     await hass.services.async_call(DOMAIN, "inject_raw", {CONF_ADAPTER_ID: "a", CONF_RAW: "r"})
     coord.inject_raw.assert_awaited_once_with(
@@ -81,6 +82,7 @@ async def test_setup_entry(hass: HomeAssistant) -> None:
     assert entry.entry_id not in hass.data[DOMAIN]
 
 
+@pytest.mark.usefixtures("coord")
 async def test_setup_entry_no_id(hass: HomeAssistant) -> None:
     """Test entry with latest config but no unique_id."""
     entry = await create_base_entry(hass, None, {}, 4)
@@ -88,6 +90,7 @@ async def test_setup_entry_no_id(hass: HomeAssistant) -> None:
     assert entry.entry_id not in hass.data.get(DOMAIN, [])
 
 
+@pytest.mark.usefixtures("coord")
 async def test_migrate_v1_no_adapter(hass: HomeAssistant) -> None:
     """Test migration from config v1."""
     conf = await create_base_entry(hass, "idv10", BASE_CONF_V0, 1)
@@ -95,24 +98,23 @@ async def test_migrate_v1_no_adapter(hass: HomeAssistant) -> None:
     assert conf.data[CONF_TECHNICAL][CONF_ADAPTER_IDS] == ["adapter_id"]
 
 
-async def test_migrate_v1_one_adapter(hass: HomeAssistant) -> None:
+async def test_migrate_v1_one_adapter(hass: HomeAssistant, coord: BleAdvCoordinator) -> None:
     """Test migration from config v1."""
     conf = await create_base_entry(hass, "idv11", BASE_CONF_V0, 1)
-    coordinator = await get_coordinator(hass)
-    coordinator.get_adapter_ids = mock.MagicMock(return_value=["new_id"])
+    coord.get_adapter_ids = mock.MagicMock(return_value=["new_id"])
     await async_migrate_entry(hass, conf)
     assert conf.data[CONF_TECHNICAL][CONF_ADAPTER_IDS] == ["new_id"]
 
 
-async def test_migrate_v1_two_adapter(hass: HomeAssistant) -> None:
+async def test_migrate_v1_two_adapter(hass: HomeAssistant, coord: BleAdvCoordinator) -> None:
     """Test migration from config v1."""
     conf = await create_base_entry(hass, "idv12", BASE_CONF_V0, 1)
-    coordinator = await get_coordinator(hass)
-    coordinator.get_adapter_ids = mock.MagicMock(return_value=["new_id2", "other_id"])
+    coord.get_adapter_ids = mock.MagicMock(return_value=["new_id2", "other_id"])
     await async_migrate_entry(hass, conf)
     assert conf.data[CONF_TECHNICAL][CONF_ADAPTER_IDS] == ["new_id2", "other_id"]
 
 
+@pytest.mark.usefixtures("coord")
 async def test_migrate_v2(hass: HomeAssistant) -> None:
     """Test migration from config v2."""
     conf_wrong_adapt = BASE_CONF_V2.copy()
@@ -124,6 +126,7 @@ async def test_migrate_v2(hass: HomeAssistant) -> None:
     assert CONF_NAME not in conf.data[CONF_DEVICE]
 
 
+@pytest.mark.usefixtures("coord")
 async def test_migrate_v3(hass: HomeAssistant) -> None:
     """Test migration from config v3."""
     conf_wrong_adapt = BASE_CONF_W_REMOTE.copy()
@@ -133,6 +136,7 @@ async def test_migrate_v3(hass: HomeAssistant) -> None:
     assert CONF_ADAPTER_ID not in conf.data[CONF_REMOTE]
 
 
+@pytest.mark.usefixtures("coord")
 async def test_migrate_v3_entities(hass: HomeAssistant) -> None:
     """Test migration from config v3 for FAN / LIGHT entities."""
     conf_ent = BASE_CONF_W_REMOTE.copy()
@@ -148,6 +152,7 @@ async def test_migrate_v3_entities(hass: HomeAssistant) -> None:
     assert conf.data[CONF_LIGHTS] == [{}, {}, {}]
 
 
+@pytest.mark.usefixtures("coord")
 async def test_migrate_v4(hass: HomeAssistant) -> None:
     """Test migration from config v4."""
     conf = await create_base_entry(hass, "idv41", BASE_CONF, 4)
@@ -156,9 +161,8 @@ async def test_migrate_v4(hass: HomeAssistant) -> None:
     assert conf.data[CONF_TECHNICAL][CONF_ADAPTER_IDS] == ["adapter_id"]
 
 
-async def test_default_ign_cids(hass: HomeAssistant) -> None:
+async def test_default_ign_cids(coord: BleAdvCoordinator) -> None:
     """Test that Company IDs ignored by default are not used by codecs."""
-    coord = await get_coordinator(hass)
     used_cids = [int.from_bytes(codec._header[:2], "little") for codec in coord.codecs.values()]  # noqa: SLF001
     common_cids = [cid for cid in used_cids if cid in coord.ign_cids]
     assert common_cids == []

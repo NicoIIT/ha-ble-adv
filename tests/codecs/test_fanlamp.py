@@ -41,14 +41,6 @@ class TestEncoderFanlampV0R1(_TestEncoderBase):
 
 @pytest.mark.parametrize(
     _TestEncoderBase.PARAM_NAMES,
-    [],
-)
-class TestEncoderFanlampTest(_TestEncoderBase):
-    """Fanlamp tests."""
-
-
-@pytest.mark.parametrize(
-    _TestEncoderBase.PARAM_NAMES,
     [
         ("fanlamp_pro_v1", 0x03, "77.F8.B6.5F.2B.5E.00.FC.31.51.50.FE.D2.08.24.0A.73.FC.08.66.F4.90.14.AF.B4.E5"),
         ("fanlamp_pro_v1", 0x03, "77.F8.B6.5F.2B.5E.00.FC.31.51.CC.FE.D2.4C.2E.0A.33.FC.7E.10.F4.E6.C0.1C.7B.74"),

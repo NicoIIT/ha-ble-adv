@@ -76,7 +76,7 @@ class BleAdvAdvertisement:
         """Get the raw buffer."""
         full_raw = bytearray([len(self.raw) + 1, self.ble_type]) + self.raw if self.ble_type != 0 else self.raw
         second_raw = bytearray([len(self.second_raw) + 1, self.second_type]) + self.second_raw if self.second_raw is not None else bytes([])
-        return full_raw if self.ad_flag == 0 else bytearray([0x02, 0x01, self.ad_flag]) + full_raw + second_raw
+        return bytes(full_raw if self.ad_flag == 0 else bytearray([0x02, 0x01, self.ad_flag]) + full_raw + second_raw)
 
 
 @dataclass

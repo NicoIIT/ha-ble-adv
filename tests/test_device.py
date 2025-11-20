@@ -46,7 +46,7 @@ class _Entity(BleAdvEntity):
         return {**super().get_attrs(), ATTR_CMD: f"{self._attr_sta}_{self._attr_stb}"}
 
 
-async def test_device(hass: HomeAssistant) -> None:
+async def test_device(hass: HomeAssistant, coord: BleAdvCoordinator) -> None:
     """Test device."""
     codec = mock.AsyncMock()
     codec.codec_id = "my_codec/sub"
@@ -54,7 +54,7 @@ async def test_device(hass: HomeAssistant) -> None:
     codec.ent_to_enc = mock.MagicMock(return_value=[BleAdvEncCmd(0x10)])
     adv = BleAdvAdvertisement(0xFF, b"12345")
     codec.encode_advs = mock.MagicMock(return_value=[adv])
-    coord = BleAdvCoordinator(hass, {codec.codec_id: codec}, ["hci"], 2000, [], [])
+    coord.codecs = {codec.codec_id: codec}
     coord.advertise = mock.AsyncMock()
     conf = BleAdvConfig(0xABCDEF, 1)
     device = BleAdvDevice(hass, "my_device", "device", codec.codec_id, ["my_adapter"], 1, 20, 100, conf, coord)
