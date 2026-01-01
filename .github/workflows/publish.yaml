@@ -37,6 +37,6 @@ jobs:
           zip ${{ github.workspace }}/release.zip -r ./
 
       - name: Upload zip to release
-        uses: softprops/action-gh-release@v2.4.1
+        uses: softprops/action-gh-release@v2.5.0
         with:
           files: ${{ github.workspace }}/release.zip
