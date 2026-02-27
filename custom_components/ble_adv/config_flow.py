@@ -23,7 +23,7 @@ from homeassistant.helpers.http import HomeAssistantView
 from homeassistant.helpers.json import ExtendedJSONEncoder
 
 from . import get_coordinator
-from .codecs import PHONE_APPS
+from .codecs import DYN_CODEC_PARAM_MAP, PHONE_APPS, codec_from_dyn
 from .codecs.const import (
     ATTR_CMD,
     ATTR_CMD_PAIR,
@@ -45,6 +45,7 @@ from .const import (
     CONF_ADAPTER_ID,
     CONF_ADAPTER_IDS,
     CONF_CODEC_ID,
+    CONF_CODEC_ID_OLD,
     CONF_DEVICE_QUEUE,
     CONF_DURATION,
     CONF_EFFECTS,
@@ -59,6 +60,7 @@ from .const import (
     CONF_LIGHTS,
     CONF_MAX_ENTITY_NB,
     CONF_MIN_BRIGHTNESS,
+    CONF_PARAMS,
     CONF_PHONE_APP,
     CONF_PRESETS,
     CONF_RAW,
@@ -83,19 +85,20 @@ WAIT_MAX_SECONDS = 10
 
 
 class _CodecConfig(BleAdvConfig):
-    def __init__(self, codec_id: str, config_id: int, index: int) -> None:
+    def __init__(self, codec_id: str, config_id: int, index: int, params: list[Any] | None = None) -> None:
         """Init with codec, adapter, id and index."""
-        super().__init__(config_id, index)
+        super().__init__(config_id, index, params)
         self.codec_id: str = codec_id
+        self.codec_name: str = codec_from_dyn(self.codec_id, self.codec_params)
 
     def __repr__(self) -> str:
-        return f"{self.codec_id} - 0x{self.id:X} - {self.index:d}"
+        return f"{self.codec_name} - 0x{self.id:X} - {self.index:d}"
 
     def __eq__(self, comp: _CodecConfig) -> bool:
-        return (self.codec_id == comp.codec_id) and (self.id == comp.id) and (self.index == comp.index)
+        return (self.codec_id == comp.codec_id) and (self.id == comp.id) and (self.index == comp.index) and (self.codec_params == comp.codec_params)
 
     def __hash__(self) -> int:
-        return hash((self.codec_id, self.id, self.index))
+        return hash((self.codec_id, self.id, self.index, *self.codec_params))
 
 
 type WebResponseCallback = Callable[[], Awaitable[web.Response]]
@@ -234,10 +237,10 @@ class BleAdvWaitConfigProgress(BleAdvWaitProgress):
 
     def _evaluate(self) -> _ActionResult:
         coord = self._flow.coordinator
-        for adapter_id, codec_id, match_id, config in coord.listened_decoded_confs:
+        for adapter_id, codec_id, match_id, match_params, config in coord.listened_decoded_confs:
             if self._with_match:
-                self._add_config(adapter_id, _CodecConfig(match_id, config.id, config.index))
-            self._add_config(adapter_id, _CodecConfig(codec_id, config.id, config.index))
+                self._add_config(adapter_id, _CodecConfig(match_id, config.id, config.index, match_params))
+            self._add_config(adapter_id, _CodecConfig(codec_id, config.id, config.index, config.codec_params))
         coord.listened_decoded_confs.clear()
 
         if not self.configs:
@@ -334,7 +337,7 @@ class BleAdvConfigHandler:
         conf = self.selected()
         nb: str = str(self._selected_config + 1)
         tot: str = str(len(self.selected_confs()))
-        return {"nb": nb, "tot": tot, "codec": conf.codec_id, "id": f"0x{conf.id:X}", "index": str(conf.index)}
+        return {"nb": nb, "tot": tot, "codec": conf.codec_name, "id": f"0x{conf.id:X}", "index": str(conf.index)}
 
 
 class BleAdvConfigFlow(ConfigFlow, domain=DOMAIN):
@@ -364,7 +367,8 @@ class BleAdvConfigFlow(ConfigFlow, domain=DOMAIN):
 
     def _remote_conf_placeholders(self) -> dict[str, str]:
         conf = self._data[CONF_REMOTE]
-        return {"codec": conf[CONF_CODEC_ID], "id": f"0x{conf[CONF_FORCED_ID]:X}", "index": str(conf[CONF_INDEX])}
+        codec_name = codec_from_dyn(conf[CONF_CODEC_ID], conf.get(CONF_PARAMS, []))
+        return {"codec": codec_name, "id": f"0x{conf[CONF_FORCED_ID]:X}", "index": str(conf[CONF_INDEX])}
 
     def _get_device(self, name: str, adapter_id: str, config: _CodecConfig, duration: int | None = None) -> BleAdvBaseDevice:
         codec: BleAdvCodec = self.coordinator.codecs[config.codec_id]
@@ -513,7 +517,9 @@ class BleAdvConfigFlow(ConfigFlow, domain=DOMAIN):
     async def async_step_manual(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         """Manual input step."""
         if user_input is not None:
-            codec = _CodecConfig(user_input[CONF_CODEC_ID], int(f"0x{user_input[CONF_FORCED_ID]}", 16), int(user_input[CONF_INDEX]))
+            codec_id_old = user_input.pop(CONF_CODEC_ID_OLD)
+            (codec_id, params) = DYN_CODEC_PARAM_MAP.get(codec_id_old, (codec_id_old, []))
+            codec = _CodecConfig(codec_id, int(f"0x{user_input[CONF_FORCED_ID]}", 16), int(user_input[CONF_INDEX]), params)
             self._confs = BleAdvConfigHandler({user_input[CONF_ADAPTER_ID]: [codec]})
             self._add_diag(f"Step Manual - confs: {self._confs}")
             return await self.async_step_blink()
@@ -522,7 +528,7 @@ class BleAdvConfigFlow(ConfigFlow, domain=DOMAIN):
         data_schema = vol.Schema(
             {
                 vol.Required(CONF_ADAPTER_ID): vol.In(self.coordinator.get_adapter_ids()),
-                vol.Required(CONF_CODEC_ID): vol.In(list(self.coordinator.codecs.keys())),
+                vol.Required(CONF_CODEC_ID_OLD): vol.In(sorted(set(DYN_CODEC_PARAM_MAP.keys()).union(set(self.coordinator.codecs.keys())))),
                 vol.Required(CONF_FORCED_ID): selector.TextSelector(selector.TextSelectorConfig(prefix="0x")),
                 vol.Required(CONF_INDEX): selector.NumberSelector(
                     selector.NumberSelectorConfig(step=1, min=0, max=255, mode=selector.NumberSelectorMode.BOX)
@@ -536,7 +542,7 @@ class BleAdvConfigFlow(ConfigFlow, domain=DOMAIN):
         """Pair Step."""
         if user_input is not None:
             gen_id = randint(0xFF, 0xFFF5)
-            codecs = [_CodecConfig(codec_id, gen_id, 1) for codec_id in PHONE_APPS[user_input[CONF_PHONE_APP]]]
+            codecs = [_CodecConfig(codec_id, gen_id, 1, params) for codec_id, params in PHONE_APPS[user_input[CONF_PHONE_APP]]]
             self._confs = BleAdvConfigHandler({user_input[CONF_ADAPTER_ID]: codecs})
             self._add_diag(f"Step Pair - confs: {self._confs}")
             return await self.async_step_wait_pair()
@@ -624,7 +630,7 @@ class BleAdvConfigFlow(ConfigFlow, domain=DOMAIN):
         self._abort_if_unique_id_configured()
         codec: BleAdvCodec = self.coordinator.codecs[conf.codec_id]
         self._data = {
-            CONF_DEVICE: {CONF_CODEC_ID: conf.codec_id, CONF_FORCED_ID: conf.id, CONF_INDEX: conf.index},
+            CONF_DEVICE: {CONF_CODEC_ID: conf.codec_id, CONF_FORCED_ID: conf.id, CONF_INDEX: conf.index, CONF_PARAMS: conf.codec_params},
             CONF_LIGHTS: [{}] * CONF_MAX_ENTITY_NB,
             CONF_FANS: [{}] * CONF_MAX_ENTITY_NB,
             CONF_TECHNICAL: {
