@@ -13,6 +13,7 @@ from homeassistant.helpers.event import async_track_point_in_utc_time
 from homeassistant.helpers.restore_state import RestoreEntity
 from homeassistant.util import dt as dt_util
 
+from .codecs import codec_from_dyn
 from .codecs.const import (
     ATTR_CMD,
     ATTR_CMD_PAIR,
@@ -189,6 +190,7 @@ class BleAdvDevice(BleAdvBaseDevice):
         super().__init__(coordinator, unique_id, codec_id, adapter_ids, int(repeat), int(interval), int(duration), config)
         self.hass: HomeAssistant = hass
         self.name: str = name
+        self.codec_name: str = codec_from_dyn(self.codec_id, self.config.codec_params)
         self._entities: list[BleAdvEntity] = []
         self._timer_cancel: CALLBACK_TYPE | None = None
         self.logger = _DeviceLoggingAdapter(_LOGGER, {"name": self.name})
@@ -200,7 +202,7 @@ class BleAdvDevice(BleAdvBaseDevice):
             identifiers={(DOMAIN, self.unique_id)},
             name=self.name,
             hw_version=", ".join(self.adapter_ids),
-            model=self.codec_id,
+            model=self.codec_name,
             model_id=f"0x{self.config.id:X} / {self.config.index}",
         )
 

@@ -78,7 +78,7 @@ async def test_wait_config_progress(hass: HomeAssistant) -> None:
     assert dict(cfr)["step_id"] == "wait_config"
     assert dict(cfr)["progress_action"] == "wait_config"
     assert dict(cfr)["description_placeholders"] == {"max_seconds": "0.3"}
-    flow.coordinator.listened_decoded_confs = [("aaa", "a", "b", BleAdvConfig(0x10, 0))]
+    flow.coordinator.listened_decoded_confs = [("aaa", "a", "b", [], BleAdvConfig(0x10, 0))]
     cfr = mtp.next()
     assert cfr is not None
     assert dict(cfr)["progress_action"] == "agg_config"

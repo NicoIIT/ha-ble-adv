@@ -11,13 +11,14 @@ from homeassistant.helpers.selector import NumberSelector, NumberSelectorConfig
 from homeassistant.helpers.singleton import singleton
 from homeassistant.helpers.typing import ConfigType
 
-from .codecs import get_codecs
+from .codecs import dyn_codec_params, get_codecs
 from .codecs.models import BleAdvConfig
 from .const import (
     CONF_ADAPTER_ID,
     CONF_ADAPTER_IDS,
     CONF_APPLE_INC_UUIDS,
     CONF_CODEC_ID,
+    CONF_CODEC_ID_OLD,
     CONF_COORDINATOR_ID,
     CONF_DEVICE_QUEUE,
     CONF_DURATION,
@@ -33,6 +34,7 @@ from .const import (
     CONF_LAST_VERSION,
     CONF_LIGHTS,
     CONF_MAX_ENTITY_NB,
+    CONF_PARAMS,
     CONF_RAW,
     CONF_REFRESH_DIR_ON_START,
     CONF_REFRESH_ON_START,
@@ -143,6 +145,18 @@ async def async_migrate_entry(hass: HomeAssistant, config_entry: ConfigEntry) ->
     if CONF_REPEATS not in new_data[CONF_TECHNICAL] and CONF_REPEAT in new_data[CONF_TECHNICAL]:
         new_data[CONF_TECHNICAL][CONF_REPEATS] = 3 * new_data[CONF_TECHNICAL][CONF_REPEAT]
         update_needed = True
+    if CONF_CODEC_ID_OLD in new_data[CONF_DEVICE]:
+        new_id, params = dyn_codec_params(new_data[CONF_DEVICE][CONF_CODEC_ID_OLD])
+        if new_id != new_data[CONF_DEVICE].get(CONF_CODEC_ID) or params != new_data[CONF_DEVICE].get(CONF_PARAMS):
+            new_data[CONF_DEVICE][CONF_CODEC_ID] = new_id
+            new_data[CONF_DEVICE][CONF_PARAMS] = params
+            update_needed = True
+    if CONF_REMOTE in new_data and CONF_CODEC_ID_OLD in new_data[CONF_REMOTE]:
+        new_id, params = dyn_codec_params(new_data[CONF_REMOTE][CONF_CODEC_ID_OLD])
+        if new_id != new_data[CONF_REMOTE].get(CONF_CODEC_ID) or params != new_data[CONF_REMOTE].get(CONF_PARAMS):
+            new_data[CONF_REMOTE][CONF_CODEC_ID] = new_id
+            new_data[CONF_REMOTE][CONF_PARAMS] = params
+            update_needed = True
 
     if config_entry.version < 2:
         coordinator = await get_coordinator(hass)
@@ -183,12 +197,12 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         tech_conf[CONF_REPEATS],
         tech_conf[CONF_INTERVAL],
         tech_conf[CONF_DURATION],
-        BleAdvConfig(device_conf[CONF_FORCED_ID], device_conf[CONF_INDEX]),
+        BleAdvConfig(device_conf[CONF_FORCED_ID], device_conf[CONF_INDEX], device_conf.get(CONF_PARAMS)),
         coordinator,
     )
     if CONF_REMOTE in entry.data and CONF_CODEC_ID in entry.data[CONF_REMOTE]:
-        remote_conf = entry.data[CONF_REMOTE]
-        device.add_listener(remote_conf[CONF_CODEC_ID], BleAdvConfig(remote_conf[CONF_FORCED_ID], remote_conf[CONF_INDEX]))
+        rconf = entry.data[CONF_REMOTE]
+        device.add_listener(rconf[CONF_CODEC_ID], BleAdvConfig(rconf[CONF_FORCED_ID], rconf[CONF_INDEX], rconf.get(CONF_PARAMS)))
 
     hass.data[DOMAIN][entry.entry_id] = device
     coordinator.add_device(device)
