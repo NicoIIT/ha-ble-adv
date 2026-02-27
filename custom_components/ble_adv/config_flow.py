@@ -59,6 +59,7 @@ from .const import (
     CONF_LIGHTS,
     CONF_MAX_ENTITY_NB,
     CONF_MIN_BRIGHTNESS,
+    CONF_PARAMS,
     CONF_PHONE_APP,
     CONF_PRESETS,
     CONF_RAW,
@@ -83,19 +84,19 @@ WAIT_MAX_SECONDS = 10
 
 
 class _CodecConfig(BleAdvConfig):
-    def __init__(self, codec_id: str, config_id: int, index: int) -> None:
+    def __init__(self, codec_id: str, config_id: int, index: int, params: list[Any] | None = None) -> None:
         """Init with codec, adapter, id and index."""
-        super().__init__(config_id, index)
+        super().__init__(config_id, index, params)
         self.codec_id: str = codec_id
 
     def __repr__(self) -> str:
-        return f"{self.codec_id} - 0x{self.id:X} - {self.index:d}"
+        return f"{self.codec_id} - 0x{self.id:X} - {self.index:d} - {self.codec_params}"
 
     def __eq__(self, comp: _CodecConfig) -> bool:
-        return (self.codec_id == comp.codec_id) and (self.id == comp.id) and (self.index == comp.index)
+        return (self.codec_id == comp.codec_id) and (self.id == comp.id) and (self.index == comp.index) and (self.codec_params == comp.codec_params)
 
     def __hash__(self) -> int:
-        return hash((self.codec_id, self.id, self.index))
+        return hash((self.codec_id, self.id, self.index, *self.codec_params))
 
 
 type WebResponseCallback = Callable[[], Awaitable[web.Response]]
@@ -234,10 +235,10 @@ class BleAdvWaitConfigProgress(BleAdvWaitProgress):
 
     def _evaluate(self) -> _ActionResult:
         coord = self._flow.coordinator
-        for adapter_id, codec_id, match_id, config in coord.listened_decoded_confs:
+        for adapter_id, codec_id, match_id, match_params, config in coord.listened_decoded_confs:
             if self._with_match:
-                self._add_config(adapter_id, _CodecConfig(match_id, config.id, config.index))
-            self._add_config(adapter_id, _CodecConfig(codec_id, config.id, config.index))
+                self._add_config(adapter_id, _CodecConfig(match_id, config.id, config.index, match_params))
+            self._add_config(adapter_id, _CodecConfig(codec_id, config.id, config.index, config.codec_params))
         coord.listened_decoded_confs.clear()
 
         if not self.configs:
@@ -541,7 +542,7 @@ class BleAdvConfigFlow(ConfigFlow, domain=DOMAIN):
         """Pair Step."""
         if user_input is not None:
             gen_id = randint(0xFF, 0xFFF5)
-            codecs = [_CodecConfig(codec_id, gen_id, 1) for codec_id in PHONE_APPS[user_input[CONF_PHONE_APP]]]
+            codecs = [_CodecConfig(codec_id, gen_id, 1, params) for codec_id, params in PHONE_APPS[user_input[CONF_PHONE_APP]]]
             self._confs = BleAdvConfigHandler({user_input[CONF_ADAPTER_ID]: codecs})
             self._add_diag(f"Step Pair - confs: {self._confs}")
             return await self.async_step_wait_pair()
@@ -629,7 +630,7 @@ class BleAdvConfigFlow(ConfigFlow, domain=DOMAIN):
         self._abort_if_unique_id_configured()
         codec: BleAdvCodec = self.coordinator.codecs[conf.codec_id]
         self._data = {
-            CONF_DEVICE: {CONF_CODEC_ID: conf.codec_id, CONF_FORCED_ID: conf.id, CONF_INDEX: conf.index},
+            CONF_DEVICE: {CONF_CODEC_ID: conf.codec_id, CONF_FORCED_ID: conf.id, CONF_INDEX: conf.index, CONF_PARAMS: conf.codec_params},
             CONF_LIGHTS: [{}] * CONF_MAX_ENTITY_NB,
             CONF_FANS: [{}] * CONF_MAX_ENTITY_NB,
             CONF_TECHNICAL: {

@@ -21,4 +21,5 @@ def test_exist_phone_app() -> None:
     """Check that all codecs referenced in PHONE_APPS exist."""
     id_list = [x.codec_id for x in get_codec_list()]
     for app_name, phone_app_ids in PHONE_APPS.items():
-        assert all(x in id_list for x in phone_app_ids), f"Not all id exist for {app_name}"
+        ids = [phone_app_id[0] for phone_app_id in phone_app_ids]
+        assert all(x in id_list for x in ids), f"Not all id exist for {app_name}"

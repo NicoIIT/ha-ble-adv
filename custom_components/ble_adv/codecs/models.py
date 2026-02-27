@@ -142,19 +142,22 @@ class BleAdvEntAttr:
 class BleAdvConfig:
     """Ble Adv Encoder Config."""
 
-    id: int = 0
-    index: int = 0
     tx_count: int = 0
     app_restart_count: int = 1
     seed: int = 0
     prev_cmd: BleAdvEncCmd | None = None
 
-    def __init__(self, config_id: int = 0, index: int = 0) -> None:
+    def __init__(self, config_id: int = 0, index: int = 0, codec_params: list[Any] | None = None) -> None:
         self.id: int = config_id
         self.index: int = index
+        self.codec_params: list[Any] = codec_params if codec_params is not None else []
 
     def __repr__(self) -> str:
         return f"id: 0x{self.id:08X}, index: {self.index}, tx: {self.tx_count}, seed: 0x{self.seed:04X}"
+
+    def matches(self, config: Self) -> bool:
+        """Check if it matches another config."""
+        return config.id == self.id and config.index == self.index and config.codec_params == self.codec_params
 
 
 class CommonMatcher:
@@ -419,6 +422,7 @@ class BleAdvCodec(ABC):
     def __init__(self) -> None:
         self.codec_id: str = ""
         self.match_id: str = ""
+        self.match_params: list[Any] = []
         self._header: bytearray = bytearray()  # header is excluded from the data sent to the child encoder
         self._header_start_pos: int = 0
         self._prefix: bytearray = bytearray()  # prefix is included in the data sent to the child encoder
@@ -448,15 +452,17 @@ class BleAdvCodec(ABC):
         # Call the single buffer encoder by default for standard encoders
         return [self.convert_from_enc(enc_cmd, conf)]
 
-    def fid(self, codec_id: str, match_id: str) -> Self:
+    def fid(self, codec_id: str, match_id: str, match_params: list[Any] | None = None) -> Self:
         """Set codec id / match id."""
         self.match_id = match_id
         self.codec_id = codec_id
+        if match_params is not None:
+            self.match_params = match_params
         return self
 
-    def id(self, match_id: str, sub_id: str | None = None) -> Self:
+    def id(self, match_id: str, sub_id: str | None = None, match_params: list[Any] | None = None) -> Self:
         """Set match_id and codec_id from id and sub_id if any."""
-        return self.fid(f"{match_id}/{sub_id}" if sub_id is not None else match_id, match_id)
+        return self.fid(f"{match_id}/{sub_id}" if sub_id is not None else match_id, match_id, match_params)
 
     def header(self, header: list[int], start_pos: int = 0) -> Self:
         """Set header."""

@@ -310,7 +310,12 @@ def test_codec_id() -> None:
     """Test BleAdvCodec id."""
     assert _TestCodec().id("tc").codec_id == "tc"
     assert _TestCodec().id("tc").match_id == "tc"
+    assert _TestCodec().id("tc").match_params == []
     assert _TestCodec().id("tc", "s1").codec_id == "tc/s1"
     assert _TestCodec().id("tc", "s1").match_id == "tc"
+    assert _TestCodec().id("tc", "s1").match_params == []
+    assert _TestCodec().id("tc", "s1", [True, ["aa"]]).match_params == [True, ["aa"]]
     assert _TestCodec().fid("tc", "mid").codec_id == "tc"
     assert _TestCodec().fid("tc", "mid").match_id == "mid"
+    assert _TestCodec().fid("tc", "mid").match_params == []
+    assert _TestCodec().fid("tc", "mid", [True, ["aa"]]).match_params == [True, ["aa"]]

@@ -9,12 +9,14 @@ from ble_adv.const import (
     CONF_ADAPTER_ID,
     CONF_ADAPTER_IDS,
     CONF_CODEC_ID,
+    CONF_CODEC_ID_OLD,
     CONF_DURATION,
     CONF_FANS,
     CONF_FORCED_ID,
     CONF_INDEX,
     CONF_INTERVAL,
     CONF_LIGHTS,
+    CONF_PARAMS,
     CONF_RAW,
     CONF_REFRESH_DIR_ON_START,
     CONF_REFRESH_ON_START,
@@ -39,19 +41,30 @@ async def test_setup(hass: HomeAssistant) -> None:
     await async_setup(hass, {})
 
 
-BASE_DEVICE_CONF = {CONF_CODEC_ID: "fanlamp_pro_v1", CONF_FORCED_ID: 0x1010, CONF_INDEX: 0}
+BASE_DEVICE_CONF_V0 = {CONF_CODEC_ID_OLD: "fanlamp_pro_v1", CONF_FORCED_ID: 0x1010, CONF_INDEX: 0}
+BASE_REMOTE_CONF_V0 = {CONF_CODEC_ID_OLD: "fanlamp_pro_v1", CONF_FORCED_ID: 0x2020, CONF_INDEX: 0}
+
+BASE_DEVICE_CONF = {CONF_CODEC_ID: "fanlamp_pro_v1", CONF_FORCED_ID: 0x1010, CONF_INDEX: 0, CONF_PARAMS: []}
 BASE_TECH_CONF = {CONF_REPEAT: 1, CONF_INTERVAL: 20, CONF_DURATION: 100}
-BASE_REMOTE_CONF = {CONF_CODEC_ID: "fanlamp_pro_v1", CONF_FORCED_ID: 0x2020, CONF_INDEX: 0}
+BASE_REMOTE_CONF = {CONF_CODEC_ID: "fanlamp_pro_v1", CONF_FORCED_ID: 0x2020, CONF_INDEX: 0, CONF_PARAMS: []}
 
 BASE_CONF_V0 = {
-    CONF_DEVICE: {CONF_ADAPTER_ID: "adapter_id", **BASE_DEVICE_CONF},
+    CONF_DEVICE: {CONF_ADAPTER_ID: "adapter_id", **BASE_DEVICE_CONF_V0},
     CONF_TECHNICAL: BASE_TECH_CONF,
     CONF_FANS: [{}, {}, {}],
     CONF_LIGHTS: [{}, {}, {}],
 }
 
 BASE_CONF_V2 = {
-    CONF_DEVICE: BASE_DEVICE_CONF,
+    CONF_DEVICE: BASE_DEVICE_CONF_V0,
+    CONF_TECHNICAL: {CONF_ADAPTER_ID: "adapter_id", **BASE_TECH_CONF},
+    CONF_FANS: [{}, {}, {}],
+    CONF_LIGHTS: [{}, {}, {}],
+}
+
+BASE_CONF_V6 = {
+    CONF_DEVICE: BASE_DEVICE_CONF_V0,
+    CONF_REMOTE: BASE_REMOTE_CONF_V0,
     CONF_TECHNICAL: {CONF_ADAPTER_ID: "adapter_id", **BASE_TECH_CONF},
     CONF_FANS: [{}, {}, {}],
     CONF_LIGHTS: [{}, {}, {}],
@@ -159,6 +172,17 @@ async def test_migrate_v4(hass: HomeAssistant) -> None:
     await async_migrate_entry(hass, conf)
     assert CONF_ADAPTER_ID not in conf.data[CONF_TECHNICAL]
     assert conf.data[CONF_TECHNICAL][CONF_ADAPTER_IDS] == ["adapter_id"]
+
+
+@pytest.mark.usefixtures("coord")
+async def test_migrate_v6(hass: HomeAssistant) -> None:
+    """Test migration from config v6."""
+    conf = await create_base_entry(hass, "idv61", BASE_CONF_V6, 6)
+    await async_migrate_entry(hass, conf)
+    assert conf.data[CONF_DEVICE][CONF_CODEC_ID] == "fanlamp_pro_v1"
+    assert conf.data[CONF_DEVICE][CONF_PARAMS] == []
+    assert conf.data[CONF_REMOTE][CONF_CODEC_ID] == "fanlamp_pro_v1"
+    assert conf.data[CONF_REMOTE][CONF_PARAMS] == []
 
 
 async def test_default_ign_cids(coord: BleAdvCoordinator) -> None:

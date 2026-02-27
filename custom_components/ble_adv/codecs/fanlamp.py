@@ -245,19 +245,15 @@ class FanLampEncoderV2(FanLampEncoder):
         0x8C, 0xA1, 0x89, 0x0D, 0xBF, 0xE6, 0x42, 0x68, 0x41, 0x99, 0x2D, 0x0F, 0xB0, 0x54, 0xBB, 0x16,
     ]  # fmt: skip
 
-    def __init__(self, device_type: int, with_sign: bool) -> None:
+    def __init__(self, device_type: int) -> None:
         """Init with args."""
         super().__init__()
         self._device_type = device_type
-        self._with_sign = with_sign
+        self.header([0xF0, 0x08])
 
-    def _whiten(self, buffer: bytes, seed: int) -> bytes:
+    def _whiten(self, buffer: bytes, seed: int, salt: int) -> bytes:
         """Whiten / Unwhiten buffer with seed."""
-        obuf = []
-        salt = (self._prefix[1] & 0x3) << 5
-        for i, val in enumerate(buffer):
-            obuf.append((self.XBOXES[((seed + i + 9) & 0x1F) + salt]) ^ seed ^ val)
-        return bytes(obuf)
+        return bytes([(self.XBOXES[((seed + i + 9) & 0x1F) + salt]) ^ seed ^ val for i, val in enumerate(buffer)])
 
     def _sign(self, buffer: bytes, tx_count: int, seed: int) -> int:
         """Compute uint16 AES ECB sign."""
@@ -270,52 +266,47 @@ class FanLampEncoderV2(FanLampEncoder):
     def decrypt(self, buffer: bytes) -> bytes | None:
         """Decrypt / unwhiten an incoming raw buffer into a readable buffer."""
         seed = int.from_bytes(buffer[-4:-2], "little")
-        crc_msg = int.from_bytes(buffer[-2:], "little")
-        crc_computed = self._crc16(buffer[:-2], seed ^ 0xFFFF)
-        decoded_base = buffer[0:2] + self._whiten(buffer[2:-5], seed & 0xFF)
-        sign = int.from_bytes(decoded_base[-2:], "little")
-        if (
-            not self.is_eq(crc_computed, crc_msg, "CRC")
-            or (self._with_sign and not self.is_eq(self._sign(decoded_base[1:17], decoded_base[3], seed), sign, "Sign"))
-            or (not self._with_sign and not self.is_eq(0, sign, "NO Sign"))
-        ):
+        if not self.is_eq(self._crc16(buffer[:-2], seed ^ 0xFFFF), int.from_bytes(buffer[-2:], "little"), "CRC"):
             return None
-        return decoded_base[:-2] + buffer[-4:-2]  # seed artificially pushed at the end of decoded buffer
+        return buffer[0:2] + self._whiten(buffer[2:-4], seed & 0xFF, (buffer[1] & 0x3) << 5) + buffer[-4:-2]
 
     def encrypt(self, decoded: bytes) -> bytes:
         """Encrypt / whiten a readable buffer."""
-        seed = int.from_bytes(decoded[-2:], "little")  # seed artificially pushed at the end of decoded buffer
-        obuf = bytearray(decoded[:-2])
-        obuf += (self._sign(bytes(obuf[1:17]), obuf[3], seed) if self._with_sign else 0).to_bytes(2, "little")
-        obuf.append(0)
-        obuf = bytearray(obuf[0:2]) + self._whiten(obuf[2:], seed & 0xFF)
-        obuf += seed.to_bytes(2, "little")
-        obuf += self._crc16(obuf, seed ^ 0xFFFF).to_bytes(2, "little")
-        return obuf
+        seed = int.from_bytes(decoded[-2:], "little")
+        obuf = decoded[:2] + self._whiten(decoded[2:-2], seed & 0xFF, (decoded[1] & 0x3) << 5) + decoded[-2:]
+        return bytes([*obuf, *self._crc16(obuf, seed ^ 0xFFFF).to_bytes(2, "little")])
 
     def convert_to_enc(self, decoded: bytes) -> tuple[BleAdvEncCmd | None, BleAdvConfig | None]:
         """Convert a readable buffer into an encoder command and a config."""
-        if not self.is_eq(self._device_type, int.from_bytes(decoded[1:3], "little"), "Device Type"):
+        conf = BleAdvConfig()
+        conf.seed = int.from_bytes(decoded[-2:], "little")
+        sign = int.from_bytes(decoded[-5:-3], "little")
+
+        if (sign != 0 and not self.is_eq(self._sign(decoded[1:17], decoded[3], conf.seed), sign, "Sign")) or not self.is_eq(
+            self._device_type, int.from_bytes(decoded[4:6], "little"), "Device"
+        ):
             return None, None
 
-        conf = BleAdvConfig()
-        conf.seed = int.from_bytes(decoded[-2:], "little")  # seed artificially pushed at the end of decoded buffer
-        conf.tx_count = decoded[0]
-        conf.id = int.from_bytes(decoded[3:7], "little")
-        conf.index = decoded[7]
-        enc_cmd = BleAdvEncCmd(decoded[8])
-        enc_cmd.param = decoded[10]
-        enc_cmd.arg0 = decoded[11]
-        enc_cmd.arg1 = decoded[12]
-        enc_cmd.arg2 = decoded[13]
+        conf.codec_params = [sign != 0, list(decoded[:3])]
+        conf.tx_count = decoded[3]
+        conf.id = int.from_bytes(decoded[6:10], "little")
+        conf.index = decoded[10]
+        enc_cmd = BleAdvEncCmd(decoded[11])
+        enc_cmd.param = decoded[13]
+        enc_cmd.arg0 = decoded[14]
+        enc_cmd.arg1 = decoded[15]
+        enc_cmd.arg2 = decoded[16]
         return enc_cmd, conf
 
     def convert_from_enc(self, enc_cmd: BleAdvEncCmd, conf: BleAdvConfig) -> bytes:
         """Convert an encoder command and a config into a readable buffer."""
         dt = self._device_type.to_bytes(2, "little")
+        with_sign = conf.codec_params[0]
+        pfx = conf.codec_params[1]
         uid = conf.id.to_bytes(4, "little")
-        seed = conf.seed.to_bytes(2, "little")  # seed artificially pushed at the end of decoded buffer
-        return bytes([conf.tx_count, *dt, *uid, conf.index, enc_cmd.cmd, 0, enc_cmd.param, enc_cmd.arg0, enc_cmd.arg1, enc_cmd.arg2, *seed])
+        base_buf = [*pfx, conf.tx_count, *dt, *uid, conf.index, enc_cmd.cmd, 0, enc_cmd.param, enc_cmd.arg0, enc_cmd.arg1, enc_cmd.arg2]
+        sign = self._sign(bytes(base_buf[1:17]), base_buf[3], conf.seed) if with_sign else 0
+        return bytes([*base_buf, *sign.to_bytes(2, "little"), 0x00, *conf.seed.to_bytes(2, "little")])
 
 
 def _get_fan_translators() -> list[Trans]:
@@ -436,61 +427,28 @@ TRANS_FANLAMP_V2 = [*_get_base_light_translators(), *TRANS_FANLAMP_V2_COMMON]
 TRANS_FANLAMP_VR2 = [*_get_remote_base_light_translators(), *TRANS_FANLAMP_V2_COMMON]
 
 FLV1 = "fanlamp_pro_v1"
-FLV2 = "fanlamp_pro_v2"
-FLV3 = "fanlamp_pro_v3"
 LSV1 = "lampsmart_pro_v1"
-LSV2 = "lampsmart_pro_v2"
-LSV3 = "lampsmart_pro_v3"
 
 FLCODECS = [
-    # FanLamp Pro android App
+    # FanLamp Pro android / IOS App
     FanLampEncoderV1(0x83, False).id(FLV1).header([0x77, 0xF8]).ble(0x19, 0x03).add_translators(TRANS_FANLAMP_V1),
-    FanLampEncoderV2(0x0400, False).id(FLV2).header([0xF0, 0x08]).prefix([0x10, 0x80, 0x00]).ble(0x19, 0x03).add_translators(TRANS_FANLAMP_V2),
-    FanLampEncoderV2(0x0400, True).id(FLV3, None).header([0xF0, 0x08]).prefix([0x20, 0x80, 0x00]).ble(0x19, 0x03).add_translators(TRANS_FANLAMP_V2),
-    FanLampEncoderV2(0x0400, True).id(FLV3, "s1").header([0xF0, 0x08]).prefix([0x20, 0x81, 0x00]).ble(0x19, 0x03).add_translators(TRANS_FANLAMP_V2),
-    FanLampEncoderV2(0x0400, True).id(FLV3, "s2").header([0xF0, 0x08]).prefix([0x20, 0x82, 0x00]).ble(0x19, 0x03).add_translators(TRANS_FANLAMP_V2),
-    FanLampEncoderV2(0x0400, True).id(FLV3, "s3").header([0xF0, 0x08]).prefix([0x20, 0x83, 0x00]).ble(0x19, 0x03).add_translators(TRANS_FANLAMP_V2),
-    # FanLamp Pro IOS App
-    FanLampEncoderV2(0x0400, True).fid("fanlamp_pro_vi3", FLV3).header([0xF0, 0x08]).prefix([0x30, 0x80, 0x00]).ble(0x19, 0x03).add_translators(TRANS_FANLAMP_V2),
-    FanLampEncoderV2(0x0400, True).fid("fanlamp_pro_vi3/s1", FLV3).header([0xF0, 0x08]).prefix([0x30, 0x81, 0x00]).ble(0x19, 0x03).add_translators(TRANS_FANLAMP_V2),
-    FanLampEncoderV2(0x0400, True).fid("fanlamp_pro_vi3/s2", FLV3).header([0xF0, 0x08]).prefix([0x30, 0x82, 0x00]).ble(0x19, 0x03).add_translators(TRANS_FANLAMP_V2),
-    FanLampEncoderV2(0x0400, True).fid("fanlamp_pro_vi3/s3", FLV3).header([0xF0, 0x08]).prefix([0x30, 0x83, 0x00]).ble(0x19, 0x03).add_translators(TRANS_FANLAMP_V2),
+    FanLampEncoderV2(0x0400).id("fanlamp_pro_v2").ble(0x19, 0x03).add_translators(TRANS_FANLAMP_V2),
     # FanLamp remotes
     FanLampEncoderV1(0x83, False, True).fid("remote_v1", FLV1).forced_crc2(0x9372).header([0x56, 0x55, 0x18, 0x87, 0x52]).ble(0x00, 0xFF).add_translators(TRANS_FANLAMP_VR1),
     FanLampEncoderV1R0().id(FLV1, "r0").header([0xF0, 0xFF]).ble(0x19,0xFF).add_rev_only_trans(TRANS_FANLAMP_V1),
     FanLampEncoderV1R1().id(FLV1, "r1").forced_crc2(0x00).header([0xF0, 0xFF]).ble(0x19,0xFF).add_rev_only_trans(TRANS_FANLAMP_V1),
     FanLampEncoderV1(0x83, False, True).id(FLV1, "r3").forced_crc2(0x9372).header([0x55, 0x55, 0x18, 0x87, 0x52]).ble(0x00, 0xFF).add_translators(TRANS_FANLAMP_VR1),
-    FanLampEncoderV2(0x0400, False).fid("remote_v2", FLV2).header([0xF0, 0x08]).prefix([0x10, 0x00, 0x56]).ble(0x02, 0x16).add_translators(TRANS_FANLAMP_VR2),
-    FanLampEncoderV2(0x0400, True).fid("remote_v3", FLV3).header([0xF0, 0x08]).prefix([0x10, 0x00, 0x56]).ble(0x02, 0x16).add_translators(TRANS_FANLAMP_VR2),
-    FanLampEncoderV2(0x0400, True).id(FLV3, "r3").header([0xF0, 0x08]).prefix([0x10, 0x00, 0x55]).ble(0x02, 0x16).add_translators(TRANS_FANLAMP_VR2),
+    FanLampEncoderV2(0x0400).id("fanlamp_pro_v2", "r", [True, [0x20, 0x80, 0x00]]).ble(0x02, 0x16).add_translators(TRANS_FANLAMP_VR2),
 ]  # fmt: skip
 
 LSCODECS = [
-    # LampSmart Pro android App
+    # LampSmart Pro android / IOS App
     FanLampEncoderV1(0x81, True).id(LSV1).header([0x77, 0xF8]).ble(0x19, 0x03).add_translators(TRANS_FANLAMP_V1),
-    FanLampEncoderV2(0x0100, False).id(LSV2).header([0xF0, 0x08]).prefix([0x10, 0x80, 0x00]).ble(0x19, 0x03).add_translators(TRANS_FANLAMP_V2),
-    FanLampEncoderV2(0x0100, True).id(LSV3, None).header([0xF0, 0x08]).prefix([0x30, 0x80, 0x00]).ble(0x19, 0x03).add_translators(TRANS_FANLAMP_V2),
-    FanLampEncoderV2(0x0100, True).id(LSV3, "s1").header([0xF0, 0x08]).prefix([0x30, 0x81, 0x00]).ble(0x19, 0x03).add_translators(TRANS_FANLAMP_V2),
-    FanLampEncoderV2(0x0100, True).id(LSV3, "s2").header([0xF0, 0x08]).prefix([0x30, 0x82, 0x00]).ble(0x19, 0x03).add_translators(TRANS_FANLAMP_V2),
-    FanLampEncoderV2(0x0100, True).id(LSV3, "s3").header([0xF0, 0x08]).prefix([0x30, 0x83, 0x00]).ble(0x19, 0x03).add_translators(TRANS_FANLAMP_V2),
-    # LampSmart Pro IOS App
     FanLampEncoderV1aa(0x81, True, False).fid("lampsmart_pro_vi1", LSV1).header([0xF9, 0x08]).ble(0x19, 0x03).add_translators(TRANS_FANLAMP_V1),
-    FanLampEncoderV2(0x0100, True).id("lampsmart_pro_vi3", None).header([0xF0, 0x08]).prefix([0x21, 0x80, 0x00]).ble(0x19, 0x03).add_translators(TRANS_FANLAMP_V2),
-    FanLampEncoderV2(0x0100, True).fid("lampsmart_pro_vi3/s1", LSV3).header([0xF0, 0x08]).prefix([0x21, 0x81, 0x00]).ble(0x19, 0x03).add_translators(TRANS_FANLAMP_V2),
-    FanLampEncoderV2(0x0100, True).fid("lampsmart_pro_vi3/s2", LSV3).header([0xF0, 0x08]).prefix([0x21, 0x82, 0x00]).ble(0x19, 0x03).add_translators(TRANS_FANLAMP_V2),
-    FanLampEncoderV2(0x0100, True).fid("lampsmart_pro_vi3/s3", LSV3).header([0xF0, 0x08]).prefix([0x21, 0x83, 0x00]).ble(0x19, 0x03).add_translators(TRANS_FANLAMP_V2),
-    FanLampEncoderV2(0x0100, True).id(LSV3, "s0_1").header([0xF0, 0x08]).prefix([0x20, 0x80, 0x00]).ble(0x19, 0x03).add_translators(TRANS_FANLAMP_V2),
-    FanLampEncoderV2(0x0100, True).id(LSV3, "s1_1").header([0xF0, 0x08]).prefix([0x20, 0x81, 0x00]).ble(0x19, 0x03).add_translators(TRANS_FANLAMP_V2),
-    FanLampEncoderV2(0x0100, True).id(LSV3, "s2_1").header([0xF0, 0x08]).prefix([0x20, 0x82, 0x00]).ble(0x19, 0x03).add_translators(TRANS_FANLAMP_V2),
-    FanLampEncoderV2(0x0100, True).id(LSV3, "s3_1").header([0xF0, 0x08]).prefix([0x20, 0x83, 0x00]).ble(0x19, 0x03).add_translators(TRANS_FANLAMP_V2),
+    FanLampEncoderV2(0x0100).id("lampsmart_pro_v2").ble(0x19, 0x03).add_translators(TRANS_FANLAMP_V2),
     # LampSmart remotes
     FanLampEncoderV1(0x00, False, True).id(LSV1, "r1").forced_crc2(0x9372).header([0x62, 0x55, 0x18, 0x87, 0x52]).ble(0x00, 0xFF).add_translators(TRANS_FANLAMP_V1),
-    FanLampEncoderV2(0x0100, False).id(LSV2, "r1").header([0xF0, 0x08]).prefix([0x10, 0x00, 0x62]).ble(0x02, 0x16).add_translators(TRANS_FANLAMP_V2),
-    FanLampEncoderV2(0x0100, True).id(LSV3, "r1").header([0xF0, 0x08]).prefix([0x10, 0x00, 0x62]).ble(0x02, 0x16).add_translators(TRANS_FANLAMP_V2),
     FanLampEncoderV1aa(0x81, True, True).fid("other_v1b", LSV1).header([0xF9, 0x08]).ble(0x02, 0x16).add_translators(TRANS_FANLAMP_VR1),
     FanLampEncoderV1(0x81, True, True).fid("other_v1a", LSV1).header([0x77, 0xF8]).ble(0x02, 0x03).add_translators(TRANS_FANLAMP_VR1),
-    FanLampEncoderV2(0x0100, False).fid("other_v2", LSV2).header([0xF0, 0x08]).prefix([0x10, 0x80, 0x00]).ble(0x19, 0x16).add_translators(TRANS_FANLAMP_VR2),
-    FanLampEncoderV2(0x0100, True).fid("other_v3", LSV3).header([0xF0, 0x08]).prefix([0x10, 0x80, 0x00]).ble(0x19, 0x16).add_translators(TRANS_FANLAMP_VR2),
-    FanLampEncoderV2(0x0100, False).fid("remote_v21", LSV2).header([0xF0, 0x08]).prefix([0x10, 0x00, 0x56]).ble(0x02, 0x16).add_translators(TRANS_FANLAMP_VR2),
-    FanLampEncoderV2(0x0100, True).fid("remote_v31", LSV3).header([0xF0, 0x08]).prefix([0x10, 0x00, 0x56]).ble(0x02, 0x16).add_translators(TRANS_FANLAMP_VR2),
+    FanLampEncoderV2(0x0100).id("lampsmart_pro_v2", "r", [True, [0x30, 0x80, 0x00]]).ble(0x02, 0x16).add_translators(TRANS_FANLAMP_VR2),
 ]  # fmt: skip

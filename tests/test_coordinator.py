@@ -31,9 +31,11 @@ def _get_codecs() -> dict[str, BleAdvCodec]:
     cod1 = _Codec()
     cod1.codec_id = "cod1"
     cod1.match_id = "cod1"
+    cod1.match_params = []
     cod2 = _Codec()
     cod2.codec_id = "cod2/a"
     cod2.match_id = "cod2"
+    cod2.match_params = []
     return {cod1.codec_id: cod1, cod2.codec_id: cod2}
 
 
@@ -111,7 +113,7 @@ async def test_listening(coord: BleAdvCoordinator) -> None:
     await coord.handle_raw_adv("bbb", "mac", raw_adv)
     await coord.handle_raw_adv("aaa", "mac", raw_adv)
     assert coord.listened_raw_advs == [raw_adv]
-    assert coord.listened_decoded_confs == [("aaa", "cod1", "cod1", BleAdvConfig(1, 0)), ("aaa", "cod2/a", "cod2", BleAdvConfig(1, 0))]
+    assert coord.listened_decoded_confs == [("aaa", "cod1", "cod1", [], BleAdvConfig(1, 0)), ("aaa", "cod2/a", "cod2", [], BleAdvConfig(1, 0))]
     await asyncio.sleep(0.2)
     assert not coord.is_listening()
 

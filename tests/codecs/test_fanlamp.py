@@ -7,7 +7,7 @@ from copy import copy
 import pytest
 from ble_adv.codecs.models import BleAdvAdvertisement, BleAdvCodec, BleAdvEncCmd
 
-from . import CODECS, _TestEncoderBase, _TestEncoderFull
+from . import CODECS, _TestEncoderBase, _TestEncoderBaseParams, _TestEncoderFull
 
 
 @pytest.mark.parametrize(
@@ -37,6 +37,16 @@ class TestEncoderFanlampV0R0(_TestEncoderBase):
 )
 class TestEncoderFanlampV0R1(_TestEncoderBase):
     """FanlampV0 / R1 Encoder tests."""
+
+
+@pytest.mark.parametrize(
+    _TestEncoderBaseParams.PARAM_NAMES,
+    [
+        ("lampsmart_pro_v2", [True, [0x31, 0x82, 0x00]], 0x03, "f0.08.31.82.36.6a.fd.5a.67.3f.05.8f.18.74.77.0f.91.7f.00.ca.fb.c6.53.2b.3b.00"),
+    ],
+)
+class TestDyn(_TestEncoderBaseParams):
+    """Fanlamp Encoder Dynamic decoding tests."""
 
 
 @pytest.mark.parametrize(

@@ -66,9 +66,7 @@ class BleAdvBaseDevice:
 
     def match(self, match_id: str, adapter_id: str, config: BleAdvConfig) -> bool:
         """Match a given adapter / config."""
-        return adapter_id in self.adapter_ids and any(
-            (match_id == x) and (config.id == y.id) and (config.index == y.index) for x, y in self._listeners
-        )
+        return adapter_id in self.adapter_ids and any((match_id == x) and config.matches(y) for x, y in self._listeners)
 
     async def async_on_command(self, ent_attrs: list[BleAdvEntAttr]) -> None:
         """Call on matching command received."""
@@ -133,7 +131,7 @@ class BleAdvCoordinator:
 
         self._stop_listening_time: datetime | None = None
         self.listened_raw_advs: list[bytes] = []
-        self.listened_decoded_confs: list[tuple[str, str, str, BleAdvConfig]] = []
+        self.listened_decoded_confs: list[tuple[str, str, str, list[Any], BleAdvConfig]] = []
 
     async def async_init(self) -> None:
         """Async Init."""
@@ -237,7 +235,8 @@ class BleAdvCoordinator:
             enc_cmd, conf = acodec.decode_adv(adv)
             if conf is not None and enc_cmd is not None:
                 ent_attrs = acodec.enc_to_ent(enc_cmd)
-                return [codec_id, raw_adv.hex().upper(), repr(enc_cmd), repr(conf), " / ".join([repr(x) for x in ent_attrs])]
+                common_data = [raw_adv.hex().upper(), repr(enc_cmd), repr(conf), " / ".join([repr(x) for x in ent_attrs])]
+                return [codec_id, repr(conf.codec_params), *common_data] if len(conf.codec_params) > 0 else [codec_id, *common_data]
         return ["Could not be decoded by any known codec"]
 
     async def _publish_to_devices(self, adapter_id: str, recv: BleAdvRecvItem) -> None:
@@ -256,7 +255,7 @@ class BleAdvCoordinator:
         for codec_id, acodec in self.codecs.items():
             __, conf = acodec.decode_adv(BleAdvAdvertisement.FromRaw(raw_adv))
             if conf is not None:
-                data = (adapter_id, codec_id, acodec.match_id, conf)
+                data = (adapter_id, codec_id, acodec.match_id, acodec.match_params, conf)
                 if data not in self.listened_decoded_confs:
                     self.listened_decoded_confs.append(data)
 

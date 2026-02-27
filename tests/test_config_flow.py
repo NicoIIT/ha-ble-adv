@@ -24,7 +24,7 @@ from homeassistant.core import HomeAssistant
 def test_codec_config() -> None:
     """Test codec config."""
     conf = _CodecConfig("codec_id", 12, 1)
-    assert repr(conf) == "codec_id - 0xC - 1"
+    assert repr(conf) == "codec_id - 0xC - 1 - []"
     conf2 = _CodecConfig("codec_id", 12, 2)
     assert conf != conf2
     assert hash(conf) != 0
@@ -78,7 +78,7 @@ async def test_wait_config_progress(hass: HomeAssistant) -> None:
     assert dict(cfr)["step_id"] == "wait_config"
     assert dict(cfr)["progress_action"] == "wait_config"
     assert dict(cfr)["description_placeholders"] == {"max_seconds": "0.3"}
-    flow.coordinator.listened_decoded_confs = [("aaa", "a", "b", BleAdvConfig(0x10, 0))]
+    flow.coordinator.listened_decoded_confs = [("aaa", "a", "b", [], BleAdvConfig(0x10, 0))]
     cfr = mtp.next()
     assert cfr is not None
     assert dict(cfr)["progress_action"] == "agg_config"
