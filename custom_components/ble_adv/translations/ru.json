@@ -12,7 +12,7 @@
         }
       },
       "no_adapters": {
-        "description": "Не найдено Bluetooth адаптеров, поддерживающих BLE Advertising.\nПожалуйста, проверьте [Руководство по устранению неполадок - Шаг 1.2](https://github.com/NicoIIT/ha-ble-adv/wiki/Troubleshooting-Guide#step-12-bluetooth-adapter).",
+        "description": "Не найдено Bluetooth адаптеров, поддерживающих BLE Advertising.\nПожалуйста, проверьте [Руководство по устранению неполадок - Шаг 1.2]({url}).",
         "menu_options": {
           "abort_no_adapters": "Прервать",
           "open_issue": "Сообщить о проблеме"
@@ -139,7 +139,7 @@
       },
       "open_issue": {
         "title": "Сообщить о проблеме",
-        "description": "1. Скачайте диагностический дамп, нажав на кнопку ниже\n2. Откройте [проблему с Config Flow](https://github.com/NicoIIT/ha-ble-adv/issues/new?template=discovery.yml) и приложите к ней дамп.",
+        "description": "1. Скачайте диагностический дамп, нажав на кнопку ниже\n2. Откройте [проблему с Config Flow]({url}) и приложите к ней дамп.",
         "menu_options": {
           "diag": "Скачать диагностический дамп"
         }
@@ -277,7 +277,7 @@
       "no_config": "Не удалось обнаружить или успешно протестировать конфигурацию.",
       "not_implemented": "Еще не реализовано",
       "reconfigure_successful": "Перенастройка успешна!",
-      "already_configured": "Устройство с такими же (кодек / ID / индекс) уже настроено.\nПодробнее в [Руководстве по устранению неполадок - Шаг 3.3](https://github.com/NicoIIT/ha-ble-adv/wiki/Troubleshooting-Guide#step-33-device-unique_id)."
+      "already_configured": "Устройство с такими же (кодек / ID / индекс) уже настроено.\nПодробнее в Руководстве по устранению неполадок - Шаг 3.3"
     },
     "error": {
       "missing_entity": "Необходимо настроить хотя бы один вентилятор или свет.",

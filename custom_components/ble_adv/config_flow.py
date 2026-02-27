@@ -437,7 +437,8 @@ class BleAdvConfigFlow(ConfigFlow, domain=DOMAIN):
 
     async def async_step_no_adapters(self, _: dict[str, Any] | None = None) -> ConfigFlowResult:
         """No Adapter Step."""
-        return self.async_show_menu(step_id="no_adapters", menu_options=["abort_no_adapters", "open_issue"])
+        ph = {"url": "https://github.com/NicoIIT/ha-ble-adv/wiki/Troubleshooting-Guide#step-12-bluetooth-adapter"}
+        return self.async_show_menu(step_id="no_adapters", menu_options=["abort_no_adapters", "open_issue"], description_placeholders=ph)
 
     async def async_step_abort_no_adapters(self, _: dict[str, Any] | None = None) -> ConfigFlowResult:
         """No Adapter Abort Step."""
@@ -618,7 +619,8 @@ class BleAdvConfigFlow(ConfigFlow, domain=DOMAIN):
     async def async_step_open_issue(self, _: dict[str, Any] | None = None) -> ConfigFlowResult:
         """Open issue Step."""
         self._return_step_after_diag = "open_issue"
-        return self.async_show_menu(step_id="open_issue", menu_options=["diag"])
+        ph = {"url": "https://github.com/NicoIIT/ha-ble-adv/issues/new?template=discovery.yml"}
+        return self.async_show_menu(step_id="open_issue", menu_options=["diag"], description_placeholders=ph)
 
     async def async_step_confirm_yes(self, _: dict[str, Any] | None = None) -> ConfigFlowResult:
         """Confirm YES Step."""

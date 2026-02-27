@@ -12,7 +12,7 @@
         }
       },
       "no_adapters": {
-        "description": "Aucun Adaptateur Bluetooth supportant le BLE Advertising n'a été détecté.\nVeuillez suivre le [Troubleshooting Guide - Step 1.2](https: //github.com/NicoIIT/ha-ble-adv/wiki/Troubleshooting-Guide#step-12-bluetooth-adapter).",
+        "description": "Aucun Adaptateur Bluetooth supportant le BLE Advertising n'a été détecté.\nVeuillez suivre le [Troubleshooting Guide - Step 1.2]({url}).",
         "menu_options": {
           "abort_no_adapters": "Quitter",
           "open_issue": "Ouvrir une Issue"
@@ -139,7 +139,7 @@
       },
       "open_issue": {
         "title": "Ouvrir une Issue",
-        "description": "1. Télécharger le fichier de Diagnostic\n2. Ouvrir une [Issue](https://github.com/NicoIIT/ha-ble-adv/issues/new?template=discovery.yml) et y attacher le fichier de diagnostic téléchargé.",
+        "description": "1. Télécharger le fichier de Diagnostic\n2. Ouvrir une [Issue]({url}) et y attacher le fichier de diagnostic téléchargé.",
         "menu_options": {
           "diag": "Fichier de Diagnostic"
         }
@@ -277,7 +277,7 @@
       "no_config": "Aucune configuration n'a été trouvée ou validée.",
       "not_implemented": "A venir?",
       "reconfigure_successful": "Reconfiguration effectuée!",
-      "already_configured": "Un appareil avec les mêmes (codec / id / index) est déjà configuré.\nPlus d'info dans le [Troubleshooting Guide - Step 3.3](https://github.com/NicoIIT/ha-ble-adv/wiki/Troubleshooting-Guide#step-33-device-unique_id)."
+      "already_configured": "Un appareil avec les mêmes (codec / id / index) est déjà configuré.\nPlus d'info dans le Troubleshooting Guide - Step 3.3"
     },
     "error": {
       "missing_entity": "Au moins une Entité doit être configurée.",

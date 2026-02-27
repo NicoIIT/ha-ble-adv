@@ -12,7 +12,7 @@
         }
       },
       "no_adapters": {
-        "description": "Nem található BLE hirdetést támogató Bluetooth adapter.\nKérjük, ellenőrizze a [Hibaelhárítási útmutatót - 1.2. lépés](https://github.com/NicoIIT/ha-ble-adv/wiki/Troubleshooting-Guide#step-12-bluetooth-adapter).",
+        "description": "Nem található BLE hirdetést támogató Bluetooth adapter.\nKérjük, ellenőrizze a [Hibaelhárítási útmutatót - 1.2. lépés]({url}).",
         "menu_options": {
           "abort_no_adapters": "Megszakítás",
           "open_issue": "Probléma jelentése"
@@ -139,7 +139,7 @@
       },
       "open_issue": {
         "title": "Probléma jelentése",
-        "description": "1. Töltse le a diagnosztikai kivonatot az alábbi gombra kattintva\n2. Nyisson egy Config Flow [problémát](https://github.com/NicoIIT/ha-ble-adv/issues/new?template=discovery.yml) és csatolja hozzá a kivonatot.",
+        "description": "1. Töltse le a diagnosztikai kivonatot az alábbi gombra kattintva\n2. Nyisson egy Config Flow [problémát]({url}) és csatolja hozzá a kivonatot.",
         "menu_options": {
           "diag": "Diagnosztikai kivonat letöltése"
         }
@@ -277,7 +277,7 @@
       "no_config": "Nem sikerült konfigurációt felfedezni vagy sikeresen tesztelni.",
       "not_implemented": "Még nincs megvalósítva",
       "reconfigure_successful": "Újrakonfigurálás sikeres!",
-      "already_configured": "Már létezik eszköz ugyanezzel a (kodek / azonosító / index) kombinációval.\nTöbb információ a [Hibaelhárítási útmutatóban - 3.3. lépés](https://github.com/NicoIIT/ha-ble-adv/wiki/Troubleshooting-Guide#step-33-device-unique_id)."
+      "already_configured": "Már létezik eszköz ugyanezzel a (kodek / azonosító / index) kombinációval.\nTöbb információ a Hibaelhárítási útmutatóban - 3.3. lépés"
     },
     "error": {
       "missing_entity": "Legalább egy ventilátort vagy lámpát konfigurálni kell.",
