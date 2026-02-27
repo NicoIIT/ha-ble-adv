@@ -12,7 +12,7 @@
         }
       },
       "no_adapters": {
-        "description": "Nebolo nájdené žiadne Bluetooth zariadenie podporujúce BLE reklamy.\nProsím, skontrolujte [Príručku riešenia problémov - Krok 1.2](https://github.com/NicoIIT/ha-ble-adv/wiki/Troubleshooting-Guide#step-12-bluetooth-adapter).",
+        "description": "Nebolo nájdené žiadne Bluetooth zariadenie podporujúce BLE reklamy.\nProsím, skontrolujte [Príručku riešenia problémov - Krok 1.2]({url}).",
         "menu_options": {
           "abort_no_adapters": "Prerušiť",
           "open_issue": "Otvoriť problém"
@@ -139,7 +139,7 @@
       },
       "open_issue": {
         "title": "Otvoriť problém",
-        "description": "1. Stiahnite diagnostický výpis kliknutím na tlačidlo nižšie\n2. Otvorte [problém s konfiguračným tokom](https://github.com/NicoIIT/ha-ble-adv/issues/new?template=discovery.yml) a pripojte k nemu výpis.",
+        "description": "1. Stiahnite diagnostický výpis kliknutím na tlačidlo nižšie\n2. Otvorte [problém s konfiguračným tokom]({url}) a pripojte k nemu výpis.",
         "menu_options": {
           "diag": "Stiahnuť diagnostický výpis"
         }
@@ -277,7 +277,7 @@
       "no_config": "Nebola zistená ani úspešne otestovaná žiadna konfigurácia.",
       "not_implemented": "Zatiaľ neimplementované",
       "reconfigure_successful": "Rekonfigurácia bola úspešná!",
-      "already_configured": "Zariadenie s rovnakým (kodek / ID / index) je už nakonfigurované.\nViac informácií v [Príručke riešenia problémov - Krok 3.3](https://github.com/NicoIIT/ha-ble-adv/wiki/Troubleshooting-Guide#step-33-device-unique_id)."
+      "already_configured": "Zariadenie s rovnakým (kodek / ID / index) je už nakonfigurované.\nViac informácií v Príručke riešenia problémov - Krok 3.3"
     },
     "error": {
       "missing_entity": "Je potrebné nakonfigurovať aspoň jeden ventilátor alebo svetlo.",
