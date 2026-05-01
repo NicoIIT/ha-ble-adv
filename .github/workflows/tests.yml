@@ -10,7 +10,20 @@ on:
       - "main"
 
 jobs:
+  get_image_version:
+    runs-on: ubuntu-latest
+    outputs:
+      python_version: ${{ steps.version.outputs.python_version }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+      - id: version
+        name: Set the Python image version
+        run: echo "python_version=$(grep FROM .devcontainer/Dockerfile | cut -d ':' -f 2)" >> $GITHUB_OUTPUT
+
   tests:
+    needs: get_image_version
     runs-on: ubuntu-latest
     steps:
       # Setup
@@ -20,7 +33,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v6
         with:
-          python-version: "3.13"
+          python-version: ${{needs.get_image_version.outputs.python_version}}
           cache: "pip"
       - name: Install dependencies
         run: pip install -r .devcontainer/requirements.txt

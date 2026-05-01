@@ -51,6 +51,7 @@ class _MockEsphomeConfigEntry(ConfigEntry):
             source="",
             discovery_keys={},  # type: ignore [none]
             options={},
+            subentries_data={},
         )
         self.runtime_data = mock.MagicMock()
         self.runtime_data.device_info.name = bn
@@ -102,7 +103,14 @@ class MockEspProxy:
         esp_conf = _MockEsphomeConfigEntry(self._bn)
         await self.hass.config_entries.async_add(esp_conf)
         dr.async_get(self.hass).devices[self._dev_id] = mock.AsyncMock()
-        er.async_get(self.hass).async_get_or_create("sensor", self._bn, "ble_adv_proxy_name", device_id=self._dev_id, config_entry=esp_conf)
+        er.async_get(self.hass).async_get_or_create(
+            "sensor",
+            self._bn,
+            "ble_adv_proxy_name",
+            suggested_object_id=f"{self._bn}_ble_adv_proxy_name",
+            device_id=self._dev_id,
+            config_entry=esp_conf,
+        )
         await self.set_available(True)
 
     async def set_available(self, status: bool) -> None:
@@ -129,6 +137,7 @@ async def create_base_entry(hass: HomeAssistant, entry_id: str | None, data: dic
         source="",
         discovery_keys={},  # type: ignore [none]
         options={},
+        subentries_data={},
     )
     await hass.config_entries.async_add(entry=conf)
     if entry_id is not None:
