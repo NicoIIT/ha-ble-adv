@@ -1,5 +1,9 @@
-# https://www.home-assistant.io/integrations/default_config/
-default_config:
+# Do not use 'default_config' (https://www.home-assistant.io/integrations/default_config/)
+# to avoid a maximum of useless stuff (go2rtc, ai, ...)
+config:
+history:
+logbook:
+
 
 # https://www.home-assistant.io/integrations/homeassistant/
 homeassistant:
@@ -27,5 +31,5 @@ ble_adv:
   # ignored_adapters:
   #   - hci/48
 
-automation: !include automations.yaml
-scene: !include scenes.yaml
+# automation: !include automations.yaml
+# scene: !include scenes.yaml

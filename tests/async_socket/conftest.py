@@ -4,11 +4,11 @@
 
 import asyncio
 import pickle
-from collections.abc import Generator
+from collections.abc import AsyncGenerator
 from typing import Self
 from unittest import mock
 
-import pytest
+import pytest_asyncio
 
 
 class _SocketMock(mock.MagicMock):
@@ -34,8 +34,8 @@ class _SocketMock(mock.MagicMock):
         self._recv_queue.put_nowait(self.BP_ERROR)
 
 
-@pytest.fixture
-def socket_mock_inst() -> Generator[_SocketMock]:
+@pytest_asyncio.fixture
+async def socket_mock_inst() -> AsyncGenerator[_SocketMock]:
     """Mock a socket.socket."""
     with mock.patch("socket.socket", new_callable=_SocketMock) as mock_socket:
         mock_inst = mock_socket.return_value
@@ -44,8 +44,8 @@ def socket_mock_inst() -> Generator[_SocketMock]:
             yield mock_inst
 
 
-@pytest.fixture
-def btsocket_mock_inst() -> Generator[_SocketMock]:
+@pytest_asyncio.fixture
+async def btsocket_mock_inst() -> AsyncGenerator[_SocketMock]:
     """Mock a MGMT btsocket."""
 
     def btclose(sock: _SocketMock) -> None:
@@ -109,8 +109,8 @@ class _ConMock:
         self._recv_queue.put_nowait(data)
 
 
-@pytest.fixture
-def con_mock() -> Generator[_ConMock]:
+@pytest_asyncio.fixture
+async def con_mock() -> AsyncGenerator[_ConMock]:
     """Fixture unix connection."""
     con_mock = _ConMock()
     with mock.patch("asyncio.open_unix_connection", side_effect=con_mock.open_unix_connection):

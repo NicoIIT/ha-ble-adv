@@ -366,11 +366,6 @@ class BleAdvConfigFlow(ConfigFlow, domain=DOMAIN):
         conf = self._data[CONF_REMOTE]
         return {"codec": conf[CONF_CODEC_ID], "id": f"0x{conf[CONF_FORCED_ID]:X}", "index": str(conf[CONF_INDEX])}
 
-    def async_update_progress(self, progress: float) -> None:
-        """Backward compatibility to avoid the need for user to upgrade their HA, as this feature is a Nice to Have."""
-        if hasattr(ConfigFlow, "async_update_progress"):
-            super().async_update_progress(progress)  # type: ignore[none]
-
     def _get_device(self, name: str, adapter_id: str, config: _CodecConfig, duration: int | None = None) -> BleAdvBaseDevice:
         codec: BleAdvCodec = self.coordinator.codecs[config.codec_id]
         duration = duration if duration is not None else codec.duration
