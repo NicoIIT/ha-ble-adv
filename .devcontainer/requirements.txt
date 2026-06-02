@@ -20,4 +20,4 @@ btsocket==0.3.0
 # for unit tests
 pytest-homeassistant-custom-component==0.13.325
 colorlog==6.10.1
-ruff==0.15.12
+ruff==0.15.15
