@@ -1,0 +1,429 @@
+{
+  "title": "蓝牙低功耗广播控制设备",
+  "config": {
+    "step": {
+      "user": {
+        "description": "开始前，请确认你和要控制的设备位于同一个房间内！",
+        "menu_options": {
+          "manual": "手动输入（专家）",
+          "wait_config": "复制已配对手机 App 配置（推荐）",
+          "pair": "配对",
+          "tools": "工具和辅助功能"
+        }
+      },
+      "no_adapters": {
+        "description": "未找到支持 BLE 广播的蓝牙适配器。\n请查看[故障排查指南 - 步骤 1.2]({url})。",
+        "menu_options": {
+          "abort_no_adapters": "中止",
+          "open_issue": "打开 Issue"
+        }
+      },
+      "tools": {
+        "title": "工具和辅助功能",
+        "description": "工具区域",
+        "menu_options": {
+          "diag": "诊断转储",
+          "inject": "注入原始数据",
+          "listen_raw": "监听 BLE 广播",
+          "decode_raw": "解码原始 BLE 广播"
+        }
+      },
+      "diag": {
+        "title": "诊断转储"
+      },
+      "listen_raw": {
+        "title": "监听 BLE 广播"
+      },
+      "listen_raw_res": {
+        "title": "监听 BLE 广播",
+        "description": "已收到 BLE 广播：\n{advs}",
+        "menu_options": {
+          "listen_raw": "重试",
+          "tools": "返回工具"
+        }
+      },
+      "inject": {
+        "title": "手动注入",
+        "description": "供有经验的用户注入原始数据",
+        "data": {
+          "adapter_id": "BLE ADV 适配器",
+          "raw": "原始数据",
+          "interval": "间隔",
+          "repeat": "重复次数"
+        }
+      },
+      "inject_res": {
+        "title": "注入结果",
+        "description": "注入完成。",
+        "menu_options": {
+          "inject": "注入新的原始数据",
+          "tools": "返回工具"
+        }
+      },
+      "decode_raw": {
+        "title": "解码原始 BLE 广播",
+        "data": {
+          "raw": "原始数据"
+        }
+      },
+      "decode_raw_res": {
+        "title": "原始 BLE 广播解码结果",
+        "description": "{conf}",
+        "menu_options": {
+          "decode_raw": "解码新的原始数据",
+          "tools": "返回工具"
+        }
+      },
+      "manual": {
+        "title": "手动输入",
+        "description": "供有经验的用户使用，例如从 ESPHome 迁移",
+        "data": {
+          "name": "设备名称",
+          "codec_id": "编解码器",
+          "adapter_id": "BLE ADV 适配器",
+          "forced_id": "强制 ID",
+          "index": "索引"
+        }
+      },
+      "wait_config": {
+        "title": "正在监听已配对手机 App 的配置。"
+      },
+      "no_config": {
+        "description": "10 秒内未监听到配置",
+        "menu_options": {
+          "wait_config": "重试",
+          "abort_config": "中止",
+          "open_issue": "打开 Issue"
+        }
+      },
+      "blink": {
+        "title": "配置测试"
+      },
+      "pair": {
+        "title": "配对",
+        "description": "请从下面的列表中选择对应的蓝牙适配器和手机 App，切断设备电源后重新通电，并在 5 秒内点击 **提交** 按钮（这将发送配对命令）",
+        "data": {
+          "adapter_id": "BLE ADV 适配器",
+          "phone_app": "手机应用"
+        }
+      },
+      "wait_pair": {
+        "title": "配对"
+      },
+      "confirm_pair": {
+        "description": "配对是否成功？通常成功时灯会闪烁，但这取决于灯具类型……",
+        "menu_options": {
+          "pair": "配对失败，重试",
+          "confirm_no_abort": "配对失败，中止",
+          "blink": "配对成功，测试配置"
+        }
+      },
+      "choose_adapter": {
+        "title": "适配器选择",
+        "description": "有多个蓝牙适配器监听到了配置，请选择最靠近设备的适配器",
+        "data": {
+          "adapter_id": "BLE ADV 适配器"
+        }
+      },
+      "confirm": {
+        "title": "验证",
+        "description": "正在测试配置 {nb}/{tot}：\n\n    编解码器：{codec}\n    ID：{id}\n    索引：{index}\n\n灯是否闪烁？",
+        "menu_options": {
+          "confirm_yes": "是！",
+          "confirm_no_another": "否，尝试下一个。",
+          "confirm_no_abort": "否，中止。",
+          "open_issue": "否，打开 Issue",
+          "confirm_retry_last": "重试当前配置。",
+          "confirm_retry_all": "从第一个配置重新尝试。"
+        }
+      },
+      "open_issue": {
+        "title": "打开 Issue",
+        "description": "1. 点击下面的按钮下载诊断转储\n2. 打开一个配置流程 [issue]({url})，并附上该转储文件。",
+        "menu_options": {
+          "diag": "下载诊断转储"
+        }
+      },
+      "configure": {
+        "title": "配置",
+        "description": "配置实体、物理遥控器和技术参数。\n这些参数之后可以通过“重新配置”路径修改。",
+        "menu_options": {
+          "config_entities": "配置灯 / 风扇",
+          "config_remote": "配置另一个控制器（物理遥控器等）",
+          "config_technical": "技术参数",
+          "finalize": "完成"
+        }
+      },
+      "config_entities": {
+        "title": "受控实体",
+        "description": "选择要创建的实体及其特性",
+        "sections": {
+          "light_0": {
+            "name": "主灯",
+            "data": {
+              "type": "类型",
+              "min_brightness": "最低亮度",
+              "refresh_on_start": "打开时强制刷新颜色 / 亮度",
+              "reversed": "反转冷白 / 暖白",
+              "forced_cmds": "即使没有变化也始终发送的命令",
+              "effects": "灯光模式"
+            }
+          },
+          "light_1": {
+            "name": "第二盏灯",
+            "data": {
+              "type": "类型",
+              "min_brightness": "最低亮度",
+              "refresh_on_start": "打开时强制刷新颜色 / 亮度",
+              "reversed": "反转冷白 / 暖白",
+              "forced_cmds": "即使没有变化也始终发送的命令",
+              "effects": "灯光模式"
+            }
+          },
+          "light_2": {
+            "name": "第三盏灯",
+            "data": {
+              "type": "类型",
+              "min_brightness": "最低亮度",
+              "refresh_on_start": "打开时强制刷新颜色 / 亮度",
+              "reversed": "反转冷白 / 暖白",
+              "forced_cmds": "即使没有变化也始终发送的命令",
+              "effects": "灯光模式"
+            }
+          },
+          "fan_0": {
+            "name": "主风扇",
+            "data": {
+              "type": "类型",
+              "direction": "支持方向",
+              "oscillating": "支持摇头",
+              "refresh_dir_on_start": "打开时强制刷新方向",
+              "refresh_osc_on_start": "打开时强制刷新摇头状态",
+              "forced_cmds": "即使没有变化也始终发送的命令",
+              "presets": "风扇模式"
+            }
+          },
+          "fan_1": {
+            "name": "第二个风扇",
+            "data": {
+              "type": "类型",
+              "direction": "支持方向",
+              "oscillating": "支持摇头",
+              "refresh_dir_on_start": "打开时强制刷新方向",
+              "refresh_osc_on_start": "打开时强制刷新摇头状态",
+              "forced_cmds": "即使没有变化也始终发送的命令",
+              "presets": "风扇模式"
+            }
+          },
+          "fan_2": {
+            "name": "第三个风扇",
+            "data": {
+              "type": "类型",
+              "direction": "支持方向",
+              "oscillating": "支持摇头",
+              "refresh_dir_on_start": "打开时强制刷新方向",
+              "refresh_osc_on_start": "打开时强制刷新摇头状态",
+              "forced_cmds": "即使没有变化也始终发送的命令",
+              "presets": "风扇模式"
+            }
+          }
+        }
+      },
+      "config_remote": {
+        "title": "配置物理遥控器",
+        "description": "已关联控制器：\n\n    编解码器：{codec}\n    ID：{id}\n    索引：{index}",
+        "menu_options": {
+          "config_remote_delete": "删除已关联的控制器",
+          "config_remote_update": "修改已关联控制器的选项",
+          "wait_config_remote": "替换已关联的控制器",
+          "configure": "返回"
+        }
+      },
+      "wait_config_remote": {
+        "title": "配置新的已关联控制器"
+      },
+      "config_remote_update": {
+        "title": "配置已关联控制器选项",
+        "description": "已关联控制器：\n\n    编解码器：{codec}\n    ID：{id}\n    索引：{index}"
+      },
+      "config_technical": {
+        "title": "配置技术选项",
+        "description": "每条命令会以指定的“间隔”（毫秒），向给定适配器广播“重复次数”次，并在两条不同命令之间遵守“最小时长”的延迟。\n\n只有在你清楚自己在做什么时才修改！\n\n强烈不建议使用多个适配器，也不会对此提供支持。",
+        "data": {
+          "adapter_ids": "BLE ADV 适配器",
+          "interval": "间隔",
+          "repeats": "重复次数",
+          "duration": "最小时长"
+        }
+      },
+      "finalize": {
+        "title": "命名你的设备",
+        "description": "这是最后一步！",
+        "data": {
+          "name": "设备名称"
+        }
+      }
+    },
+    "progress": {
+      "listen_raw": "正在监听 BLE 广播\n{advs}",
+      "wait_pair": "正在配对……",
+      "wait_config": "请在 {max_seconds} 秒内，在控制该设备的手机 App 上按下任意按钮（最好是配对按钮）。",
+      "agg_config": "正在聚合配置数据。",
+      "blink": "正在使用配置 {nb}/{tot} 让灯闪烁：\n\n    编解码器：{codec}\n    ID：{id}\n    索引：{index}",
+      "wait_config_remote": "请在 {max_seconds} 秒内，在控制器上按下任意按钮（最好是配对按钮）。"
+    },
+    "abort": {
+      "no_adapters": "未找到支持 BLE 广播的蓝牙适配器，正在中止。",
+      "no_config": "未发现或未成功测试任何配置。",
+      "not_implemented": "尚未实现",
+      "reconfigure_successful": "重新配置成功！",
+      "already_configured": "已经配置了具有相同（编解码器 / ID / 索引）的设备。\n更多信息请查看故障排查指南 - 步骤 3.3"
+    },
+    "error": {
+      "missing_entity": "必须至少配置一个风扇或灯。",
+      "missing_adapter": "必须至少选择一个适配器。"
+    }
+  },
+  "selector": {
+    "light": {
+      "options": {
+        "cww": "冷白 / 暖白",
+        "onoff": "仅开 / 关",
+        "rgb": "RGB",
+        "none": "无"
+      }
+    },
+    "fan": {
+      "options": {
+        "3speed": "3 档风扇",
+        "4speed": "4 档风扇",
+        "6speed": "6 档风扇",
+        "8speed": "8 档风扇",
+        "100speed": "100 档风扇",
+        "none": "无"
+      }
+    },
+    "forced_cmds": {
+      "options": {
+        "turn_on": "打开",
+        "turn_off": "关闭"
+      }
+    },
+    "effects": {
+      "options": {
+        "rgb": "RGB 循环",
+        "rgbk": "RGBK 循环"
+      }
+    },
+    "presets": {
+      "options": {
+        "breeze": "自然风",
+        "sleep": "睡眠模式"
+      }
+    }
+  },
+  "entity": {
+    "fan": {
+      "fan_0": {
+        "name": "主风扇",
+        "state_attributes": {
+          "preset_mode": {
+            "state": {
+              "breeze": "自然风",
+              "sleep": "睡眠模式"
+            }
+          }
+        }
+      },
+      "fan_1": {
+        "name": "第二个风扇",
+        "state_attributes": {
+          "preset_mode": {
+            "state": {
+              "breeze": "自然风",
+              "sleep": "睡眠模式"
+            }
+          }
+        }
+      },
+      "fan_2": {
+        "name": "第三个风扇",
+        "state_attributes": {
+          "preset_mode": {
+            "state": {
+              "breeze": "自然风",
+              "sleep": "睡眠模式"
+            }
+          }
+        }
+      }
+    },
+    "light": {
+      "light_0": {
+        "name": "主灯",
+        "state_attributes": {
+          "effect": {
+            "state": {
+              "rgb": "RGB 循环",
+              "rgbk": "RGBK 循环"
+            }
+          }
+        }
+      },
+      "light_1": {
+        "name": "第二盏灯",
+        "state_attributes": {
+          "effect": {
+            "state": {
+              "rgb": "RGB 循环",
+              "rgbk": "RGBK 循环"
+            }
+          }
+        }
+      },
+      "light_2": {
+        "name": "第三盏灯",
+        "state_attributes": {
+          "effect": {
+            "state": {
+              "rgb": "RGB 循环",
+              "rgbk": "RGBK 循环"
+            }
+          }
+        }
+      }
+    }
+  },
+  "services": {
+    "inject_raw": {
+      "name": "注入原始 BLE 广播",
+      "description": "以二进制十六进制格式注入原始 BLE 广播。",
+      "fields": {
+        "adapter_id": {
+          "name": "适配器 ID",
+          "description": "要使用的适配器名称。"
+        },
+        "raw": {
+          "name": "原始 BLE 广播",
+          "description": "要发送的原始 BLE 广播。"
+        },
+        "interval": {
+          "name": "间隔",
+          "description": "两次广播之间的间隔，单位为毫秒。"
+        },
+        "repeat": {
+          "name": "重复次数",
+          "description": "该广播将被发送的重复次数。"
+        },
+        "device_queue": {
+          "name": "设备队列名称",
+          "description": "目标设备队列名称，不对应任何 ID；它用于区分不同设备之间的广播，并应用正确的队列处理。"
+        },
+        "duration": {
+          "name": "最小时长",
+          "description": "同一适配器 / 设备发送另一条广播之前的最小时长，单位为毫秒。"
+        }
+      }
+    }
+  }
+}
