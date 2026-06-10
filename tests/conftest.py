@@ -55,7 +55,7 @@ class _MockEsphomeConfigEntry(ConfigEntry):
         )
         self.runtime_data = mock.MagicMock()
         self.runtime_data.device_info.name = bn
-        self.runtime_data.device_info.mac = "00:00:00:00:00:00"
+        self.runtime_data.device_info.bluetooth_mac_address = "00:00:00:00:00:00"
 
 
 @pytest.fixture
