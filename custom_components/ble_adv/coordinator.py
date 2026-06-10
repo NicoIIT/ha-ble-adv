@@ -121,11 +121,11 @@ class BleAdvCoordinator:
         self.ign_adapters = ign_adapters
 
         self._raw_last_advs: dict[bytes, datetime] = {}
-        self._emit_last_advs: dict[bytes, datetime] = {}
         self._dec_last_advs: dict[bytes, BleAdvRecvItem] = {}
 
         self._devices: list[BleAdvBaseDevice] = []
         self._in_use_codecs: set[str] = set()
+        self._adapter_macs: set[str] = set()
 
         self._hci_bt_manager: BleAdvBtHciManager = BleAdvBtHciManager(self.handle_raw_adv, self.on_adapter_change, ign_adapters)
         self._esp_bt_manager: BleAdvEspBtManager = BleAdvEspBtManager(
@@ -163,10 +163,13 @@ class BleAdvCoordinator:
         return len(self._hci_bt_manager.adapters) > 0 or len(self._esp_bt_manager.adapters) > 0
 
     async def on_adapter_change(self, adapter_id: str, _: bool) -> None:
-        """Update availability on Adapter added / removed."""
+        """Update device availability and adapter macs on Adapter added / removed."""
         for device in self._devices:
             if adapter_id in device.adapter_ids:
                 device.update_availability()
+        self._adapter_macs.clear()
+        self._adapter_macs.update(x.mac for x in self._hci_bt_manager.adapters.values())
+        self._adapter_macs.update(x.mac for x in self._esp_bt_manager.adapters.values())
 
     async def on_stop_event(self, _: Event) -> None:
         """Act on stop event."""
@@ -204,9 +207,6 @@ class BleAdvCoordinator:
 
     async def advertise(self, adapter_id: str | None, queue_id: str, qi: BleAdvQueueItem) -> None:
         """Advertise."""
-        # Ignore the future emitted advs while they are being emitted by potentially other adapters
-        for raw_adv in qi.data:
-            self._emit_last_advs[bytes(raw_adv)] = datetime.now() + timedelta(milliseconds=qi.ign_duration)
         if adapter_id in self._hci_bt_manager.adapters:
             await self._hci_bt_manager.adapters[adapter_id].enqueue(queue_id, qi)
         elif adapter_id in self._esp_bt_manager.adapters:
@@ -266,8 +266,8 @@ class BleAdvCoordinator:
     async def handle_raw_adv(self, adapter_id: str, orig: str, raw_adv: bytes) -> None:
         """Handle a raw advertising."""
         try:
-            # check if the received orig is in the ignored macs, or if too short to be considered
-            if orig in self.ign_macs or len(raw_adv) < 8:
+            # check if the received orig is in the ignored macs, adapter macs, or if too short to be considered
+            if orig in self.ign_macs or orig in self._adapter_macs or len(raw_adv) < 8:
                 return
 
             # Parse the raw data and find the relevant info ble_type and raw
@@ -277,15 +277,10 @@ class BleAdvCoordinator:
             if int.from_bytes(adv.raw[:2], "little") in self.ign_cids:
                 return
 
-            # Clean-up last raw / emitted / decoded advs based on expiry date
+            # Clean-up last raw / decoded advs based on expiry date
             now = datetime.now()
             self._raw_last_advs = {x: y for x, y in self._raw_last_advs.items() if (y > now)}
-            self._emit_last_advs = {x: y for x, y in self._emit_last_advs.items() if (y > now)}
             self._dec_last_advs = {x: y for x, y in self._dec_last_advs.items() if (y.del_time > now)}
-
-            # Check if already present in last emitted advs: ignore
-            if raw_adv in self._emit_last_advs:
-                return
 
             # Check if already present in last raw advs: extend exclusion duration
             if raw_adv in self._raw_last_advs:
@@ -326,7 +321,7 @@ class BleAdvCoordinator:
             "ign_duration": self.ign_duration,
             "ign_cids": list(self.ign_cids),
             "ign_macs": list(self.ign_macs),
-            "last_emitted": {x.hex().upper(): y for x, y in self._emit_last_advs.items()},
+            "adapter_macs": list(self._adapter_macs),
             "last_unk_raw": {x.hex().upper(): y for x, y in self._raw_last_advs.items()},
             "last_dec_raw": {x.hex().upper(): y for x, y in self._dec_last_advs.items()},
         }

@@ -136,6 +136,17 @@ async def test_ign_mac(coord: BleAdvCoordinator) -> None:
     assert coord.listened_raw_advs == []
 
 
+async def test_adapter_mac(hass: HomeAssistant, coord: BleAdvCoordinator) -> None:
+    """Test Adapter Macs are ignored."""
+    t1 = MockEspProxy(hass, "esp-test")
+    await t1.setup()
+    assert coord.get_adapter_ids() == ["esp-test"]
+    coord.start_listening(0.1)
+    raw_adv = bytes([0x03, 0xFF, 0x12, 0x34, 0x12, 0x34, 0x12, 0x34])
+    await coord.handle_raw_adv("aaa", "00:00:00:00:00:00", raw_adv)
+    assert coord.listened_raw_advs == []
+
+
 async def test_inject_raw(hass: HomeAssistant, coord: BleAdvCoordinator) -> None:
     """Test Raw Injection."""
     coord.advertise = mock.AsyncMock()
