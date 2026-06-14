@@ -3,10 +3,11 @@
 # ruff: noqa: S101
 import asyncio
 import os
+import socket
 from unittest import mock
 
 import pytest
-from ble_adv.async_socket import TUNNEL_SOCKET_FILE_VAR, AsyncSocket, AsyncTunnelSocket, create_async_socket
+from ble_adv.async_socket import TUNNEL_SOCKET_FILE_VAR, AsyncSocket, AsyncTunnelSocket, async_socket_recv, create_async_socket
 
 from .conftest import _ConMock, _SocketMock
 
@@ -157,3 +158,63 @@ def test_create_async_socket() -> None:
         assert isinstance(create_async_socket(), AsyncSocket)
     with mock.patch.dict(os.environ, {TUNNEL_SOCKET_FILE_VAR: "whatever"}):
         assert isinstance(create_async_socket(), AsyncTunnelSocket)
+
+
+async def test_async_socket_recv_returns_data() -> None:
+    """async_socket_recv returns immediately when data is already available."""
+    sock_a, sock_b = socket.socketpair()
+    sock_a.setblocking(False)
+    try:
+        sock_b.send(b"hello")
+        assert await asyncio.wait_for(async_socket_recv(sock_a, 4096), 1) == b"hello"
+    finally:
+        sock_a.close()
+        sock_b.close()
+
+
+async def test_async_socket_recv_waits_then_returns() -> None:
+    """async_socket_recv suspends until the socket is readable, then returns the data."""
+    sock_a, sock_b = socket.socketpair()
+    sock_a.setblocking(False)
+
+    async def _send_later() -> None:
+        await asyncio.sleep(0.05)
+        sock_b.send(b"later")
+
+    task = asyncio.create_task(_send_later())
+    try:
+        assert await asyncio.wait_for(async_socket_recv(sock_a, 4096), 1) == b"later"
+    finally:
+        await task
+        sock_a.close()
+        sock_b.close()
+
+
+async def test_async_socket_recv_idle_suspends() -> None:
+    """An idle non-blocking socket must suspend, never busy-return EAGAIN (anti reconnect-storm)."""
+    sock_a, sock_b = socket.socketpair()
+    sock_a.setblocking(False)
+    try:
+        with pytest.raises(TimeoutError):
+            await asyncio.wait_for(async_socket_recv(sock_a, 4096), 0.2)
+    finally:
+        sock_a.close()
+        sock_b.close()
+
+
+async def test_async_socket_recv_stuck_readable_raises() -> None:
+    """A fd the selector reports readable that still yields EAGAIN is a hangup -> BrokenPipeError."""
+    read_fd, write_fd = os.pipe()
+    os.write(write_fd, b"x")  # make read_fd readable so the reader callback fires
+    fake = mock.MagicMock()
+    fake.recv.side_effect = BlockingIOError
+    fake.fileno.return_value = read_fd
+    try:
+        with pytest.raises(BrokenPipeError):
+            await asyncio.wait_for(async_socket_recv(fake, 4096), 1)
+        # The fix resolves on the first reader EAGAIN; a re-arm-on-EAGAIN spin
+        # would call recv() thousands of times before the 1s timeout fired.
+        assert fake.recv.call_count < 10
+    finally:
+        os.close(read_fd)
+        os.close(write_fd)
