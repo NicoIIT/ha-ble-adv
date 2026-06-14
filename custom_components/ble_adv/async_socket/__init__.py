@@ -4,7 +4,6 @@ import asyncio
 import logging
 import os
 import pickle
-import select
 import socket
 from abc import ABC, abstractmethod
 from collections.abc import Awaitable, Callable, Coroutine
@@ -20,6 +19,46 @@ type SocketWaitRecvCallback = Callable[[], Awaitable[tuple[bytes | None, bool]]]
 TUNNEL_SOCKET_FILE_VAR = "TUNNEL_SOCKET_FILE"
 
 _LOGGER = logging.getLogger(__name__)
+
+
+async def async_socket_recv(sock: socket.socket, nbbytes: int) -> bytes:
+    """Receive from a non-blocking socket, treating a stuck-readable fd as a hangup.
+
+    Mirrors asyncio loop.sock_recv (optimistic recv, then wait for the selector to
+    report readable) but raises BrokenPipeError when a fd the selector DID report
+    readable still yields EAGAIN. That happens when the controller is reset out from
+    under us by another stack sharing the adapter (host bluetoothd toggling power, or a
+    desktop logout emitting a mgmt NEW_SETTINGS event): the fd stays readable forever
+    while recv() returns EAGAIN. loop.sock_recv() silently re-arms its reader on that
+    EAGAIN and spins one core at 100% CPU; raising lets the recv loop reconnect instead.
+    """
+    try:
+        return sock.recv(nbbytes)
+    except (BlockingIOError, InterruptedError):
+        pass  # no data yet / EINTR: wait for the selector to report readable
+    loop = asyncio.get_running_loop()
+    fut: asyncio.Future = loop.create_future()
+    fd = sock.fileno()
+
+    def _on_readable() -> None:
+        if fut.done():
+            return
+        try:
+            data = sock.recv(nbbytes)
+        except InterruptedError:
+            return  # transient: let the reader re-fire and retry
+        except BlockingIOError:
+            fut.set_exception(BrokenPipeError("HCI socket hung up (stuck-readable EAGAIN; adapter reset)"))
+        except Exception as exc:
+            fut.set_exception(exc)
+        else:
+            fut.set_result(data)
+
+    loop.add_reader(fd, _on_readable)
+    try:
+        return await fut
+    finally:
+        loop.remove_reader(fd)
 
 
 class AsyncSocketBase(ABC):
@@ -152,49 +191,7 @@ class AsyncSocket(AsyncSocketBase):
         """Receive Data from socket."""
         if self._socket is None:
             return None, False
-        # Not loop.sock_recv(): when the controller is reset out from under us by
-        # another stack sharing the adapter (host bluetoothd toggling power, or a
-        # desktop logout emitting mgmt NEW_SETTINGS), the selector keeps reporting the
-        # fd readable while recv() returns EAGAIN. sock_recv() -- and a naive
-        # add_reader -- re-arm on that and spin one core at 100% CPU.
-        #
-        # A healthy non-blocking socket with no data is NOT reported readable, so
-        # EAGAIN on a fd the selector DID report readable is always a stuck-readable
-        # hangup. Raise on it unconditionally so the future always resolves and the
-        # recv loop reconnects (with backoff) instead of spinning. (The earlier patch
-        # only raised when poll() showed POLLHUP/ERR/NVAL, which missed the logout
-        # NEW_SETTINGS case where the fd is stuck readable without those flags.)
-        loop = asyncio.get_event_loop()
-        fut: asyncio.Future = loop.create_future()
-        fd = self._socket.fileno()
-
-        def _on_readable() -> None:
-            if fut.done():
-                return
-            try:
-                data = self._socket.recv(4096)
-            except InterruptedError:
-                # EINTR: syscall interrupted by a signal. Transient -- let the reader
-                # re-fire and retry recv(); real data is still pending so it won't spin.
-                return
-            except BlockingIOError:
-                # EAGAIN on a readable fd => stuck-readable hangup (see above). poll()
-                # only enriches the diagnostic; we raise either way so the future
-                # always resolves and the reader is removed.
-                poller = select.poll()
-                poller.register(fd, select.POLLHUP | select.POLLERR | select.POLLNVAL)
-                reason = "explicit hangup" if poller.poll(0) else "stuck-readable EAGAIN (adapter reset)"
-                fut.set_exception(BrokenPipeError(f"HCI socket hung up: {reason}"))
-            except Exception as exc:
-                fut.set_exception(exc)
-            else:
-                fut.set_result(data)
-
-        loop.add_reader(fd, _on_readable)
-        try:
-            data = await fut
-        finally:
-            loop.remove_reader(fd)
+        data = await async_socket_recv(self._socket, 4096)
         return data, len(data) > 0
 
     def _call_done(self, future: asyncio.Future) -> None:

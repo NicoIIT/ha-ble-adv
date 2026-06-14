@@ -40,7 +40,7 @@ async def socket_mock_inst() -> AsyncGenerator[_SocketMock]:
     with mock.patch("socket.socket", new_callable=_SocketMock) as mock_socket:
         mock_inst = mock_socket.return_value
         mock_inst.init()
-        with mock.patch.object(asyncio.get_event_loop(), "sock_recv", side_effect=mock_inst.sock_recv):
+        with mock.patch("ble_adv.async_socket.async_socket_recv", side_effect=mock_inst.sock_recv):
             yield mock_inst
 
 
@@ -57,7 +57,7 @@ async def btsocket_mock_inst() -> AsyncGenerator[_SocketMock]:
     ):
         mock_inst = mock_socket.return_value
         mock_inst.init()
-        with mock.patch.object(asyncio.get_event_loop(), "sock_recv", side_effect=mock_inst.sock_recv):
+        with mock.patch("ble_adv.async_socket.async_socket_recv", side_effect=mock_inst.sock_recv):
             yield mock_inst
 
 
