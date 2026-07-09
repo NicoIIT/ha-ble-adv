@@ -11,6 +11,7 @@ from .remotes import CODECS as REMOTES_CODECS
 from .ruixin import CODECS as RUIXIN_CODECS
 from .rw import CODECS as RW_CODECS
 from .smartelfin import CODECS as SMARTELFIN_CODECS
+from .smartlight_remote import CODECS as SMARTLIGHT_REMOTE_CODECS
 from .zhijia import CODECS as ZHIJIA_CODECS
 from .zhimei import CODECS as ZHIMEI_CODECS
 
@@ -43,6 +44,7 @@ def get_codec_list() -> list[BleAdvCodec]:
         *RUIXIN_CODECS,
         *RW_CODECS,
         *SMARTELFIN_CODECS,
+        *SMARTLIGHT_REMOTE_CODECS,
     ]
 
 
