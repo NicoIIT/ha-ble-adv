@@ -26,6 +26,7 @@ class TestEncoderZhimei(_TestEncoderBase):
     [
         ("zhimei_fan_v1", 0x03, "48.46.4B.4A.8F.D3.A4.49.9B.44.6E.EA.23.F5.B6.36.0F.ED.8F.DE.10.11.12.13.14.15"),
         ("zhimei_v1", 0x03, "48.46.4B.4A.1C.AB.1F.B8.0E.B7.E1.7D.98.82.31.A5.7E.7E.DB.68.10.11.12.13.14.15"),
+        ("zhimei_fan_v1", 0x03, "48.46.4B.4A.51.20.E8.30.90.E0.35.22.5D.CE.A2.58.CD.03.82.75.10.11.12.13.14.15"),
     ],
 )
 class TestEncoderZhimeiWithDupes(_TestEncoderBase):
