@@ -151,7 +151,7 @@ class ZhimeiEncoderV1(BleAdvCodec):
 
     def convert_from_enc(self, enc_cmd: BleAdvEncCmd, conf: BleAdvConfig) -> bytes:
         """Convert an encoder command and a config into a readable buffer."""
-        uid = (conf.id & 0xFFFF).to_bytes(4, "little")
+        uid = conf.id.to_bytes(4, "little")
         return bytes([0xFF, conf.seed, conf.tx_count, *uid, enc_cmd.cmd, conf.index, 0xFF, conf.tx_count, enc_cmd.arg0, enc_cmd.arg1, enc_cmd.arg2])
 
 
