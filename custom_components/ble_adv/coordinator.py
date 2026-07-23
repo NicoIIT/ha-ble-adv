@@ -52,6 +52,10 @@ class BleAdvBaseDevice:
         self._listeners: list[tuple[str, BleAdvConfig]] = []
         self.add_listener(codec_id, config)
 
+        self.prev_cmd: BleAdvEncCmd | None = None
+        self.prev_tx_count: int = 0
+        self.prev_seed: int = 0
+
     @property
     def available(self) -> bool:
         """Return True if the device is available: if one of the adapters is available."""
@@ -248,9 +252,18 @@ class BleAdvCoordinator:
         for device in self._devices:
             if device.unique_id not in recv.pub_devices and device.match(recv.codec.match_id, adapter_id, recv.conf):
                 cons_cmd = copy(recv.enc_cmd)  # work on a copy to avoid the alteration of the command
-                if (cons_cmd := recv.codec.consolidate(cons_cmd, device.config.prev_cmd)) is not None:
-                    await device.async_on_command(recv.codec.enc_to_ent(cons_cmd))
-                device.config.prev_cmd = recv.enc_cmd
+                if (cons_cmd := recv.codec.consolidate(cons_cmd, device.prev_cmd)) is not None:
+                    if (
+                        ((recv.conf.tx_count == 0) and (recv.conf.seed == 0))  # TX Count AND Seed not setup: always valid
+                        or (recv.conf.tx_count != device.prev_tx_count)  # TX Count different from last one recv
+                        or (recv.conf.seed != device.prev_seed)  # Seed different from last one recv
+                    ):
+                        await device.async_on_command(recv.codec.enc_to_ent(cons_cmd))
+                    else:
+                        _LOGGER.debug("Ignored as duplicated TX Count or Seed")
+                device.prev_tx_count = recv.conf.tx_count
+                device.prev_seed = recv.conf.seed
+                device.prev_cmd = recv.enc_cmd
                 recv.pub_devices.add(device.unique_id)
 
     def _handle_listening(self, adapter_id: str, _: str, raw_adv: bytes) -> None:
