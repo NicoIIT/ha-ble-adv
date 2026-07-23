@@ -145,7 +145,6 @@ class BleAdvConfig:
     tx_count: int = 0
     app_restart_count: int = 1
     seed: int = 0
-    prev_cmd: BleAdvEncCmd | None = None
 
     def __init__(self, config_id: int = 0, index: int = 0, codec_params: list[Any] | None = None) -> None:
         self.id: int = config_id

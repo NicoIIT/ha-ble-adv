@@ -2,12 +2,13 @@
 
 # ruff: noqa: S101
 import asyncio
+from datetime import datetime
 from unittest import mock
 
 from ble_adv.adapters import BleAdvQueueItem
 from ble_adv.codecs.models import BleAdvAdvertisement, BleAdvCodec, BleAdvConfig, BleAdvEncCmd
 from ble_adv.const import CONF_ADAPTER_ID, CONF_DEVICE_QUEUE, CONF_DURATION, CONF_INTERVAL, CONF_RAW, CONF_REPEAT
-from ble_adv.coordinator import BleAdvBaseDevice, BleAdvCoordinator
+from ble_adv.coordinator import BleAdvBaseDevice, BleAdvCoordinator, BleAdvRecvItem
 from homeassistant.core import HomeAssistant
 from homeassistant.loader import Manifest
 
@@ -79,7 +80,7 @@ async def test_device_pub(hass: HomeAssistant, coord: BleAdvCoordinator) -> None
     coord.codecs = _get_codecs()
     dev1 = _Device(coord, "dev1", "cod1", ["esp-test"])
     dev1.add_listener("cod1", BleAdvConfig(1, 0))
-    assert dev1.config.prev_cmd is None
+    assert dev1.prev_cmd is None
     coord.add_device(dev1)
     t1 = MockEspProxy(hass, "esp-test")
     await t1.setup()
@@ -92,15 +93,61 @@ async def test_device_pub(hass: HomeAssistant, coord: BleAdvCoordinator) -> None
     assert recv1 is not None
     assert recv1.pub_devices == {"dev1"}
     assert recv1.enc_cmd.cmd == 0x10
-    assert dev1.config.prev_cmd == BleAdvEncCmd(0x10)
-    dev1.config.prev_cmd = BleAdvEncCmd(0x20)
+    assert dev1.prev_cmd == BleAdvEncCmd(0x10)
+    dev1.prev_cmd = BleAdvEncCmd(0x20)
     base_adv2 = b"base_adv_nb2"
     adv2 = BleAdvAdvertisement(0xFF, base_adv2, 0x1A)
     await coord.handle_raw_adv("esp-test", "", bytes(adv2.to_raw()))
     cod1.consolidate.assert_called_once_with(BleAdvEncCmd(0x10), BleAdvEncCmd(0x20))  # type: ignore[mock]
     recv2 = coord._dec_last_advs.get(base_adv2)  # noqa: SLF001
     assert recv2 is not None
-    assert dev1.config.prev_cmd == BleAdvEncCmd(0x10)
+    assert dev1.prev_cmd == BleAdvEncCmd(0x10)
+
+
+async def test_deduplicate_tx_count_seed(coord: BleAdvCoordinator) -> None:
+    """Test deduplication of received cmd with same tx_count and seed."""
+    codecs = _get_codecs()
+    cod1: BleAdvCodec = codecs["cod1"]
+    coord.codecs = _get_codecs()
+    dev1 = _Device(coord, "dev1", "cod1", ["esp-test"])
+    dev1.add_listener("cod1", BleAdvConfig(1, 0))
+    dev1.async_on_command = mock.AsyncMock()
+    assert dev1.prev_cmd is None
+    assert dev1.prev_seed == 0
+    assert dev1.prev_tx_count == 0
+    coord.add_device(dev1)
+    conf1 = BleAdvConfig(1, 0)
+    conf1.tx_count = 1
+    recv1 = BleAdvRecvItem(datetime.now(), cod1, set(), conf1, BleAdvEncCmd(0x10))
+    await coord._publish_to_devices("esp-test", recv1)  # noqa: SLF001
+    dev1.async_on_command.assert_called_once_with([])
+    dev1.async_on_command.reset_mock()
+    # Recv command with different tx_count: OK
+    conf2 = BleAdvConfig(1, 0)
+    conf2.tx_count = 2
+    recv2 = BleAdvRecvItem(datetime.now(), cod1, set(), conf2, BleAdvEncCmd(0x10))
+    await coord._publish_to_devices("esp-test", recv2)  # noqa: SLF001
+    dev1.async_on_command.assert_called_once_with([])
+    dev1.async_on_command.reset_mock()
+    # RE recv same: command ignored
+    conf2 = BleAdvConfig(1, 0)
+    conf2.tx_count = 2
+    recv2 = BleAdvRecvItem(datetime.now(), cod1, set(), conf2, BleAdvEncCmd(0x10))
+    await coord._publish_to_devices("esp-test", recv2)  # noqa: SLF001
+    dev1.async_on_command.assert_not_called()
+    dev1.async_on_command.reset_mock()
+    # receive with tx_count = 0 and seed = 0 => always ok
+    conf0 = BleAdvConfig(1, 0)
+    recv0 = BleAdvRecvItem(datetime.now(), cod1, set(), conf0, BleAdvEncCmd(0x10))
+    await coord._publish_to_devices("esp-test", recv0)  # noqa: SLF001
+    dev1.async_on_command.assert_called_once_with([])
+    dev1.async_on_command.reset_mock()
+    # RE receive with tx_count = 0 and seed = 0 => always ok
+    conf0 = BleAdvConfig(1, 0)
+    recv0 = BleAdvRecvItem(datetime.now(), cod1, set(), conf0, BleAdvEncCmd(0x10))
+    await coord._publish_to_devices("esp-test", recv0)  # noqa: SLF001
+    dev1.async_on_command.assert_called_once_with([])
+    dev1.async_on_command.reset_mock()
 
 
 async def test_listening(coord: BleAdvCoordinator) -> None:
