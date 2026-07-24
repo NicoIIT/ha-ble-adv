@@ -8,7 +8,7 @@ Home Assistant Custom Integration to control Ceiling Fan / Lamp Devices from var
 This integration **is not limited to any specific device type or brand**: it is able to recognize and reproduce the communication protocols used by various [Phone Apps](#supported-ceiling-fans--lamps-protocols) and Remotes.
 
 ## Features
-* Discover your device configuration simply by listening to an already paired controller (Android Phone App, Physical Remote, ESPHome ble_adv_controller)
+* Discover your device configuration simply by listening to an already paired controller (Android Phone App, Physical Remote)
 * Create Home Assistant Fan / Light Entities using existing Home Assistant UI to control them
 * Listen to the command emitted by the Phone App and updates Home Assistant Entities state
 * Synchronize another controller: allows to have a Phone App and a remote both updating Home Assistant entities state
@@ -38,6 +38,7 @@ The Protocols supported are the ones used by the following Android Phone Apps (a
 * [RuiXin](https://rx-etech.com/rxzn.html) Sanweyter devices (No RGB, no Timer, Remote Temperature Switch not reflected in HA) (not available on Play Store)
 * [RW.LIGHT](https://play.google.com/store/apps/details?id=com.rw.rwblelight) (No control by Group, No support for AURA / IR / FIBER types)
 * [Smart Elfin](https://play.google.com/store/apps/details?id=com.warpfuture.wfiot.g)
+* [GMIMA](https://www.jasonghost.com/lampSmartGmima/) (not available on Play Store)
 * Other (Legacy), removed app from play store: 'FanLamp', 'ControlSwitch', 'Lamp Smart Pro - Soft Lighting / Smart Lighting'
 
 If the protocols of your application are not supported yet you can request for their support [here](https://github.com/NicoIIT/ha-ble-adv/issues/new?template=new_app.yml).
@@ -52,16 +53,7 @@ Download and install directly through [HACS (Home Assistant Community Store)](ht
 
 [![Open your Home Assistant instance and open a repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=NicoIIT&repository=ha-ble-adv)
 
-Alternatively if you do not want to use HACS, you can simply clone this repository and copy the 'custom_components' directly at the root of your HA config (at the same place than your configuration.yaml):
-```
-/ha_root:
-  |-> custom_components
-  |    |-> ble_adv
-  |-> configuration.yaml
-```
-Still with this method you will not be warned when a new Release will be available.
-
-In any case, once the repository is added, you need to restart Home Assistant so that it could be taken into account.
+Once the repository is added, you need to restart Home Assistant so that it could be taken into account.
 
 ## Adding Integrations
 Once the component is installed, you can now [add](https://www.home-assistant.io/getting-started/integration/) a **"BLE ADV Ceiling Fan / Lamps"** integration for each of the Devices you want to control.
@@ -72,10 +64,9 @@ The configuration flow will listen to the commands emitted by your phone / physi
 * you can check if the lamp blinked
 
 The main steps of the configuration flow are the following:
-* **Configuration discovery**, with 3 ways to proceed:
-  * **The recommended way - Duplicate Config**: Press on a button on your Phone App (OR Physical Remote OR HA Entity from ESPHome controller) already paired and controlling your device, the configuration process will automatically detect the potential configurations.
-  * **The expert way - Manual Input**: directly specifies the configuration parameters (codec / forced_id / index) if already known from a previous install or ESPHome config
-  * **Pairing**: the last chance if you do not have an already paired controlling device, the process will try to pair with your device
+* **Configuration discovery**, with 2 ways to proceed:
+  * **The recommended way - Duplicate Config**: Press on a button on your Phone App (OR Physical Remote) already paired and controlling your device, the configuration process will automatically detect the potential configurations.
+  * **Pairing**: if you do not have a controller already paired controlling your device, the process will try to pair with your device
 * **Validation**: Find the first of the potential configurations discovered / entered that can control the lamp by trying to make it blink
 * **Definition**: Define the **Entities** to be created (Main Light, Second Light, Fan, ...) and their characteristics (RGB / Cold White Warm / Binary / Fan Speed / Min Brightness...), add a supplementary remote controller or modify the technical parameters. This step can be modified afterwards by reconfiguring the integration (see [Wiki](https://github.com/NicoIIT/ha-ble-adv/wiki/Configuration-Guide)).
 * **Finalization**: Specify the name of the Device and save your changes.

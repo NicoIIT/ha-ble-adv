@@ -5,7 +5,6 @@
       "user": {
         "description": "Kezdés előtt győződjön meg róla, hogy ugyanabban a helyiségben tartózkodik, mint az irányítani kívánt eszköz!",
         "menu_options": {
-          "manual": "Kézi bevitel (szakértő)",
           "wait_config": "Párosított telefon alkalmazás konfigurációjának másolása (ajánlott)",
           "pair": "Párosítás",
           "tools": "Eszközök és segédprogramok"
@@ -23,6 +22,7 @@
         "description": "Eszközök szakasz",
         "menu_options": {
           "diag": "Diagnosztikai kivonat",
+          "manual": "Kézi bevitel (szakértő)",
           "inject": "Nyers adatok beillesztése",
           "listen_raw": "BLE hirdetés figyelése",
           "decode_raw": "Nyers BLE hirdetés dekódolása"

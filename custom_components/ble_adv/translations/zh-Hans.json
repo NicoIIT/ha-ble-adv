@@ -5,7 +5,6 @@
       "user": {
         "description": "开始前，请确认你和要控制的设备位于同一个房间内！",
         "menu_options": {
-          "manual": "手动输入（专家）",
           "wait_config": "复制已配对手机 App 配置（推荐）",
           "pair": "配对",
           "tools": "工具和辅助功能"
@@ -23,6 +22,7 @@
         "description": "工具区域",
         "menu_options": {
           "diag": "诊断转储",
+          "manual": "手动输入（专家）",
           "inject": "注入原始数据",
           "listen_raw": "监听 BLE 广播",
           "decode_raw": "解码原始 BLE 广播"

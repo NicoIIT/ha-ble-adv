@@ -5,7 +5,6 @@
       "user": {
         "description": "Pred začiatkom sa uistite, že sa nachádzate v rovnakej miestnosti ako zariadenie, ktoré chcete ovládať!",
         "menu_options": {
-          "manual": "Manuálny vstup (expert)",
           "wait_config": "Duplikovať konfiguráciu zo spárovanej mobilnej aplikácie (odporúčané)",
           "pair": "Párovanie",
           "tools": "Nástroje a pomocníci"
@@ -23,6 +22,7 @@
         "description": "Sekcia nástrojov",
         "menu_options": {
           "diag": "Diagnostický výpis",
+          "manual": "Manuálny vstup (expert)",
           "inject": "Vložiť Raw dáta",
           "listen_raw": "Počúvať BLE reklamu",
           "decode_raw": "Dekódovať Raw BLE reklamu"
