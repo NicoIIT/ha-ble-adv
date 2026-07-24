@@ -432,7 +432,7 @@ class BleAdvConfigFlow(ConfigFlow, domain=DOMAIN):
         self.coordinator: BleAdvCoordinator = await get_coordinator(self.hass)
         if not self.coordinator.has_available_adapters():
             return await self.async_step_no_adapters()
-        return self.async_show_menu(step_id="user", menu_options=["wait_config", "manual", "pair", "tools"])
+        return self.async_show_menu(step_id="user", menu_options=["wait_config", "pair", "tools"])
 
     async def async_step_no_adapters(self, _: dict[str, Any] | None = None) -> ConfigFlowResult:
         """No Adapter Step."""
@@ -446,7 +446,7 @@ class BleAdvConfigFlow(ConfigFlow, domain=DOMAIN):
     async def async_step_tools(self, _: dict[str, Any] | None = None) -> ConfigFlowResult:
         """Tooling Step."""
         self._return_step_after_diag = "tools"
-        return self.async_show_menu(step_id="tools", menu_options=["diag", "inject", "listen_raw", "decode_raw"])
+        return self.async_show_menu(step_id="tools", menu_options=["diag", "manual", "inject", "listen_raw", "decode_raw"])
 
     async def async_step_diag(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         """Diagnostic step."""
