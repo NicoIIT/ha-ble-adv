@@ -31,7 +31,7 @@ The Protocols supported are the ones used by the following Android Phone Apps (a
 * [Vmax smart](https://play.google.com/store/apps/details?id=com.jingyuan.vmax_smart)
 * [Zhi Jia](https://play.google.com/store/apps/details?id=com.cxw.cxwblelight)
 * [Zhi Guang](https://play.google.com/store/apps/details?id=com.cxw.zhiguang)
-* [Zhi Mei Deng Kong](http://mihuan.iotworkshop.com/zhiguang/) (not available on Play Store)
+* [Zhi Mei Deng Kong](http://mihuan.iotworkshop.com/zhiguang/) (not available on Play Store) (see [Stepped dimming](#stepped-dimming) if brightness / colour temperature do not respond)
 * [Mantra Lighting](https://play.google.com/store/apps/details?id=com.newenergy.baolilan)
 * [Smart Light / Argrace Smart](https://apkpure.com/argrace-smart/ai.argrace.oem) (No RGB, Only the control by device, not the Master Control) (not available on Play Store anymore, seems abandoned)
 * [LE Light Pro / 乐智光Pro](https://openapi.lelight.top/dl/cqan) (not available on Play Store)
@@ -40,6 +40,15 @@ The Protocols supported are the ones used by the following Android Phone Apps (a
 * [Smart Elfin](https://play.google.com/store/apps/details?id=com.warpfuture.wfiot.g)
 * [GMIMA](https://www.jasonghost.com/lampSmartGmima/) (not available on Play Store)
 * Other (Legacy), removed app from play store: 'FanLamp', 'ControlSwitch', 'Lamp Smart Pro - Soft Lighting / Smart Lighting'
+
+### Stepped dimming
+Some devices using the Zhi Mei Deng Kong protocol do not implement absolute brightness / colour temperature: they treat those commands as **relative steps** and ignore the level that is sent. On such a device the brightness and colour temperature sliders appear to do nothing, while On/Off, fan speed and direction all work normally.
+
+For those, select the **Zhi Mei Deng Kong (Fan, stepped dimming)** Phone App: it sends a burst of single steps to reach the requested level instead of one absolute command.
+
+If your device already responds correctly to the brightness slider, keep the standard **Zhi Mei Deng Kong (Fan)** Phone App. The two are separate protocols and the standard one is unchanged.
+
+Note that the integration then has to track the current level itself, so it may drift if the device is also controlled by a remote that the integration cannot listen to (an RF or IR remote, for instance). Setting the slider to 0% or 100% resynchronizes it.
 
 If the protocols of your application are not supported yet you can request for their support [here](https://github.com/NicoIIT/ha-ble-adv/issues/new?template=new_app.yml).
 

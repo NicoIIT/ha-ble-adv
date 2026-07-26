@@ -30,6 +30,7 @@ from .const import (
     ATTR_WARM,
 )
 from .models import (
+    BleAdvAdvertisement,
     BleAdvCodec,
     BleAdvConfig,
     BleAdvEncCmd,
@@ -82,6 +83,58 @@ class ZhimeiEncoderV0(BleAdvCodec):
         """Convert an encoder command and a config into a readable buffer."""
         uid = conf.id.to_bytes(2, "little")
         return bytes([conf.index, conf.tx_count, *uid, enc_cmd.cmd, enc_cmd.arg0, enc_cmd.arg1, enc_cmd.arg2])
+
+
+class ZhimeiFanStepEncoderV0(ZhimeiEncoderV0):
+    """Zhi Mei V0 fan encoder where 0xB5 / 0xB7 are relative STEP commands.
+
+    Some fan lamps (e.g. TCL JJ-FS2.4G+LED) do not implement absolute brightness /
+    colour temp: the level carried in arg1/arg2 is ignored - it is only what the phone
+    app reports as its own target - and each received packet moves the level by one
+    step (~2%), arg0 giving the direction (1 = up, 2 = down). Such devices also
+    de-duplicate packets sharing a tx_count, so a burst is only effective if tx
+    increments on every step.
+
+    This is a separate codec: devices that DO honour absolute levels must keep using
+    'zhimei_fan_v0'. See https://github.com/NicoIIT/ha-ble-adv/issues/192.
+    """
+
+    _STEP: float = 0.02
+    _RAIL_STEPS: int = 60
+
+    def __init__(self) -> None:
+        super().__init__()
+        self._levels: dict[tuple[int, int, int], float] = {}
+
+    def _burst(self, enc_cmd: BleAdvEncCmd, conf: BleAdvConfig, direction: int, count: int, level: float) -> list[BleAdvAdvertisement]:
+        """Emit 'count' single steps in 'direction', each with its own tx_count."""
+        step = BleAdvEncCmd(enc_cmd.cmd)
+        step.param = enc_cmd.param
+        step.arg0 = direction
+        raw = min(1000, max(0, round(level * 1000.0)))
+        step.arg1, step.arg2 = raw >> 8, raw & 0xFF
+        advs: list[BleAdvAdvertisement] = []
+        for _ in range(count):
+            advs += super().encode_advs(step, conf)
+        return advs
+
+    def encode_advs(self, enc_cmd: BleAdvEncCmd, conf: BleAdvConfig) -> list[BleAdvAdvertisement]:
+        """Expand an absolute level command into a burst of relative steps."""
+        if enc_cmd.cmd not in (0xB5, 0xB7):
+            return super().encode_advs(enc_cmd, conf)
+        key = (conf.id, conf.index, enc_cmd.cmd)
+        target = min(1.0, max(0.0, ((enc_cmd.arg1 << 8) + enc_cmd.arg2) / 1000.0))
+        current = self._levels.get(key)
+        advs: list[BleAdvAdvertisement] = []
+        if current is None:
+            # Level unknown (restart, or a remote we cannot observe moved it): peg to the
+            # bottom rail first so the step count below is meaningful.
+            advs += self._burst(enc_cmd, conf, 2, self._RAIL_STEPS, 0.0)
+            current = 0.0
+        if (count := round(abs(target - current) / self._STEP)) > 0:
+            advs += self._burst(enc_cmd, conf, 1 if target > current else 2, count, target)
+        self._levels[key] = target
+        return advs
 
 
 class ZhimeiEncoderV1(BleAdvCodec):
@@ -314,6 +367,8 @@ TRANS_FAN_V1 = [
 CODECS = [
     # Zhi Mei standard Android App
     ZhimeiEncoderV0().id("zhimei_fan_v0").header([0x55]).ble(0x19, 0x03).add_translators(TRANS_FAN_COMMON).add_rev_only_trans(TRANS_REMOTE),
+    # Same protocol, but for devices on which 0xB5 / 0xB7 are relative steps (issue #192)
+    ZhimeiFanStepEncoderV0().fid("zhimei_fan_v0_step", "zhimei_fan_v0").header([0x55]).ble(0x19, 0x03).add_translators(TRANS_FAN_COMMON).add_rev_only_trans(TRANS_REMOTE),
     ZhimeiEncoderV1().id("zhimei_fan_v1").header([0x48, 0x46, 0x4B, 0x4A]).ble(0x1A, 0x03).add_translators(TRANS_FAN_V1).add_rev_only_trans(TRANS_REMOTE),
     ZhimeiEncoderV1().id("zhimei_v1").header([0x48, 0x46, 0x4B, 0x4A]).ble(0x1A, 0x03).add_translators(TRANS_V1),
     ZhimeiEncoderV2().id("zhimei_v2").header([0xF9, 0x08, 0x49]).ble(0x1A, 0x03).prefix([0x33, 0xAA, 0x55]).add_translators(TRANS_V2),

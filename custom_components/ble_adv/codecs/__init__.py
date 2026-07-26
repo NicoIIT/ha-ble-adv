@@ -20,6 +20,7 @@ _PHONE_APPS_BASE = {
     "Zhi Jia": ["zhijia_v2", "zhijia_v1", "zhijia_v0"],
     "Zhi Guang": ["zhiguang_v2", "zhiguang_v1", "zhiguang_v0"],
     "Zhi Mei Deng Kong (Fan)": ["zhimei_fan_v1", "zhimei_fan_v0"],
+    "Zhi Mei Deng Kong (Fan, stepped dimming)": ["zhimei_fan_v0_step"],
     "Zhi Mei Deng Kong (Light only)": ["zhimei_v2", "zhimei_v1"],
     "Smart Light": ["agarce_v4", "agarce_v3"],
     "LE Light": ["lelight"],

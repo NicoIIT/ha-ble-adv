@@ -1,14 +1,15 @@
 """Zhi Mei pro Unit Tests."""
 
 import pytest
+from ble_adv.codecs.const import ATTR_BR, ATTR_CT_REV, ATTR_ON
+from ble_adv.codecs.models import BleAdvConfig, BleAdvEntAttr
 
-from . import _TestEncoderBase, _TestEncoderFull
+from . import CODECS, _TestEncoderBase, _TestEncoderFull
 
 
 @pytest.mark.parametrize(
     _TestEncoderBase.PARAM_NAMES,
     [
-        ("zhimei_fan_v0", 0x03, "55.02.01.02.C0.B4.AA.66.55.33"),
         ("zhimei_v2", 0x03, "F9.08.49.B2.CE.2C.81.3B.6B.90.08.CE.EF.3D.6F.C8.10.11.12.13.14.15.16.17.18.19"),
         ("zhimei_v1b", 0xFF, "58.55.18.48.46.4B.4A.1C.AB.1F.B8.0E.B7.E1.7D.98.82.31.A5.7E.7E.DB.68.10.11.12.13.14.15"),
         ("zhimei_fan_vr0", 0x00, "55.FF.63.01.6A.10.00.00.00.32"),
@@ -26,6 +27,10 @@ class TestEncoderZhimei(_TestEncoderBase):
     [
         ("zhimei_fan_v1", 0x03, "48.46.4B.4A.8F.D3.A4.49.9B.44.6E.EA.23.F5.B6.36.0F.ED.8F.DE.10.11.12.13.14.15"),
         ("zhimei_v1", 0x03, "48.46.4B.4A.1C.AB.1F.B8.0E.B7.E1.7D.98.82.31.A5.7E.7E.DB.68.10.11.12.13.14.15"),
+        # zhimei_fan_v0 and zhimei_fan_v0_step share the V0 encoder, header and BLE type,
+        # so both decode any v0-format packet. The dupe is expected.
+        ("zhimei_fan_v0", 0x03, "55.02.01.02.C0.B4.AA.66.55.33"),
+        ("zhimei_fan_v0_step", 0x03, "55.02.01.02.C0.B4.AA.66.55.33"),
         ("zhimei_fan_v1", 0x03, "48.46.4B.4A.51.20.E8.30.90.E0.35.22.5D.CE.A2.58.CD.03.82.75.10.11.12.13.14.15"),
     ],
 )
@@ -881,3 +886,72 @@ class TestEncoderZhimeiFanRemoteNoDirect(_TestEncoderFull):
 )
 class TestEncoderZhimeiFanRemote(_TestEncoderFull):
     """Zhi Mei Fan Encoder / Decoder Fan Remote tests."""
+
+
+class TestZhimeiFanV0Step:
+    """zhimei_fan_v0_step: 0xB5 / 0xB7 expand into bursts of relative steps."""
+
+    _STEP = 0.02
+    _RAIL = 60
+
+    def _advs(self, target: float, attr: str, conf: BleAdvConfig) -> list:
+        codec = CODECS["zhimei_fan_v0_step"]
+        ent = BleAdvEntAttr([attr], {"sub_type": "cww", attr: target, ATTR_ON: True}, "light", 0)
+        advs = []
+        for enc_cmd in codec.ent_to_enc(ent):
+            advs += codec.encode_advs(enc_cmd, conf)
+        return advs
+
+    def test_absolute_codec_untouched(self) -> None:
+        """The pre-existing codec must keep emitting a single absolute command."""
+        conf = BleAdvConfig(0xC002, 2)
+        codec = CODECS["zhimei_fan_v0"]
+        ent = BleAdvEntAttr([ATTR_BR], {"sub_type": "cww", ATTR_BR: 0.5, ATTR_ON: True}, "light", 0)
+        advs = []
+        for enc_cmd in codec.ent_to_enc(ent):
+            advs += codec.encode_advs(enc_cmd, conf)
+        assert len(advs) == 1
+
+    def test_cold_start_pegs_to_rail_then_steps(self) -> None:
+        """First command with an unknown level rails down, then steps to target."""
+        conf = BleAdvConfig(0xC002, 2)
+        advs = self._advs(0.5, ATTR_BR, conf)
+        assert len(advs) == self._RAIL + round(0.5 / self._STEP)
+
+    def test_delta_and_direction(self) -> None:
+        """Subsequent commands emit |delta| steps in the right direction."""
+        conf = BleAdvConfig(0xC002, 2)
+        self._advs(0.5, ATTR_BR, conf)  # establish a known level
+        up = self._advs(1.0, ATTR_BR, conf)
+        assert len(up) == round(0.5 / self._STEP)
+        assert {a.raw[6] for a in up} == {1}
+        down = self._advs(0.2, ATTR_BR, conf)
+        assert len(down) == round(0.8 / self._STEP)
+        assert {a.raw[6] for a in down} == {2}
+
+    def test_no_change_emits_nothing(self) -> None:
+        """Re-sending the current level emits no packets."""
+        conf = BleAdvConfig(0xC002, 2)
+        self._advs(0.4, ATTR_BR, conf)
+        assert self._advs(0.4, ATTR_BR, conf) == []
+
+    def test_tx_increments_across_burst(self) -> None:
+        """Every packet in a burst carries a distinct tx_count, else the device de-dupes."""
+        conf = BleAdvConfig(0xC002, 2)
+        codec = CODECS["zhimei_fan_v0_step"]
+        saved = codec._tx_step  # noqa: SLF001
+        codec._tx_step = 1  # noqa: SLF001  - the shared harness pins it to 0 for determinism
+        try:
+            self._advs(0.0, ATTR_BR, conf)
+            advs = self._advs(0.6, ATTR_BR, conf)
+        finally:
+            codec._tx_step = saved  # noqa: SLF001
+        txs = [a.raw[2] for a in advs]
+        assert len(set(txs)) == len(txs)
+
+    def test_ct_uses_same_expansion(self) -> None:
+        """Colour temp (0xB7) behaves like brightness."""
+        conf = BleAdvConfig(0xC002, 2)
+        self._advs(0.0, ATTR_CT_REV, conf)
+        advs = self._advs(0.5, ATTR_CT_REV, conf)
+        assert {a.raw[5] for a in advs} == {0xB7}
