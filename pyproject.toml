@@ -67,6 +67,8 @@ ignore = [
     "D107",
     "RUF012",
     "BLE001",
+    "CPY001",
+    "PLR0917",
 ]
 
 [tool.ruff.lint.flake8-pytest-style]
