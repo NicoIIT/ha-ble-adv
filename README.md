@@ -30,7 +30,7 @@ The Protocols supported are the ones used by the following Android Phone Apps (a
 * [ApplianceSmart](https://play.google.com/store/apps/details?id=com.jingyuan.smart_home)
 * [Vmax smart](https://play.google.com/store/apps/details?id=com.jingyuan.vmax_smart)
 * [Zhi Jia](https://play.google.com/store/apps/details?id=com.cxw.cxwblelight)
-* [Zhi Guang](https://play.google.com/store/apps/details?id=com.cxw.zhiguang)
+* [Zhi Guang](https://play.google.com/store/apps/details?id=com.cxw.zhiguang) (2 different versions: one based on zhimei, one based on zhijia)
 * [Zhi Mei Deng Kong](http://mihuan.iotworkshop.com/zhiguang/) (not available on Play Store)
 * [Mantra Lighting](https://play.google.com/store/apps/details?id=com.newenergy.baolilan)
 * [Smart Light / Argrace Smart](https://apkpure.com/argrace-smart/ai.argrace.oem) (No RGB, Only the control by device, not the Master Control) (not available on Play Store anymore, seems abandoned)
