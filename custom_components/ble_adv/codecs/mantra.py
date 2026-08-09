@@ -149,7 +149,7 @@ TRANS_APP_V0 = [
     Trans(FanCmd().act(ATTR_PRESET, ATTR_PRESET_SLEEP), EncCmd(0x01).eq("param", 0x0E)).no_reverse(),
     Trans(FanCmd().act(ATTR_DIR, True), EncCmd(0x01).eq("param", 0x12)).no_reverse(),  # Forward
     Trans(FanCmd().act(ATTR_DIR, False), EncCmd(0x01).eq("param", 0x14)).no_reverse(),  # Reverse
-    Trans(FanNSpeedCmd(0, 31).act(ATTR_SPEED).eq(ATTR_ON, True), EncCmd(0x03).eq("param", 0x01)).copy(ATTR_SPEED, "arg0").no_direct(),
+    Trans(FanNSpeedCmd(0, 31).act(ATTR_ON, True).act(ATTR_SPEED), EncCmd(0x03).eq("param", 0x01)).copy(ATTR_SPEED, "arg0").no_direct(),
     Trans(Fan8SpeedCmd().act(ATTR_SPEED).eq(ATTR_ON, True), EncCmd(0x03).eq("param", 0x01)).copy(ATTR_SPEED, "arg0", 31.0 / 8.0).no_reverse(),
     Trans(Fan6SpeedCmd().act(ATTR_SPEED).eq(ATTR_ON, True), EncCmd(0x03).eq("param", 0x01)).copy(ATTR_SPEED, "arg0", 31.0 / 6.0).no_reverse(),
     # 30/50/70/100% preset ladder (0x21/0x0F/0x10/0x11) mapped monotonically to speeds 2/3/4/6;
