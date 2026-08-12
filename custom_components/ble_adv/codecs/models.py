@@ -518,6 +518,10 @@ class BleAdvCodec(ABC):
         """Convert Entity Attributes to list of Encoder Attributes."""
         return [trans.ent_to_enc(ent_attr) for trans in self._translators if trans.matches_ent(ent_attr)]
 
+    def is_matching_config(self, conf: BleAdvConfig, ref_conf: BleAdvConfig) -> bool:
+        """Check if a decoded config matches a reference listener config."""
+        return (conf.id == ref_conf.id) and (conf.index == ref_conf.index)
+
     def consolidate(self, enc_cmd: BleAdvEncCmd, __: BleAdvEncCmd | None) -> BleAdvEncCmd | None:  # enc_cmd is first param, prev_cmd is second
         """Check if the enc_cmd should be kept, discarded or updated based on prev_cmd. Returns None if to be discarded."""
         return enc_cmd

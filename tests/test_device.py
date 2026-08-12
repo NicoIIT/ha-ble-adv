@@ -52,6 +52,7 @@ async def test_device(hass: HomeAssistant, coord: BleAdvCoordinator) -> None:
     codec.codec_id = "my_codec/sub"
     codec.match_id = "my_codec"
     codec.ent_to_enc = mock.MagicMock(return_value=[BleAdvEncCmd(0x10)])
+    codec.is_matching_config = mock.MagicMock(return_value=True)
     adv = BleAdvAdvertisement(0xFF, b"12345")
     codec.encode_advs = mock.MagicMock(return_value=[adv])
     coord.codecs = {codec.codec_id: codec}

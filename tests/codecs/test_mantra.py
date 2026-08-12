@@ -1,8 +1,10 @@
 """Mantra Unit Tests."""
 
+# ruff: noqa: S101
 import pytest
+from ble_adv.codecs.models import BleAdvConfig
 
-from . import _TestEncoderBase, _TestEncoderFull
+from . import CODECS, _TestEncoderBase, _TestEncoderFull
 
 
 @pytest.mark.parametrize(
@@ -500,3 +502,19 @@ class TestEncoderMantraV1Remote(_TestEncoderFull):
     """Mantra Encoder / Decoder V1 Remote tests."""
 
     _with_reverse = False
+
+
+def test_mantra_config_matching_ignores_index() -> None:
+    """The mantra index nibble is part of the rolling tx counter of remotes: it is not part of the identity."""
+    codec = CODECS["mantra_v0"]
+    assert codec.is_matching_config(BleAdvConfig(0xC121, 2), BleAdvConfig(0xC121, 1))
+    assert codec.is_matching_config(BleAdvConfig(0xC121, 1), BleAdvConfig(0xC121, 1))
+    assert not codec.is_matching_config(BleAdvConfig(0xC122, 1), BleAdvConfig(0xC121, 1))
+
+
+def test_base_config_matching_uses_index() -> None:
+    """Any other codec keeps matching on both id and index."""
+    codec = next(codec for codec_id, codec in CODECS.items() if not codec_id.startswith("mantra"))
+    assert codec.is_matching_config(BleAdvConfig(0xC121, 1), BleAdvConfig(0xC121, 1))
+    assert not codec.is_matching_config(BleAdvConfig(0xC121, 2), BleAdvConfig(0xC121, 1))
+    assert not codec.is_matching_config(BleAdvConfig(0xC122, 1), BleAdvConfig(0xC121, 1))

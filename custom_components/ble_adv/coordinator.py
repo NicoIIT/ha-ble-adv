@@ -49,7 +49,7 @@ class BleAdvBaseDevice:
         self.duration: int = duration
 
         self.in_use_codec_ids: set[str] = set()
-        self._listeners: list[tuple[str, BleAdvConfig]] = []
+        self._listeners: list[tuple[BleAdvConfig, BleAdvCodec]] = []
         self.add_listener(codec_id, config)
 
         self.prev_cmd: BleAdvEncCmd | None = None
@@ -67,12 +67,13 @@ class BleAdvBaseDevice:
     def add_listener(self, codec_id: str, config: BleAdvConfig) -> None:
         """Add a listener to this device."""
         self.in_use_codec_ids.add(codec_id)
-        self._listeners.append((self.coordinator.codecs[codec_id].match_id, config))
+        codec = self.coordinator.codecs[codec_id]
+        self._listeners.append((config, codec))
 
     def match(self, match_id: str, adapter_id: str, config: BleAdvConfig) -> bool:
         """Match a given adapter / config."""
         return adapter_id in self.adapter_ids and any(
-            (match_id == x) and (config.id == y.id) and (config.index == y.index) for x, y in self._listeners
+            (match_id == codec.match_id) and codec.is_matching_config(config, conf) for conf, codec in self._listeners
         )
 
     async def async_on_command(self, ent_attrs: list[BleAdvEntAttr]) -> None:

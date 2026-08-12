@@ -97,6 +97,11 @@ class MantraEncoder(BleAdvCodec):
 
         return enc_cmd, conf
 
+    def is_matching_config(self, conf: BleAdvConfig, ref_conf: BleAdvConfig) -> bool:
+        """Check if a decoded config matches a reference listener config, only based on the id."""
+        # Remotes (R00134) carry their rolling 16 bits tx counter into the index nibble, so index is not a stable identity: only the id is.
+        return conf.id == ref_conf.id
+
     def convert_from_enc(self, enc_cmd: BleAdvEncCmd, conf: BleAdvConfig) -> bytes:
         """Convert an encoder command and a config into a readable buffer."""
         count = (conf.tx_count + (conf.index << 12)).to_bytes(2)

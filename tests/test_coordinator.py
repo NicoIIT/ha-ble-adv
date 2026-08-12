@@ -21,6 +21,7 @@ class _Codec(mock.MagicMock):
     enc_to_ent = mock.MagicMock(return_value=[])
     ign_duration = 2
     consolidate = mock.MagicMock(return_value=BleAdvEncCmd(0x20))
+    is_matching_config = BleAdvCodec.is_matching_config
 
 
 class _Device(BleAdvBaseDevice):
