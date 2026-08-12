@@ -368,7 +368,7 @@ class TestEncoderMantraV0Remote(_TestEncoderFull):
             "02.01.1A.15.FF.4E.6F.72.0E.1C.AF.06.55.17.D6.10.C4.4B.D6.A3.33.C8.EE.19.31",
             "cmd: 0x01, param: 0x0F, args: [0,0,0]",
             "id: 0x0000C121, index: 1, tx: 3247, seed: 0x0000",
-            "fan_0: ['on', 'speed', 'dir'] / {'speed_count': 6, 'on': True, 'speed': 2, 'dir': True}",
+            "fan_0: ['on', 'speed', 'dir'] / {'speed_count': 6, 'on': True, 'speed': 3, 'dir': True}",
         ),
     ],
 )
