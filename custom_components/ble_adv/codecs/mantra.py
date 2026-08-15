@@ -44,7 +44,7 @@ class MantraEncoder(BleAdvCodec):
     interval: int = 100
     repeat: int = 6
     _len: int = 18
-    _tx_max: int = 0x0FFF
+    _tx_max: int = 0xFFFF
     _family = bytes([0x12, 0x34, 0x56, 0x78])
 
     def _whiten16(self, buffer: bytes, seed: int, param: int = 4777, xorer: int = 73) -> bytearray:
@@ -82,8 +82,7 @@ class MantraEncoder(BleAdvCodec):
 
         conf = BleAdvConfig()
         conf.tx_count = int.from_bytes(decoded[0:2])
-        conf.index = (conf.tx_count & 0xF000) >> 12
-        conf.tx_count = conf.tx_count & 0x0FFF
+        conf.index = 0
         conf.id = int.from_bytes(decoded[8:10])
 
         enc_cmd = BleAdvEncCmd(decoded[3])
@@ -98,7 +97,7 @@ class MantraEncoder(BleAdvCodec):
 
     def convert_from_enc(self, enc_cmd: BleAdvEncCmd, conf: BleAdvConfig) -> bytes:
         """Convert an encoder command and a config into a readable buffer."""
-        count = (conf.tx_count + (conf.index << 12)).to_bytes(2)
+        count = conf.tx_count.to_bytes(2)
         uid = conf.id.to_bytes(2)
         return bytes(
             [*count, 0x06, enc_cmd.cmd, *self._family, *uid, enc_cmd.param, enc_cmd.arg0, enc_cmd.arg1, enc_cmd.arg2, enc_cmd.arg3, enc_cmd.arg4]
