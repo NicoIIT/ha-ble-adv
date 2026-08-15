@@ -257,15 +257,15 @@ def test_codec() -> None:
     assert codec.codec_id == "test_codec"
     assert codec._ble_type == 0x16  # noqa: SLF001
     assert codec._header == bytearray([0x55, 0x56])  # noqa: SLF001
-    assert codec.get_supported_features(LIGHT_TYPE) == [{}, {ATTR_ON: {False, True}, ATTR_SUB_TYPE: {LIGHT_TYPE_ONOFF}}]
-    assert codec.get_supported_features(FAN_TYPE) == [{ATTR_PRESET: {ATTR_PRESET_BREEZE, ATTR_PRESET_SLEEP}}]
+    assert codec.get_supported_features(LIGHT_TYPE, BleAdvCodec.DEF_TRANS_NAME) == [{}, {ATTR_ON: {False, True}, ATTR_SUB_TYPE: {LIGHT_TYPE_ONOFF}}]
+    assert codec.get_supported_features(FAN_TYPE, BleAdvCodec.DEF_TRANS_NAME) == [{ATTR_PRESET: {ATTR_PRESET_BREEZE, ATTR_PRESET_SLEEP}}]
     codec.add_translators(
         [
             Trans(LightCmd().act(ATTR_ON, True), EncCmd(0x10)),
             Trans(LightCmd().act(ATTR_ON, False), EncCmd(0x11)),
         ]
     )
-    assert codec.get_supported_features(LIGHT_TYPE) == [
+    assert codec.get_supported_features(LIGHT_TYPE, BleAdvCodec.DEF_TRANS_NAME) == [
         {ATTR_ON: {False, True}, ATTR_SUB_TYPE: {LIGHT_TYPE_ONOFF}},
         {ATTR_ON: {False, True}, ATTR_SUB_TYPE: {LIGHT_TYPE_ONOFF}},
     ]
@@ -284,12 +284,12 @@ def test_codec() -> None:
             Trans(CTLightCmd(1).act(ATTR_COLD).act(ATTR_WARM), EncCmd(0x25)).no_reverse(),
         ]
     )
-    assert codec.get_supported_features(LIGHT_TYPE) == [
+    assert codec.get_supported_features(LIGHT_TYPE, BleAdvCodec.DEF_TRANS_NAME) == [
         {ATTR_ON: {False, True}, ATTR_SUB_TYPE: {LIGHT_TYPE_ONOFF, LIGHT_TYPE_CWW, LIGHT_TYPE_RGB}},
         {ATTR_ON: {False, True}, ATTR_SUB_TYPE: {LIGHT_TYPE_ONOFF}},
     ]
-    assert len([trans for trans in codec._translators if trans.enc._cmd == 0x24]) == 1  # noqa: SLF001
-    assert len([trans for trans in codec._translators if trans.enc._cmd == 0x25]) == 0  # noqa: SLF001
+    assert len([trans for trans in codec.get_translators(BleAdvCodec.DEF_TRANS_NAME) if trans.enc._cmd == 0x24]) == 1  # noqa: SLF001
+    assert len([trans for trans in codec.get_translators(BleAdvCodec.DEF_TRANS_NAME) if trans.enc._cmd == 0x25]) == 0  # noqa: SLF001
     conf = BleAdvConfig()
     assert repr(codec.encode_advs(BleAdvEncCmd(0x10), conf)[0]) == "Type: 0x16, raw: 55.56.74.65.73.74"
     assert conf.tx_count == 1
@@ -302,8 +302,8 @@ def test_codec() -> None:
     assert codec.decode_adv(BleAdvAdvertisement(0x16, _from_dotted("55.56.74.65.73.74"))) == (BleAdvEncCmd(0x10), BleAdvConfig())
     assert codec.decode_adv(BleAdvAdvertisement(0x16, _from_dotted("00.00.74.65.73.74"))) == (None, None)
     assert codec.decode_adv(BleAdvAdvertisement(0x00, _from_dotted("55.56.74.65.73.74"))) == (None, None)
-    assert codec.ent_to_enc(ent_light_binary) == [BleAdvEncCmd(0x10)]
-    assert codec.enc_to_ent(BleAdvEncCmd(0x10)) == [BleAdvEntAttr([ATTR_ON], {ATTR_ON: True}, LIGHT_TYPE, 0)]
+    assert codec.ent_to_enc(ent_light_binary, BleAdvCodec.DEF_TRANS_NAME) == [BleAdvEncCmd(0x10)]
+    assert codec.enc_to_ent(BleAdvEncCmd(0x10), BleAdvCodec.DEF_TRANS_NAME) == [BleAdvEntAttr([ATTR_ON], {ATTR_ON: True}, LIGHT_TYPE, 0)]
 
 
 def test_codec_id() -> None:

@@ -21,6 +21,7 @@ class _Codec(mock.MagicMock):
     enc_to_ent = mock.MagicMock(return_value=[])
     ign_duration = 2
     consolidate = mock.MagicMock(return_value=BleAdvEncCmd(0x20))
+    get_translator_sets = mock.MagicMock(return_value={BleAdvCodec.DEF_TRANS_NAME: [], 'tr_test': []})
 
 
 class _Device(BleAdvBaseDevice):
@@ -217,7 +218,7 @@ async def test_decode_raw(coord: BleAdvCoordinator) -> None:
     res = coord.decode_raw("123")
     assert res == ["Cannot convert to bytes"]
     res = coord.decode_raw("1234")
-    assert res == ["cod1", "1234", "cmd: 0x10, param: 0x00, args: [0,0,0]", "id: 0x00000001, index: 0, tx: 0, seed: 0x0000", ""]
+    assert res == ["cod1", "1234", "cmd: 0x10, param: 0x00, args: [0,0,0]", "id: 0x00000001, index: 0, tx: 0, seed: 0x0000", "", "<tr_test> "]
     coord.codecs.clear()
     res = coord.decode_raw("1234")
     assert res == ["Could not be decoded by any known codec"]
