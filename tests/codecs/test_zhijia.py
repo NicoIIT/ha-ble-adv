@@ -2,7 +2,7 @@
 
 import pytest
 
-from . import _TestEncoderBase, _TestEncoderFull
+from . import _TestEncoderBase, _TestEncoderFull, _TestEncoderFullAll
 
 
 @pytest.mark.parametrize(
@@ -10,6 +10,7 @@ from . import _TestEncoderBase, _TestEncoderFull
     [
         ("zhijia_v0", 0xFF, "F9.08.49.89.E4.E1.A2.3E.6C.95.0B.58.C9.38.28.07"),
         ("zhijia_v1", 0xFF, "F9.08.49.13.E1.2B.48.C3.33.4A.85.E5.C5.56.60.96.C4.A0.2C.89.BB.11.76.92.99.AA"),
+        ("zhijia_v2", 0xFF, "22.9D.AB.CB.5F.CF.2F.FC.F3.5F.52.EC.4D.85.00.6E.87.99.F2.4A.5F.85.F6.9C.A9.19"),
         ("zhijia_vr1", 0xFF, "F0.FF.CF.5E.EC.CF.CC.CF.30.EF.CE.6A.CC.CD.67.C9.EC.28.C9"),
         ("zhiguang_v0", 0xFF, "F9.08.49.B2.CE.2C.91.3F.6D.94.0A.F2.FB.39.25.67"),
         ("zhiguang_v1", 0xFF, "F9.08.49.E6.29.AF.D4.17.38.AC.51.33.11.82.8D.42.10.76.F8.C4.78.FC.C8.46.23.8E"),
@@ -18,19 +19,6 @@ from . import _TestEncoderBase, _TestEncoderFull
 )
 class TestEncoderZhijia(_TestEncoderBase):
     """Zhi Jia Encoder tests."""
-
-
-@pytest.mark.parametrize(
-    _TestEncoderBase.PARAM_NAMES,
-    [
-        ("zhijia_v2", 0xFF, "22.9D.AB.CB.5F.CF.2F.FC.F3.5F.52.EC.4D.85.00.6E.87.99.F2.4A.5F.85.F6.9C.A9.19"),
-        ("zhijia_v2_fl", 0xFF, "22.9D.AB.CB.5F.CF.2F.FC.F3.5F.52.EC.4D.85.00.6E.87.99.F2.4A.5F.85.F6.9C.A9.19"),
-    ],
-)
-class TestEncoderZhijiaDupe(_TestEncoderBase):
-    """Zhi Jia Encoder tests with duplicate codecs."""
-
-    _dupe_allowed = True
 
 
 @pytest.mark.parametrize(
@@ -487,3 +475,42 @@ class TestEncoderZhijiaNoReverse(_TestEncoderFull):
     """Zhi Jia Encoder / Decoder No Reverse tests."""
 
     _with_reverse = False
+
+
+@pytest.mark.parametrize(
+    _TestEncoderFullAll.PARAM_NAMES,
+    [
+        # COLD 100%
+        (
+            "zhijia_v2",
+            [],
+            "fl",
+            "02011A1BFF229DB62429CB3CF8F45B33E24981117DEC64F64A5F85F69CA919",
+            "cmd: 0xA8, param: 0x00, args: [25,0,0]",
+            "id: 0x00123456, index: 0, tx: 16, seed: 0x0000",
+            "light_0: ['cold', 'warm'] / {'sub_type': 'cww', 'cold': 0.1, 'warm': 0.0}",
+        ),
+        # WARN 100%
+        (
+            "zhijia_v2",
+            [],
+            "fl",
+            "02011A1BFF229D55C2D328DA020EA1CC18B37BEB9B139E0C4A5F85F69CA919",
+            "cmd: 0xA8, param: 0x00, args: [0,25,0]",
+            "id: 0x00123456, index: 0, tx: 12, seed: 0x0000",
+            "light_0: ['cold', 'warm'] / {'sub_type': 'cww', 'cold': 0.0, 'warm': 0.1}",
+        ),
+        # BR 10%
+        (
+            "zhijia_v2",
+            [],
+            "fl",
+            "02011A1BFF229D56DBC92EC61814BBCC02A961F1871384164A5F85F69CA919",
+            "cmd: 0xA8, param: 0x00, args: [25,5,0]",
+            "id: 0x00123456, index: 0, tx: 10, seed: 0x0000",
+            "light_0: ['cold', 'warm'] / {'sub_type': 'cww', 'cold': 0.1, 'warm': 0.02}",
+        ),
+    ],
+)
+class TestEncoderZhijiaFullAll(_TestEncoderFullAll):
+    """Zhi Jia Encoder / Decoder Full ALL tests."""

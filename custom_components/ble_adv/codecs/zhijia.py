@@ -34,6 +34,7 @@ from .models import (
     LightCmd,
     RGBLightCmd,
     Trans,
+    TranslatorSet,
 )
 from .models import EncoderMatcher as EncCmd
 from .utils import crc16_le, whiten
@@ -365,14 +366,16 @@ TRANS_V2 = [
 ]
 
 
-TRANS_V2_FL = [
-    *TRANS_COMMON_V1_V2,
-    *TRANS_V2_COMMON,
-    Trans(CTLightCmd().act(ATTR_COLD).act(ATTR_WARM), EncCmd(0xA8)).copy(ATTR_COLD, "arg0", 250).copy(ATTR_WARM, "arg1", 250),
-    # req from app, only reverse, replaced by CT.LIGHT_CWW_COLD_WARM on direct to get ride of flickering
-    Trans(CTLightCmd().act(ATTR_BR), EncCmd(0xAD)).copy(ATTR_BR, "arg0", 250).no_direct(),
-    Trans(CTLightCmd().act(ATTR_CT), EncCmd(0xAE)).copy(ATTR_CT, "arg0", 250).no_direct(),
-]
+TRANS_V2_FL = TranslatorSet(
+    [
+        *TRANS_COMMON_V1_V2,
+        *TRANS_V2_COMMON,
+        Trans(CTLightCmd().act(ATTR_COLD).act(ATTR_WARM), EncCmd(0xA8)).copy(ATTR_COLD, "arg0", 250).copy(ATTR_WARM, "arg1", 250),
+        # req from app, only reverse, replaced by CT.LIGHT_CWW_COLD_WARM on direct to get ride of flickering
+        Trans(CTLightCmd().act(ATTR_BR), EncCmd(0xAD)).copy(ATTR_BR, "arg0", 250).no_direct(),
+        Trans(CTLightCmd().act(ATTR_CT), EncCmd(0xAE)).copy(ATTR_CT, "arg0", 250).no_direct(),
+    ]
+)
 
 TRANS_VR1 = [
     Trans(DeviceCmd().act(ATTR_CMD, ATTR_CMD_PAIR), EncCmd(0xA2)),
@@ -387,8 +390,7 @@ CODECS = [
     # Zhi Jia standard Android App
     ZhijiaEncoderV0().id("zhijia_v0").header([0xF9, 0x08, 0x49]).prefix([0x08, 0x80, 0x98]).ble(0x1A, 0xFF).add_translators(TRANS_V0),
     ZhijiaEncoderV1([0x19, 0x01, 0x10]).id("zhijia_v1").header([0xF9, 0x08, 0x49]).prefix([0x55, 0x08, 0x80, 0x98]).ble(0x1A, 0xFF).add_translators(TRANS_V1),
-    ZhijiaEncoderV2([0x19, 0x01, 0x10]).id("zhijia_v2").header([0x22, 0x9D]).ble(0x1A, 0xFF).add_translators(TRANS_V2),
-    ZhijiaEncoderV2([0x19, 0x01, 0x10]).id("zhijia_v2_fl").header([0x22, 0x9D]).ble(0x1A, 0xFF).add_translators(TRANS_V2_FL),
+    ZhijiaEncoderV2([0x19, 0x01, 0x10]).id("zhijia_v2").header([0x22, 0x9D]).ble(0x1A, 0xFF).add_translators(TRANS_V2).add_translator_set("fl", TRANS_V2_FL),
     # Zhi Guang standard Android App
     ZhijiaEncoderV0().id("zhiguang_v0").header([0xF9, 0x08, 0x49]).prefix([0x33, 0xAA, 0x55]).ble(0x1A, 0xFF).add_translators(TRANS_V0),
     ZhijiaEncoderV1([0x20, 0x03, 0x05]).id("zhiguang_v1").header([0xF9, 0x08, 0x49]).prefix([0xA0, 0xC0, 0x04, 0x04]).ble(0x1A, 0xFF).add_translators(TRANS_V1),

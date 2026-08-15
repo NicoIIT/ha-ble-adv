@@ -21,7 +21,7 @@ class _Codec(mock.MagicMock):
     enc_to_ent = mock.MagicMock(return_value=[])
     ign_duration = 2
     consolidate = mock.MagicMock(return_value=BleAdvEncCmd(0x20))
-    get_translator_sets = mock.MagicMock(return_value={BleAdvCodec.DEF_TRANS_NAME: [], 'tr_test': []})
+    get_translator_sets = mock.MagicMock(return_value={BleAdvCodec.DEF_TRANS_NAME: [], "tr_test": []})
 
 
 class _Device(BleAdvBaseDevice):
