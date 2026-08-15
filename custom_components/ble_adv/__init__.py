@@ -197,12 +197,14 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         tech_conf[CONF_REPEATS],
         tech_conf[CONF_INTERVAL],
         tech_conf[CONF_DURATION],
-        BleAdvConfig(device_conf[CONF_FORCED_ID], device_conf[CONF_INDEX], device_conf.get(CONF_PARAMS)),
+        BleAdvConfig(device_conf[CONF_FORCED_ID], device_conf[CONF_INDEX], device_conf.get(CONF_PARAMS), tech_conf.get(CONF_TRANS_SET)),
         coordinator,
     )
     if CONF_REMOTE in entry.data and CONF_CODEC_ID in entry.data[CONF_REMOTE]:
         rconf = entry.data[CONF_REMOTE]
-        device.add_listener(rconf[CONF_CODEC_ID], BleAdvConfig(rconf[CONF_FORCED_ID], rconf[CONF_INDEX], rconf.get(CONF_PARAMS)))
+        device.add_listener(
+            rconf[CONF_CODEC_ID], BleAdvConfig(rconf[CONF_FORCED_ID], rconf[CONF_INDEX], rconf.get(CONF_PARAMS), rconf.get(CONF_TRANS_SET))
+        )
 
     hass.data[DOMAIN][entry.entry_id] = device
     coordinator.add_device(device)

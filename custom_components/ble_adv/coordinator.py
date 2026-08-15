@@ -61,6 +61,11 @@ class BleAdvBaseDevice:
         """Return True if the device is available: if one of the adapters is available."""
         return any(adapter_id in self.coordinator.get_adapter_ids() for adapter_id in self.adapter_ids)
 
+    @property
+    def translator_set(self) -> str:
+        """Get translator set with default value if not provided."""
+        return BleAdvCodec.DEF_TRANS_NAME if self.config.translator_set is None else self.config.translator_set
+
     def update_availability(self) -> None:
         """Update availability."""
 
@@ -88,7 +93,7 @@ class BleAdvBaseDevice:
 
     async def advertise(self, ent_attr: BleAdvEntAttr) -> None:
         """Encode and Advertise a message."""
-        enc_cmds = self.codec.ent_to_enc(ent_attr)
+        enc_cmds = self.codec.ent_to_enc(ent_attr, self.translator_set)
         for enc_cmd in enc_cmds:
             await self.apply_cmd(enc_cmd)
 
@@ -241,9 +246,12 @@ class BleAdvCoordinator:
         for codec_id, acodec in self.codecs.items():
             enc_cmd, conf = acodec.decode_adv(adv)
             if conf is not None and enc_cmd is not None:
-                ent_attrs = acodec.enc_to_ent(enc_cmd)
                 old_codec = codec_from_dyn_base(codec_id, conf.codec_params) if conf.codec_params else codec_id
-                common_data = [raw_adv.hex().upper(), repr(enc_cmd), repr(conf), " / ".join([repr(x) for x in ent_attrs])]
+                common_data = [raw_adv.hex().upper(), repr(enc_cmd), repr(conf)]
+                for tr_set in acodec.get_translator_sets():
+                    ent_attrs = acodec.enc_to_ent(enc_cmd, tr_set)
+                    attr_str = " / ".join([repr(x) for x in ent_attrs])
+                    common_data.append(attr_str if tr_set == BleAdvCodec.DEF_TRANS_NAME else f"<{tr_set}> {attr_str}")
                 return [codec_id, repr(conf.codec_params), *common_data] if old_codec is None else [old_codec, *common_data]
         return ["Could not be decoded by any known codec"]
 
@@ -258,7 +266,7 @@ class BleAdvCoordinator:
                         or (recv.conf.tx_count != device.prev_tx_count)  # TX Count different from last one recv
                         or (recv.conf.seed != device.prev_seed)  # Seed different from last one recv
                     ):
-                        await device.async_on_command(recv.codec.enc_to_ent(cons_cmd))
+                        await device.async_on_command(recv.codec.enc_to_ent(cons_cmd, device.translator_set))
                     else:
                         _LOGGER.debug("Ignored as duplicated TX Count or Seed")
                 device.prev_tx_count = recv.conf.tx_count

@@ -146,10 +146,11 @@ class BleAdvConfig:
     app_restart_count: int = 1
     seed: int = 0
 
-    def __init__(self, config_id: int = 0, index: int = 0, codec_params: list[Any] | None = None) -> None:
+    def __init__(self, config_id: int = 0, index: int = 0, codec_params: list[Any] | None = None, translator_set: str | None = None) -> None:
         self.id: int = config_id
         self.index: int = index
         self.codec_params: list[Any] = codec_params if codec_params is not None else []
+        self.translator_set: str | None = translator_set
 
     def __repr__(self) -> str:
         return f"id: 0x{self.id:08X}, index: {self.index}, tx: {self.tx_count}, seed: 0x{self.seed:04X}"
@@ -399,6 +400,24 @@ class Trans:
         return ent_attr
 
 
+class TranslatorSet(list[Trans]):
+    """Set of translator."""
+
+    def __init__(self, translators: list[Trans] | None = None) -> None:
+        if translators is not None:
+            self.add_translators(translators)
+
+    def add_translators(self, translators: list[Trans]) -> Self:
+        """Add Translators."""
+        self.extend(translators)
+        return self
+
+    def add_rev_only_trans(self, translators: list[Trans]) -> Self:
+        """Add Reverse Only Translators."""
+        self.extend([copy.copy(trans).no_direct() for trans in translators if trans.reverse])
+        return self
+
+
 class BleAdvCodec(ABC):
     """Class representing a base encoder / decoder."""
 
@@ -414,6 +433,8 @@ class BleAdvCodec(ABC):
     second_type: int = 0
     second_raw: bytes | None = None
 
+    DEF_TRANS_NAME: str = "default"
+
     def __init__(self) -> None:
         self.codec_id: str = ""
         self.match_id: str = ""
@@ -424,7 +445,7 @@ class BleAdvCodec(ABC):
         self._footer: bytearray = bytearray()  # footer is excluded from the data sent to the child encoder
         self._ble_type: int = 0
         self._ad_flag: int = 0
-        self._translators: list[Trans] = []
+        self._translator_maps: dict[str, TranslatorSet] = {self.DEF_TRANS_NAME: TranslatorSet()}
 
     @abstractmethod
     def decrypt(self, buffer: bytes) -> bytes | None:
@@ -482,16 +503,29 @@ class BleAdvCodec(ABC):
         return self
 
     def add_translators(self, translators: list[Trans]) -> Self:
-        """Add Translators."""
-        self._translators.extend(translators)
+        """Add Translators. Legacy helper function."""
+        self._translator_maps[self.DEF_TRANS_NAME].add_translators(translators)
         return self
 
     def add_rev_only_trans(self, translators: list[Trans]) -> Self:
-        """Add Reverse Only Translators."""
-        self._translators.extend([copy.copy(trans).no_direct() for trans in translators if trans.reverse])
+        """Add Reverse Only Translators. Legacy helper function."""
+        self._translator_maps[self.DEF_TRANS_NAME].add_rev_only_trans(translators)
         return self
 
-    def get_supported_features(self, base_type: str) -> list[dict[str, set[Any]]]:
+    def add_translator_set(self, name: str, translator_set: TranslatorSet) -> Self:
+        """Add a set of translators."""
+        self._translator_maps[name] = translator_set
+        return self
+
+    def get_translator_sets(self) -> dict[str, TranslatorSet]:
+        """Get the map of translators."""
+        return self._translator_maps
+
+    def get_translators(self, translator_set_name: str) -> TranslatorSet:
+        """Get the translators from the set name."""
+        return self._translator_maps.get(translator_set_name, TranslatorSet())
+
+    def get_supported_features(self, base_type: str, translator_set_name: str) -> list[dict[str, set[Any]]]:
         """Get the features supported by the translators in DIRECT mode only.
 
         Builds a list of all potential attribute values if fixed (not floats / int / None):
@@ -501,7 +535,7 @@ class BleAdvCodec(ABC):
            ]
         """
         capa: list[dict[str, set[Any]]] = []
-        for trans in self._translators:
+        for trans in self.get_translators(translator_set_name):
             if not trans.direct:
                 continue
             (bt, ind, feats) = trans.ent.get_supported_features()
@@ -514,17 +548,17 @@ class BleAdvCodec(ABC):
                         capa[ind].setdefault(feat, set()).add(val)
         return capa
 
-    def ent_to_enc(self, ent_attr: BleAdvEntAttr) -> list[BleAdvEncCmd]:
+    def ent_to_enc(self, ent_attr: BleAdvEntAttr, translator_set_name: str) -> list[BleAdvEncCmd]:
         """Convert Entity Attributes to list of Encoder Attributes."""
-        return [trans.ent_to_enc(ent_attr) for trans in self._translators if trans.matches_ent(ent_attr)]
+        return [trans.ent_to_enc(ent_attr) for trans in self.get_translators(translator_set_name) if trans.matches_ent(ent_attr)]
 
     def consolidate(self, enc_cmd: BleAdvEncCmd, __: BleAdvEncCmd | None) -> BleAdvEncCmd | None:  # enc_cmd is first param, prev_cmd is second
         """Check if the enc_cmd should be kept, discarded or updated based on prev_cmd. Returns None if to be discarded."""
         return enc_cmd
 
-    def enc_to_ent(self, enc_cmd: BleAdvEncCmd) -> list[BleAdvEntAttr]:
+    def enc_to_ent(self, enc_cmd: BleAdvEncCmd, translator_set_name: str) -> list[BleAdvEntAttr]:
         """Convert Encoder Attributes to list of Entity Attributes."""
-        return [trans.enc_to_ent(enc_cmd) for trans in self._translators if trans.matches_enc(enc_cmd)]
+        return [trans.enc_to_ent(enc_cmd) for trans in self.get_translators(translator_set_name) if trans.matches_enc(enc_cmd)]
 
     def decode_adv(self, adv: BleAdvAdvertisement) -> tuple[BleAdvEncCmd | None, BleAdvConfig | None]:
         """Decode Adv into Encoder Attributes / Config."""

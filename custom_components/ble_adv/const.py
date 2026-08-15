@@ -7,7 +7,7 @@ PLATFORMS = [Platform.LIGHT, Platform.FAN]
 
 CONF_COORDINATOR_ID = "coordinator_unique_id"
 
-CONF_LAST_VERSION = 7
+CONF_LAST_VERSION = 8
 
 CONF_IGN_ADAPTERS = "ignored_adapters"
 CONF_IGN_DURATION = "ignored_duration"
@@ -18,6 +18,7 @@ CONF_INDEX = "index"
 CONF_CODEC_ID = "codec_id_dyn"
 CONF_CODEC_ID_OLD = "codec_id"
 CONF_PARAMS = "params"
+CONF_TRANS_SET = "tr_set"
 CONF_ADAPTER_ID = "adapter_id"
 CONF_ADAPTER_IDS = "adapter_ids"
 CONF_FORCED_ID = "forced_id"
