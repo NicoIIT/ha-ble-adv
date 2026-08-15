@@ -43,6 +43,7 @@ from .const import (
     CONF_REPEAT,
     CONF_REPEATS,
     CONF_TECHNICAL,
+    CONF_TRANS_SET,
     CONF_USE_DIR,
     CONF_USE_OSC,
     DOMAIN,
@@ -157,6 +158,10 @@ async def async_migrate_entry(hass: HomeAssistant, config_entry: ConfigEntry) ->
             new_data[CONF_REMOTE][CONF_CODEC_ID] = new_id
             new_data[CONF_REMOTE][CONF_PARAMS] = params
             update_needed = True
+    if new_data[CONF_DEVICE][CONF_CODEC_ID] == "zhijia_v2_fl":
+        new_data[CONF_DEVICE][CONF_CODEC_ID] = "zhijia_v2"
+        new_data[CONF_TECHNICAL][CONF_TRANS_SET] = "fl"
+        update_needed = True
 
     if config_entry.version < 2:
         coordinator = await get_coordinator(hass)
