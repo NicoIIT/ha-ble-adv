@@ -35,6 +35,7 @@ ATTR_RED_F = "rf"
 ATTR_GREEN_F = "gf"
 ATTR_BLUE_F = "bf"
 ATTR_EFFECT = "effect"
+ATTR_EFFECT_NM = "nm"
 ATTR_EFFECT_RGB = "rgb"
 ATTR_EFFECT_RGBK = "rgbk"
 
