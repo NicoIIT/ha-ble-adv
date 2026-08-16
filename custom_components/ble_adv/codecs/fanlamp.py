@@ -19,6 +19,7 @@ from .const import (
     ATTR_COLD,
     ATTR_DIR,
     ATTR_EFFECT,
+    ATTR_EFFECT_NM,
     ATTR_EFFECT_RGB,
     ATTR_GREEN_F,
     ATTR_ON,
@@ -44,6 +45,7 @@ from .models import (
     LightCmd,
     RGBLightCmd,
     Trans,
+    TranslatorSet,
 )
 from .models import EncoderMatcher as EncCmd
 from .utils import reverse_all, whiten
@@ -57,6 +59,14 @@ class FanLampEncoder(BleAdvCodec):
     def _crc16(self, buffer: bytes, seed: int) -> int:
         """CRC16 CCITT computing."""
         return crc_hqx(buffer, seed)
+
+    def add_translators(self, translators: list[Trans]) -> Self:
+        """Add translators for default set, and add supplementary "night_mode" set with night mode as effect."""
+        self.add_translator_set(self.DEF_TRANS_NAME, TranslatorSet(translators))
+        new_set = TranslatorSet([tr for tr in translators if not tr.enc.matches(BleAdvEncCmd(0x23))])
+        new_set.add_translators([Trans(LightCmd().act(ATTR_EFFECT, ATTR_EFFECT_NM), EncCmd(0x23))])
+        self.add_translator_set("Night mode as effect", TranslatorSet(new_set))
+        return self
 
 
 class FanLampEncoderV1Base(FanLampEncoder):
@@ -428,27 +438,29 @@ TRANS_FANLAMP_VR2 = [*_get_remote_base_light_translators(), *TRANS_FANLAMP_V2_CO
 
 FLV1 = "fanlamp_pro_v1"
 LSV1 = "lampsmart_pro_v1"
+FLV2 = "fanlamp_pro_v2"
+LSV2 = "lampsmart_pro_v2"
 
 FLCODECS = [
     # FanLamp Pro android / IOS App
     FanLampEncoderV1(0x83, False).id(FLV1).header([0x77, 0xF8]).ble(0x19, 0x03).add_translators(TRANS_FANLAMP_V1),
-    FanLampEncoderV2(0x0400).id("fanlamp_pro_v2", None, [True, [0x20, 0x80, 0x00]]).ble(0x19, 0x03).add_translators(TRANS_FANLAMP_V2),
+    FanLampEncoderV2(0x0400).id(FLV2, None, [True, [0x20, 0x80, 0x00]]).ble(0x19, 0x03).add_translators(TRANS_FANLAMP_V2),
     # FanLamp remotes
     FanLampEncoderV1(0x83, False, True).fid("remote_v1", FLV1).forced_crc2(0x9372).header([0x56, 0x55, 0x18, 0x87, 0x52]).ble(0x00, 0xFF).add_translators(TRANS_FANLAMP_VR1),
     FanLampEncoderV1R0().id(FLV1, "r0").header([0xF0, 0xFF]).ble(0x19,0xFF).add_rev_only_trans(TRANS_FANLAMP_V1),
     FanLampEncoderV1R1().id(FLV1, "r1").forced_crc2(0x00).header([0xF0, 0xFF]).ble(0x19,0xFF).add_rev_only_trans(TRANS_FANLAMP_V1),
     FanLampEncoderV1(0x83, False, True).id(FLV1, "r3").forced_crc2(0x9372).header([0x55, 0x55, 0x18, 0x87, 0x52]).ble(0x00, 0xFF).add_translators(TRANS_FANLAMP_VR1),
-    FanLampEncoderV2(0x0400).id("fanlamp_pro_v2", "r", [True, [0x20, 0x80, 0x00]]).ble(0x02, 0x16).add_translators(TRANS_FANLAMP_VR2),
+    FanLampEncoderV2(0x0400).id(FLV2, "r", [True, [0x20, 0x80, 0x00]]).ble(0x02, 0x16).add_translators(TRANS_FANLAMP_VR2),
 ]  # fmt: skip
 
 LSCODECS = [
     # LampSmart Pro android / IOS App
     FanLampEncoderV1(0x81, True).id(LSV1).header([0x77, 0xF8]).ble(0x19, 0x03).add_translators(TRANS_FANLAMP_V1),
     FanLampEncoderV1aa(0x81, True, False).fid("lampsmart_pro_vi1", LSV1).header([0xF9, 0x08]).ble(0x19, 0x03).add_translators(TRANS_FANLAMP_V1),
-    FanLampEncoderV2(0x0100).id("lampsmart_pro_v2", None, [True, [0x30, 0x80, 0x00]]).ble(0x19, 0x03).add_translators(TRANS_FANLAMP_V2),
+    FanLampEncoderV2(0x0100).id(LSV2, None, [True, [0x30, 0x80, 0x00]]).ble(0x19, 0x03).add_translators(TRANS_FANLAMP_V2),
     # LampSmart remotes
     FanLampEncoderV1(0x00, False, True).id(LSV1, "r1").forced_crc2(0x9372).header([0x62, 0x55, 0x18, 0x87, 0x52]).ble(0x00, 0xFF).add_translators(TRANS_FANLAMP_V1),
     FanLampEncoderV1aa(0x81, True, True).fid("other_v1b", LSV1).header([0xF9, 0x08]).ble(0x02, 0x16).add_translators(TRANS_FANLAMP_VR1),
     FanLampEncoderV1(0x81, True, True).fid("other_v1a", LSV1).header([0x77, 0xF8]).ble(0x02, 0x03).add_translators(TRANS_FANLAMP_VR1),
-    FanLampEncoderV2(0x0100).id("lampsmart_pro_v2", "r", [True, [0x30, 0x80, 0x00]]).ble(0x02, 0x16).add_translators(TRANS_FANLAMP_VR2),
+    FanLampEncoderV2(0x0100).id(LSV2, "r", [True, [0x30, 0x80, 0x00]]).ble(0x02, 0x16).add_translators(TRANS_FANLAMP_VR2),
 ]  # fmt: skip

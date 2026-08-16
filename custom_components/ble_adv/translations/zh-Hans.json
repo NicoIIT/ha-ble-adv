@@ -315,6 +315,7 @@
     },
     "effects": {
       "options": {
+        "nm": "Night Mode",
         "rgb": "RGB 循环",
         "rgbk": "RGBK 循环"
       }
@@ -368,6 +369,7 @@
         "state_attributes": {
           "effect": {
             "state": {
+              "nm": "Night Mode",
               "rgb": "RGB 循环",
               "rgbk": "RGBK 循环"
             }
@@ -379,6 +381,7 @@
         "state_attributes": {
           "effect": {
             "state": {
+              "nm": "Night Mode",
               "rgb": "RGB 循环",
               "rgbk": "RGBK 循环"
             }
@@ -390,6 +393,7 @@
         "state_attributes": {
           "effect": {
             "state": {
+              "nm": "Night Mode",
               "rgb": "RGB 循环",
               "rgbk": "RGBK 循环"
             }

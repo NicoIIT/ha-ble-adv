@@ -315,6 +315,7 @@
     },
     "effects": {
       "options": {
+        "nm": "Night Mode",
         "rgb": "RGB cyklus",
         "rgbk": "RGBK cyklus"
       }
@@ -368,6 +369,7 @@
         "state_attributes": {
           "effect": {
             "state": {
+              "nm": "Night Mode",
               "rgb": "RGB cyklus",
               "rgbk": "RGBK cyklus"
             }
@@ -379,6 +381,7 @@
         "state_attributes": {
           "effect": {
             "state": {
+              "nm": "Night Mode",
               "rgb": "RGB cyklus",
               "rgbk": "RGBK cyklus"
             }
@@ -390,6 +393,7 @@
         "state_attributes": {
           "effect": {
             "state": {
+              "nm": "Night Mode",
               "rgb": "RGB cyklus",
               "rgbk": "RGBK cyklus"
             }
