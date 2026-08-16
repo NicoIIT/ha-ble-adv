@@ -80,7 +80,7 @@ async def test_device_pub(hass: HomeAssistant, coord: BleAdvCoordinator) -> None
     cod1: BleAdvCodec = codecs["cod1"]
     coord.codecs = _get_codecs()
     dev1 = _Device(coord, "dev1", "cod1", ["esp-test"])
-    dev1.add_listener("cod1", BleAdvConfig(1, 0))
+    dev1.add_listener("cod1", BleAdvConfig(1, 0), True)
     assert dev1.prev_cmd is None
     coord.add_device(dev1)
     t1 = MockEspProxy(hass, "esp-test")
@@ -111,7 +111,7 @@ async def test_deduplicate_tx_count_seed(coord: BleAdvCoordinator) -> None:
     cod1: BleAdvCodec = codecs["cod1"]
     coord.codecs = _get_codecs()
     dev1 = _Device(coord, "dev1", "cod1", ["esp-test"])
-    dev1.add_listener("cod1", BleAdvConfig(1, 0))
+    dev1.add_listener("cod1", BleAdvConfig(1, 0), True)
     dev1.async_on_command = mock.AsyncMock()
     assert dev1.prev_cmd is None
     assert dev1.prev_seed == 0
@@ -121,14 +121,14 @@ async def test_deduplicate_tx_count_seed(coord: BleAdvCoordinator) -> None:
     conf1.tx_count = 1
     recv1 = BleAdvRecvItem(datetime.now(), cod1, set(), conf1, BleAdvEncCmd(0x10))
     await coord._publish_to_devices("esp-test", recv1)  # noqa: SLF001
-    dev1.async_on_command.assert_called_once_with([])
+    dev1.async_on_command.assert_called_once_with([], False)
     dev1.async_on_command.reset_mock()
     # Recv command with different tx_count: OK
     conf2 = BleAdvConfig(1, 0)
     conf2.tx_count = 2
     recv2 = BleAdvRecvItem(datetime.now(), cod1, set(), conf2, BleAdvEncCmd(0x10))
     await coord._publish_to_devices("esp-test", recv2)  # noqa: SLF001
-    dev1.async_on_command.assert_called_once_with([])
+    dev1.async_on_command.assert_called_once_with([], False)
     dev1.async_on_command.reset_mock()
     # RE recv same: command ignored
     conf2 = BleAdvConfig(1, 0)
@@ -141,13 +141,13 @@ async def test_deduplicate_tx_count_seed(coord: BleAdvCoordinator) -> None:
     conf0 = BleAdvConfig(1, 0)
     recv0 = BleAdvRecvItem(datetime.now(), cod1, set(), conf0, BleAdvEncCmd(0x10))
     await coord._publish_to_devices("esp-test", recv0)  # noqa: SLF001
-    dev1.async_on_command.assert_called_once_with([])
+    dev1.async_on_command.assert_called_once_with([], False)
     dev1.async_on_command.reset_mock()
     # RE receive with tx_count = 0 and seed = 0 => always ok
     conf0 = BleAdvConfig(1, 0)
     recv0 = BleAdvRecvItem(datetime.now(), cod1, set(), conf0, BleAdvEncCmd(0x10))
     await coord._publish_to_devices("esp-test", recv0)  # noqa: SLF001
-    dev1.async_on_command.assert_called_once_with([])
+    dev1.async_on_command.assert_called_once_with([], False)
     dev1.async_on_command.reset_mock()
 
 

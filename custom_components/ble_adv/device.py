@@ -110,6 +110,10 @@ class BleAdvEntity(RestoreEntity):
         attrs = self.get_attrs()
         if any(attr_val in self._forced_attrs.get(attr_name, []) for (attr_name, attr_val) in attrs.items()):
             chg_attrs = forced_chg_attrs
+        await self.handle_change(chg_attrs, attrs)
+
+    async def handle_change(self, chg_attrs: list[str], attrs: dict[str, Any]) -> None:
+        """Process with change based on list of attrs."""
         if chg_attrs:
             if ATTR_ON in chg_attrs and attrs[ATTR_ON]:
                 chg_attrs += self.forced_changed_attr_on_start()
@@ -225,10 +229,11 @@ class BleAdvDevice(BleAdvBaseDevice):
         except Exception:
             self.logger.exception("Exception applying changes")
 
-    async def async_on_command(self, ent_attrs: list[BleAdvEntAttr]) -> None:
+    async def async_on_command(self, ent_attrs: list[BleAdvEntAttr], publish_command: bool) -> None:
         """Process commands received."""
         self.logger.info(f"Receiving Changes: {ent_attrs}")
         await self._async_cancel_timer()
+        saved_attrs = [(ent, ent.get_attrs()) for ent in self._entities] if publish_command else []
         for ent_attr in ent_attrs:
             if ent_attr.base_type == DEVICE_TYPE:
                 await self._async_on_device_command(ent_attr)
@@ -241,6 +246,11 @@ class BleAdvDevice(BleAdvBaseDevice):
                     ):
                         ent.apply_attrs(ent_attr)
                         ent.async_write_ha_state()
+        for ent, prev_attrs in saved_attrs:
+            new_attrs = ent.get_attrs()
+            chg_attrs = [attr for attr, val in prev_attrs.items() if new_attrs[attr] != val]
+            if chg_attrs:
+                await ent.handle_change(chg_attrs, new_attrs)
 
     async def _async_on_device_command(self, ent_attr: BleAdvEntAttr) -> None:
         self.logger.debug(f"Device Command received: {ent_attr}")

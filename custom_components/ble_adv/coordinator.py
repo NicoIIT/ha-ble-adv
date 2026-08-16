@@ -49,8 +49,8 @@ class BleAdvBaseDevice:
         self.duration: int = duration
 
         self.in_use_codec_ids: set[str] = set()
-        self._listeners: list[tuple[str, BleAdvConfig]] = []
-        self.add_listener(codec_id, config)
+        self._listeners: list[tuple[str, BleAdvConfig, bool]] = []
+        self.add_listener(codec_id, config, True)
 
         self.prev_cmd: BleAdvEncCmd | None = None
         self.prev_tx_count: int = 0
@@ -69,18 +69,30 @@ class BleAdvBaseDevice:
     def update_availability(self) -> None:
         """Update availability."""
 
-    def add_listener(self, codec_id: str, config: BleAdvConfig) -> None:
+    def add_listener(self, codec_id: str, config: BleAdvConfig, control_device: bool) -> None:
         """Add a listener to this device."""
         self.in_use_codec_ids.add(codec_id)
-        self._listeners.append((self.coordinator.codecs[codec_id].match_id, config))
+        self._listeners.append((self.coordinator.codecs[codec_id].match_id, config, control_device))
 
-    def match(self, match_id: str, adapter_id: str, config: BleAdvConfig) -> bool:
-        """Match a given adapter / config."""
-        return adapter_id in self.adapter_ids and any(
-            (match_id == x) and (config.id == y.id) and (config.index == y.index) for x, y in self._listeners
-        )
+    def match(self, match_id: str, adapter_id: str, config: BleAdvConfig) -> bool | None:
+        """Match a given adapter / config.
 
-    async def async_on_command(self, ent_attrs: list[BleAdvEntAttr]) -> None:
+        Return:
+            - None if no listener matches,
+            - True if all matching listeners controls the device
+            - False if at least one of the matching listeners does not control the device.
+
+        """
+        match_found: bool = False
+        if adapter_id in self.adapter_ids:
+            for m_id, conf, ct in self._listeners:
+                if (match_id == m_id) and (config.id == conf.id) and (config.index == conf.index):
+                    if not ct:
+                        return False
+                    match_found = True
+        return True if match_found else None
+
+    async def async_on_command(self, ent_attrs: list[BleAdvEntAttr], publish_command: bool) -> None:
         """Call on matching command received."""
 
     async def apply_cmd(self, enc_cmd: BleAdvEncCmd) -> None:
@@ -258,7 +270,7 @@ class BleAdvCoordinator:
     async def _publish_to_devices(self, adapter_id: str, recv: BleAdvRecvItem) -> None:
         # Publish to any device that matches, if not already done
         for device in self._devices:
-            if device.unique_id not in recv.pub_devices and device.match(recv.codec.match_id, adapter_id, recv.conf):
+            if device.unique_id not in recv.pub_devices and (ct := device.match(recv.codec.match_id, adapter_id, recv.conf)) is not None:
                 cons_cmd = copy(recv.enc_cmd)  # work on a copy to avoid the alteration of the command
                 if (cons_cmd := recv.codec.consolidate(cons_cmd, device.prev_cmd)) is not None:
                     if (
@@ -266,7 +278,7 @@ class BleAdvCoordinator:
                         or (recv.conf.tx_count != device.prev_tx_count)  # TX Count different from last one recv
                         or (recv.conf.seed != device.prev_seed)  # Seed different from last one recv
                     ):
-                        await device.async_on_command(recv.codec.enc_to_ent(cons_cmd, device.translator_set))
+                        await device.async_on_command(recv.codec.enc_to_ent(cons_cmd, device.translator_set), not ct)
                     else:
                         _LOGGER.debug("Ignored as duplicated TX Count or Seed")
                 device.prev_tx_count = recv.conf.tx_count

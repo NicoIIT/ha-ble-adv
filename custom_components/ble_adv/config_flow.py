@@ -60,6 +60,7 @@ from .const import (
     CONF_LIGHTS,
     CONF_MAX_ENTITY_NB,
     CONF_MIN_BRIGHTNESS,
+    CONF_PAIRED,
     CONF_PARAMS,
     CONF_PHONE_APP,
     CONF_PRESETS,
@@ -779,10 +780,16 @@ class BleAdvConfigFlow(ConfigFlow, domain=DOMAIN):
         codec: BleAdvCodec = self.coordinator.codecs[self._data[CONF_REMOTE][CONF_CODEC_ID]]
         avail_tr_set = list(codec.get_translator_sets().keys())
         def_tr_set = self._data[CONF_REMOTE].get(CONF_TRANS_SET, BleAdvCodec.DEF_TRANS_NAME)
+        def_paired = self._data[CONF_REMOTE].get(CONF_PAIRED, True)
 
         return self.async_show_form(
             step_id="config_remote_update",
-            data_schema=vol.Schema({vol.Required(CONF_TRANS_SET, default=def_tr_set): self._get_selector("", avail_tr_set)}),
+            data_schema=vol.Schema(
+                {
+                    vol.Required(CONF_TRANS_SET, default=def_tr_set): self._get_selector("", avail_tr_set),
+                    vol.Required(CONF_PAIRED, default=def_paired): bool,
+                }
+            ),
             description_placeholders=self._remote_conf_placeholders(),
         )
 

@@ -246,6 +246,7 @@
         "title": "Configure Linked Controller Options",
         "description": "Linked Controller:\n\n    Codec: {codec}\n    Id: {id}\n    Index: {index}",
         "data": {
+          "paired": "Controlling the Device",
           "tr_set": "Translator Set"
         }
       },

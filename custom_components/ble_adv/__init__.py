@@ -34,6 +34,7 @@ from .const import (
     CONF_LAST_VERSION,
     CONF_LIGHTS,
     CONF_MAX_ENTITY_NB,
+    CONF_PAIRED,
     CONF_PARAMS,
     CONF_RAW,
     CONF_REFRESH_DIR_ON_START,
@@ -208,7 +209,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     if CONF_REMOTE in entry.data and CONF_CODEC_ID in entry.data[CONF_REMOTE]:
         rconf = entry.data[CONF_REMOTE]
         device.add_listener(
-            rconf[CONF_CODEC_ID], BleAdvConfig(rconf[CONF_FORCED_ID], rconf[CONF_INDEX], rconf.get(CONF_PARAMS), rconf.get(CONF_TRANS_SET))
+            rconf[CONF_CODEC_ID],
+            BleAdvConfig(rconf[CONF_FORCED_ID], rconf[CONF_INDEX], rconf.get(CONF_PARAMS), rconf.get(CONF_TRANS_SET)),
+            rconf.get(CONF_PAIRED, True),
         )
 
     hass.data[DOMAIN][entry.entry_id] = device
