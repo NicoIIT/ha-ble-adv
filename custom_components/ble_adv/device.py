@@ -4,9 +4,11 @@ from __future__ import annotations
 
 import logging
 from collections.abc import MutableMapping
+from dataclasses import asdict
 from datetime import datetime, timedelta
 from typing import Any
 
+from homeassistant.components.event import EventDeviceClass, EventEntity
 from homeassistant.core import CALLBACK_TYPE, HomeAssistant
 from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.event import async_track_point_in_utc_time
@@ -25,8 +27,8 @@ from .codecs.const import (
     ATTR_TIME,
     DEVICE_TYPE,
 )
-from .codecs.models import BleAdvConfig, BleAdvEntAttr
-from .const import CONF_FORCED_OFF, CONF_FORCED_ON, DOMAIN
+from .codecs.models import BleAdvConfig, BleAdvEncCmd, BleAdvEntAttr
+from .const import CONF_FORCED_OFF, CONF_FORCED_ON, DOMAIN, EVENT_TYPE
 from .coordinator import BleAdvBaseDevice, BleAdvCoordinator
 
 _LOGGER = logging.getLogger(__name__)
@@ -50,21 +52,44 @@ class BleAdvStateAttribute:
         self.resets: list[str] = resets if resets is not None else []
 
 
-class BleAdvEntity(RestoreEntity):
+class BleAdvDeviceEntity(RestoreEntity):
+    """Base Device Entity class."""
+
+    def __init__(self, ent_type: str, device: BleAdvDevice) -> None:
+        self._device: BleAdvDevice = device
+        self._attr_device_info: DeviceInfo = device.device_info
+        self._attr_unique_id: str = f"{device.unique_id}_{ent_type}"
+        self._attr_translation_key: str = ent_type
+        self._attr_available = self._device.available
+
+
+class BleAdvEvent(BleAdvDeviceEntity, EventEntity):
+    """Base Event Entity."""
+
+    _attr_device_class = EventDeviceClass.BUTTON
+    _attr_event_types = ["enc_cmd"]
+
+    def __init__(self, device: BleAdvDevice) -> None:
+        super().__init__(EVENT_TYPE, device)
+        device.set_event_entity(self)
+
+    async def trigger_enc_cmd(self, enc_cmd: BleAdvEncCmd) -> None:
+        """Trigger Event when a BleAdvEncCmd is listened."""
+        self._trigger_event("enc_cmd", asdict(enc_cmd))
+        self.async_write_ha_state()
+
+
+class BleAdvEntity(BleAdvDeviceEntity):
     """Base Ble Adv Entity class."""
 
     _state_attributes: frozenset[BleAdvStateAttribute] = frozenset()
     _attr_has_entity_name = True
 
     def __init__(self, base_type: str, sub_type: str | None, device: BleAdvDevice, index: int = 0) -> None:
-        self._device: BleAdvDevice = device
+        super().__init__(f"{base_type}_{index}", device)
         self._index: int = index
         self._base_type: str = base_type
         self._sub_type: str | None = sub_type
-        self._attr_device_info: DeviceInfo = device.device_info
-        self._attr_unique_id: str = f"{device.unique_id}_{base_type}_{index}"
-        self._attr_translation_key: str = f"{base_type}_{index}"
-        self._attr_available = self._device.available
         self._forced_attrs: dict[str, list[Any]] = {}
         self._device.add_entity(self)
         self.logger = _DeviceLoggingAdapter(_LOGGER, {"name": f"{device.name}/{base_type}_{index}"})
@@ -196,6 +221,7 @@ class BleAdvDevice(BleAdvBaseDevice):
         self.name: str = name
         self.codec_name: str = codec_from_dyn(self.codec_id, self.config.codec_params)
         self._entities: list[BleAdvEntity] = []
+        self._event_entity: BleAdvEvent | None = None
         self._timer_cancel: CALLBACK_TYPE | None = None
         self.logger = _DeviceLoggingAdapter(_LOGGER, {"name": self.name})
 
@@ -216,6 +242,10 @@ class BleAdvDevice(BleAdvBaseDevice):
             if ent.set_state_attribute(ATTR_AVAILABLE, self.available):
                 ent.async_write_ha_state()
 
+    def set_event_entity(self, ent: BleAdvEvent) -> None:
+        """Set the Event Entity."""
+        self._event_entity = ent
+
     def add_entity(self, ent: BleAdvEntity) -> None:
         """Add entity to this device."""
         self._entities.append(ent)
@@ -228,6 +258,11 @@ class BleAdvDevice(BleAdvBaseDevice):
             await self.advertise(ent_attr)
         except Exception:
             self.logger.exception("Exception applying changes")
+
+    async def async_on_enc_cmd(self, enc_cmd: BleAdvEncCmd) -> None:
+        """Call on matching command received."""
+        if self._event_entity is not None:
+            await self._event_entity.trigger_enc_cmd(enc_cmd)  # type: ignore  # noqa: PGH003
 
     async def async_on_command(self, ent_attrs: list[BleAdvEntAttr], publish_command: bool) -> None:
         """Process commands received."""
