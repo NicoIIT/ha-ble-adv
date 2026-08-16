@@ -32,7 +32,6 @@ class _Entity(BleAdvEntity):
             BleAdvStateAttribute(ATTR_STB, "RESTB", [ATTR_CMD]),
         ]
     )
-    async_write_ha_state = mock.MagicMock()
 
     @property
     def sta(self) -> str:
@@ -65,40 +64,48 @@ async def test_device(hass: HomeAssistant, coord: BleAdvCoordinator) -> None:
         "model": codec.codec_id,
         "model_id": "0xABCDEF / 1",
     }
-    device.add_listener(codec.codec_id, conf)
+    device.add_listener(codec.codec_id, conf, True)
     coord.add_device(device)
     ent0 = _Entity("ent_type", "ent_sub_type", device, 0)
+    ent0.handle_change = mock.AsyncMock()
+    ent0.async_write_ha_state = mock.MagicMock()
     ent1 = _Entity("ent_type", "ent_sub_type", device, 1)
+    ent1.handle_change = mock.AsyncMock()
+    ent1.async_write_ha_state = mock.MagicMock()
     assert not device.available
     ent0.set_state_attribute(ATTR_AVAILABLE, True)
     assert ent0.available
     device.update_availability()
-    ent0.async_write_ha_state.assert_called_once()  # pyright: ignore[reportAttributeAccessIssue]
-    ent0.async_write_ha_state.reset_mock()  # pyright: ignore[reportAttributeAccessIssue]
+    ent0.async_write_ha_state.assert_called_once()
+    ent0.async_write_ha_state.reset_mock()
     assert not ent0.available
     on_cmd = BleAdvEntAttr([ATTR_ON], {ATTR_ON: True}, "ent_type", 0)
     await device.apply_change(on_cmd)
     coord.advertise.assert_called_once_with("my_adapter", "my_device", BleAdvQueueItem(0x10, 1, 100, 20, [adv.to_raw()], 2))
     assert not ent0.is_on
-    await device.async_on_command([on_cmd])
+    await device.async_on_command([on_cmd], True)
     assert ent0.is_on
-    ent0.async_write_ha_state.assert_called_once()  # pyright: ignore[reportAttributeAccessIssue]
-    ent0.async_write_ha_state.reset_mock()  # pyright: ignore[reportAttributeAccessIssue]
+    ent0.async_write_ha_state.assert_called_once()
+    ent0.async_write_ha_state.reset_mock()
+    ent0.handle_change.assert_called_once_with(["on"], {"on": True, "sub_type": "ent_sub_type", "cmd": "INIT_INITB"})
+    ent0.handle_change.reset_mock()
+    ent1.handle_change.assert_not_called()
     toggle_cmd = BleAdvEntAttr([ATTR_CMD], {ATTR_CMD: ATTR_CMD_TOGGLE}, "ent_type", 0)
-    await device.async_on_command([toggle_cmd])
+    await device.async_on_command([toggle_cmd], False)
     assert not ent0.is_on
-    ent0.async_write_ha_state.assert_called_once()  # pyright: ignore[reportAttributeAccessIssue]
-    ent0.async_write_ha_state.reset_mock()  # pyright: ignore[reportAttributeAccessIssue]
-    await device.async_on_command([toggle_cmd])
+    ent0.async_write_ha_state.assert_called_once()
+    ent0.async_write_ha_state.reset_mock()
+    ent0.handle_change.assert_not_called()
+    await device.async_on_command([toggle_cmd], False)
     assert ent0.is_on
-    ent0.async_write_ha_state.assert_called_once()  # pyright: ignore[reportAttributeAccessIssue]
-    ent0.async_write_ha_state.reset_mock()  # pyright: ignore[reportAttributeAccessIssue]
+    ent0.async_write_ha_state.assert_called_once()
+    ent0.async_write_ha_state.reset_mock()
     timer_cmd = BleAdvEntAttr([ATTR_CMD], {ATTR_CMD: ATTR_CMD_TIMER, ATTR_TIME: 0.1}, DEVICE_TYPE, 0)
-    await device.async_on_command([timer_cmd])
-    await device.async_on_command([BleAdvEntAttr([ATTR_CMD_PAIR], {}, DEVICE_TYPE, 0)])
+    await device.async_on_command([timer_cmd], False)
+    await device.async_on_command([BleAdvEntAttr([ATTR_CMD_PAIR], {}, DEVICE_TYPE, 0)], False)
     await asyncio.sleep(0.1)
     assert ent0.is_on
-    await device.async_on_command([timer_cmd])
+    await device.async_on_command([timer_cmd], False)
     await asyncio.sleep(0.1)
     assert not ent0.is_on
     assert not ent1.is_on
@@ -108,11 +115,11 @@ async def test_device(hass: HomeAssistant, coord: BleAdvCoordinator) -> None:
     assert not ent1.is_on
     assert not device.match("my_codec", "not_my_adapter", conf)
     assert device.match("my_codec", "my_adapter", conf)
-    await device.async_on_command([all_on_cmd])
+    await device.async_on_command([all_on_cmd], False)
     assert ent0.is_on
     assert ent1.is_on
     all_off_cmd = BleAdvEntAttr([ATTR_ON], {ATTR_ON: False}, DEVICE_TYPE, 0)
-    await device.async_on_command([all_off_cmd])
+    await device.async_on_command([all_off_cmd], False)
     assert not ent0.is_on
     assert not ent1.is_on
 
@@ -155,4 +162,7 @@ async def test_entity(device: _Device) -> None:
     device.assert_no_change()
     ent.set_forced_cmds([CONF_FORCED_OFF])
     await ent.async_turn_off()
+    device.assert_apply_change(ent, [ATTR_ON])
+    ent.set_state_attribute(ATTR_IS_ON, True)
+    await ent.handle_change([ATTR_ON], ent.get_attrs())
     device.assert_apply_change(ent, [ATTR_ON])

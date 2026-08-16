@@ -246,6 +246,7 @@
         "title": "Configuration des Options de Télécommande",
         "description": "Télécommande associée:\n\n    Codec: {codec}\n    Id: {id}\n    Index: {index}",
         "data": {
+          "paired": "Contrôle l'appareil",
           "tr_set": "Translator Set"
         }
       },

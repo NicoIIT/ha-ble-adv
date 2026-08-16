@@ -246,6 +246,7 @@
         "title": "Nastavení možností připojeného ovladače",
         "description": "Připojený ovladač:\n\n    Kodek: {codec}\n    ID: {id}\n    Index: {index}",
         "data": {
+          "paired": "Controlling the Device",
           "tr_set": "Translator Set"
         }
       },

@@ -246,6 +246,7 @@
         "title": "Настройка параметров связанного контроллера",
         "description": "Связанный контроллер:\n\n    Кодек: {codec}\n    ID: {id}\n    Индекс: {index}",
         "data": {
+          "paired": "Controlling the Device",
           "tr_set": "Translator Set"
         }
       },

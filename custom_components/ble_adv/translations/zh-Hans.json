@@ -246,6 +246,7 @@
         "title": "配置已关联控制器选项",
         "description": "已关联控制器：\n\n    编解码器：{codec}\n    ID：{id}\n    索引：{index}",
         "data": {
+          "paired": "Controlling the Device",
           "tr_set": "Translator Set"
         }
       },
