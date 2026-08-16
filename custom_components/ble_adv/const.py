@@ -3,7 +3,9 @@
 from homeassistant.const import Platform
 
 DOMAIN = "ble_adv"
-PLATFORMS = [Platform.LIGHT, Platform.FAN]
+PLATFORMS = [Platform.LIGHT, Platform.FAN, Platform.EVENT]
+
+EVENT_TYPE = "event"
 
 CONF_COORDINATOR_ID = "coordinator_unique_id"
 

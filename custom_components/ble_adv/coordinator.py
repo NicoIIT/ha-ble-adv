@@ -92,6 +92,9 @@ class BleAdvBaseDevice:
                     match_found = True
         return True if match_found else None
 
+    async def async_on_enc_cmd(self, enc_cmd: BleAdvEncCmd) -> None:
+        """Call on matching command received."""
+
     async def async_on_command(self, ent_attrs: list[BleAdvEntAttr], publish_command: bool) -> None:
         """Call on matching command received."""
 
@@ -278,6 +281,7 @@ class BleAdvCoordinator:
                         or (recv.conf.tx_count != device.prev_tx_count)  # TX Count different from last one recv
                         or (recv.conf.seed != device.prev_seed)  # Seed different from last one recv
                     ):
+                        await device.async_on_enc_cmd(cons_cmd)
                         await device.async_on_command(recv.codec.enc_to_ent(cons_cmd, device.translator_set), not ct)
                     else:
                         _LOGGER.debug("Ignored as duplicated TX Count or Seed")

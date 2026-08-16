@@ -11,6 +11,7 @@ from ble_adv.codecs.models import BleAdvAdvertisement, BleAdvConfig, BleAdvEncCm
 from ble_adv.const import CONF_FORCED_OFF, CONF_FORCED_ON
 from ble_adv.coordinator import BleAdvCoordinator
 from ble_adv.device import ATTR_AVAILABLE, ATTR_IS_ON, BleAdvDevice, BleAdvEntity, BleAdvStateAttribute
+from ble_adv.event import BleAdvEvent
 from homeassistant.const import STATE_ON
 from homeassistant.core import HomeAssistant, State
 
@@ -72,6 +73,9 @@ async def test_device(hass: HomeAssistant, coord: BleAdvCoordinator) -> None:
     ent1 = _Entity("ent_type", "ent_sub_type", device, 1)
     ent1.handle_change = mock.AsyncMock()
     ent1.async_write_ha_state = mock.MagicMock()
+    event_ent = BleAdvEvent(device)
+    event_ent._trigger_event = mock.MagicMock()  # pyright: ignore[reportAttributeAccessIssue]  # noqa: SLF001
+    event_ent.async_write_ha_state = mock.MagicMock()
     assert not device.available
     ent0.set_state_attribute(ATTR_AVAILABLE, True)
     assert ent0.available
@@ -83,6 +87,10 @@ async def test_device(hass: HomeAssistant, coord: BleAdvCoordinator) -> None:
     await device.apply_change(on_cmd)
     coord.advertise.assert_called_once_with("my_adapter", "my_device", BleAdvQueueItem(0x10, 1, 100, 20, [adv.to_raw()], 2))
     assert not ent0.is_on
+    await device.async_on_enc_cmd(BleAdvEncCmd(0x10))
+    event_ent.async_write_ha_state.assert_called_once()
+    event_ent.async_write_ha_state.reset_mock()
+    event_ent._trigger_event.assert_called_once_with("enc_cmd", {"cmd": 16, "param": 0, "arg0": 0, "arg1": 0, "arg2": 0, "arg3": 0, "arg4": 0})  # noqa: SLF001
     await device.async_on_command([on_cmd], True)
     assert ent0.is_on
     ent0.async_write_ha_state.assert_called_once()
