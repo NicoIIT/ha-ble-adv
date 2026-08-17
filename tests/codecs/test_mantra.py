@@ -1,8 +1,11 @@
 """Mantra Unit Tests."""
 
-import pytest
+# ruff: noqa: S101
 
-from . import _TestEncoderBase, _TestEncoderFull
+import pytest
+from ble_adv.codecs.models import BleAdvAdvertisement, BleAdvCodec
+
+from . import CODECS, _TestEncoderBase, _TestEncoderFull, _TestEncoderFullAll
 
 
 @pytest.mark.parametrize(
@@ -393,3 +396,145 @@ class TestEncoderMantraV1Remote(_TestEncoderFull):
     """Mantra Encoder / Decoder V1 Remote tests."""
 
     _with_reverse = False
+
+
+@pytest.mark.parametrize(
+    _TestEncoderFullAll.PARAM_NAMES,
+    [
+        # MAIN FAN Toggle
+        (
+            "mantra_v0",
+            [],
+            "R00134 remote",
+            "02.01.1A.15.FF.4E.6F.72.0E.1A.A5.06.53.74.EB.3B.C6.F7.7B.B9.E2.39.82.EE.46",
+            "cmd: 0x01, param: 0x04, args: [0,0,0]",
+            "id: 0x0000C121, index: 0, tx: 6821, seed: 0x0000",
+            "fan_0: ['on', 'dir'] / {'on': 'toggle', 'dir': True}",
+        ),
+        # K+
+        (
+            "mantra_v0",
+            [],
+            "R00134 remote",
+            "02.01.1A.15.FF.4E.6F.72.0E.19.EB.06.50.0A.33.34.38.9D.F3.19.1D.C7.9F.C5.66",
+            "cmd: 0x01, param: 0x15, args: [0,0,0]",
+            "id: 0x0000C121, index: 0, tx: 6635, seed: 0x0000",
+            "light_0: ['on', 'cmd'] / {'sub_type': 'cww', 'on': True, 'cmd': 'K+', 'step': 0.16666666666666666}",
+        ),
+        # K-
+        (
+            "mantra_v0",
+            [],
+            "R00134 remote",
+            "02.01.1A.15.FF.4E.6F.72.0E.19.3E.06.50.D3.65.6F.3C.B6.A5.61.49.47.BD.3B.6F",
+            "cmd: 0x01, param: 0x16, args: [0,0,0]",
+            "id: 0x0000C121, index: 0, tx: 6462, seed: 0x0000",
+            "light_0: ['on', 'cmd'] / {'sub_type': 'cww', 'on': True, 'cmd': 'K-', 'step': 0.16666666666666666}",
+        ),
+        # BR+
+        (
+            "mantra_v0",
+            [],
+            "R00134 remote",
+            "02.01.1A.15.FF.4E.6F.72.0E.18.3E.06.51.C0.DB.DF.92.70.23.6D.F8.3C.5C.CF.E4",
+            "cmd: 0x01, param: 0x17, args: [0,0,0]",
+            "id: 0x0000C121, index: 0, tx: 6206, seed: 0x0000",
+            "light_0: ['on', 'cmd'] / {'sub_type': 'cww', 'on': True, 'cmd': 'B+', 'step': 0.14285714285714285}",
+        ),
+        # BR-
+        (
+            "mantra_v0",
+            [],
+            "R00134 remote",
+            "02.01.1A.15.FF.4E.6F.72.0E.1A.11.06.53.CA.36.A4.4C.1B.9A.1A.61.79.5F.B2.08",
+            "cmd: 0x01, param: 0x18, args: [0,0,0]",
+            "id: 0x0000C121, index: 0, tx: 6673, seed: 0x0000",
+            "light_0: ['on', 'cmd'] / {'sub_type': 'cww', 'on': True, 'cmd': 'B-', 'step': 0.14285714285714285}",
+        ),
+        # BR 100% / CT cycle
+        (
+            "mantra_v0",
+            [],
+            "R00134 remote",
+            "02.01.1A.15.FF.4E.6F.72.0E.19.86.06.50.61.6B.FF.F1.97.6A.F9.91.49.50.EF.57",
+            "cmd: 0x01, param: 0x19, args: [0,0,0]",
+            "id: 0x0000C121, index: 0, tx: 6534, seed: 0x0000",
+            "light_0: ['on', 'br'] / {'on': True, 'br': 1.0}",
+        ),
+        # BR 30%
+        (
+            "mantra_v0",
+            [],
+            "R00134 remote",
+            "02.01.1A.15.FF.4E.6F.72.0E.1B.86.06.52.46.16.9E.AC.1A.66.E6.F3.BE.93.06.41",
+            "cmd: 0x01, param: 0x1D, args: [0,0,0]",
+            "id: 0x0000C121, index: 0, tx: 7046, seed: 0x0000",
+            "light_0: ['on', 'br'] / {'on': True, 'br': 0.3}",
+        ),
+        # BR 50%
+        (
+            "mantra_v0",
+            [],
+            "R00134 remote",
+            "02.01.1A.15.FF.4E.6F.72.0E.1B.BA.06.52.79.89.AC.F4.E3.F0.6C.C5.C8.61.AF.EE",
+            "cmd: 0x01, param: 0x1E, args: [0,0,0]",
+            "id: 0x0000C121, index: 0, tx: 7098, seed: 0x0000",
+            "light_0: ['on', 'br'] / {'on': True, 'br': 0.5}",
+        ),
+        # BR 70%
+        (
+            "mantra_v0",
+            [],
+            "R00134 remote",
+            "02.01.1A.15.FF.4E.6F.72.0E.1B.F0.06.52.37.DC.88.3B.79.E8.D2.DF.7F.B1.1E.81",
+            "cmd: 0x01, param: 0x1F, args: [0,0,0]",
+            "id: 0x0000C121, index: 0, tx: 7152, seed: 0x0000",
+            "light_0: ['on', 'br'] / {'on': True, 'br': 0.7}",
+        ),
+        # BR 100%
+        (
+            "mantra_v0",
+            [],
+            "R00134 remote",
+            "02.01.1A.15.FF.4E.6F.72.0E.1C.48.06.55.FF.EB.0B.BE.09.B5.5A.11.12.F9.05.08",
+            "cmd: 0x01, param: 0x20, args: [0,0,0]",
+            "id: 0x0000C121, index: 0, tx: 7240, seed: 0x0000",
+            "light_0: ['on', 'br'] / {'on': True, 'br': 1.0}",
+        ),
+        # FAN 30%
+        (
+            "mantra_v0",
+            [],
+            "R00134 remote",
+            "02.01.1A.15.FF.4E.6F.72.0E.1C.7B.06.55.CF.93.F5.70.CE.46.70.6A.F9.B7.06.CC",
+            "cmd: 0x01, param: 0x21, args: [0,0,0]",
+            "id: 0x0000C121, index: 0, tx: 7291, seed: 0x0000",
+            "fan_0: ['on', 'speed', 'dir'] / {'speed_count': 6, 'on': True, 'speed': 2, 'dir': True}",
+        ),
+        # FAN 50%
+        (
+            "mantra_v0",
+            [],
+            "R00134 remote",
+            "02.01.1A.15.FF.4E.6F.72.0E.1C.AF.06.55.17.D6.10.C4.4B.D6.A3.33.C8.EE.19.31",
+            "cmd: 0x01, param: 0x0F, args: [0,0,0]",
+            "id: 0x0000C121, index: 0, tx: 7343, seed: 0x0000",
+            "fan_0: ['on', 'speed', 'dir'] / {'speed_count': 6, 'on': True, 'speed': 3, 'dir': True}",
+        ),
+    ],
+)
+class TestEncoderMantraV0RemoteR00134(_TestEncoderFullAll):
+    """Mantra Encoder / Decoder V0 R00134 Remote tests."""
+
+    _with_reverse = False
+
+
+def test_r00134_translator_set_is_opt_in() -> None:
+    """Check the R00134 remote specific buttons are ignored unless the 'R00134 remote' translator set is selected."""
+    codec = CODECS["mantra_v0"]
+    raw = "02.01.1A.15.FF.4E.6F.72.0E.1A.A5.06.53.74.EB.3B.C6.F7.7B.B9.E2.39.82.EE.46"  # MAIN FAN Toggle
+    enc_cmd, conf = codec.decode_adv(BleAdvAdvertisement.FromRaw(bytes.fromhex(raw.replace(".", ""))))
+    assert enc_cmd is not None
+    assert conf is not None
+    assert codec.enc_to_ent(enc_cmd, BleAdvCodec.DEF_TRANS_NAME) == []
+    assert len(codec.enc_to_ent(enc_cmd, "R00134 remote")) == 1

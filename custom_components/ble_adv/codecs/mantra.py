@@ -8,6 +8,7 @@ from .const import (
     ATTR_CMD_CT_DOWN,
     ATTR_CMD_CT_UP,
     ATTR_CMD_TIMER,
+    ATTR_CMD_TOGGLE,
     ATTR_COLD,
     ATTR_CT_REV,
     ATTR_DIR,
@@ -33,6 +34,7 @@ from .models import (
     FanNSpeedCmd,
     LightCmd,
     Trans,
+    TranslatorSet,
 )
 from .models import EncoderMatcher as EncCmd
 
@@ -172,6 +174,56 @@ TRANS_REMOTE_V0 = [
 
 TRANS_V0 = [*TRANS_APP_V0, *TRANS_REMOTE_V0]
 
+# R00134 physical remote (fixes upstream issue #279): decode only translators, in the app command space (cmd 0x01 / 0x03).
+# Live verified on the physical device: every button but the main OFF one also powers the device ON, hence the ON carrying entities.
+# Those translators are only available by selecting the "R00134 remote" translator set in the technical options of the device.
+TRANS_REMOTE_R00134_V0 = [
+    Trans(FanCmd().act(ATTR_ON, ATTR_CMD_TOGGLE).act(ATTR_DIR, True), EncCmd(0x01).eq("param", 0x04)).no_direct(),
+    Trans(CTLightCmd().act(ATTR_ON, True).act(ATTR_CMD, ATTR_CMD_CT_DOWN).eq(ATTR_STEP, 1.0 / 6.0), EncCmd(0x01).eq("param", 0x15)).no_direct(),
+    Trans(CTLightCmd().act(ATTR_ON, True).act(ATTR_CMD, ATTR_CMD_CT_UP).eq(ATTR_STEP, 1.0 / 6.0), EncCmd(0x01).eq("param", 0x16)).no_direct(),
+    Trans(CTLightCmd().act(ATTR_ON, True).act(ATTR_CMD, ATTR_CMD_BR_UP).eq(ATTR_STEP, 1.0 / 7.0), EncCmd(0x01).eq("param", 0x17)).no_direct(),
+    Trans(CTLightCmd().act(ATTR_ON, True).act(ATTR_CMD, ATTR_CMD_BR_DOWN).eq(ATTR_STEP, 1.0 / 7.0), EncCmd(0x01).eq("param", 0x18)).no_direct(),
+    # light/sync button: BR 100%, also cycles CT over 3 presets - deliberately untracked, cannot be resynced after a lost frame
+    Trans(LightCmd().act(ATTR_ON, True).act(ATTR_BR, 1.0), EncCmd(0x01).eq("param", 0x19)).no_direct(),
+    Trans(LightCmd().act(ATTR_ON, True).act(ATTR_BR, 0.3), EncCmd(0x01).eq("param", 0x1D)).no_direct(),
+    Trans(LightCmd().act(ATTR_ON, True).act(ATTR_BR, 0.5), EncCmd(0x01).eq("param", 0x1E)).no_direct(),
+    Trans(LightCmd().act(ATTR_ON, True).act(ATTR_BR, 0.7), EncCmd(0x01).eq("param", 0x1F)).no_direct(),
+    Trans(LightCmd().act(ATTR_ON, True).act(ATTR_BR, 1.0), EncCmd(0x01).eq("param", 0x20)).no_direct(),  # BR 100% button
+    # 30/50/70/100% fan preset ladder (0x21/0x0F/0x10/0x11) mapped monotonically to speeds 2/3/4/6:
+    # those presets are device internal levels, the tracking is label faithful
+    Trans(Fan6SpeedCmd().act(ATTR_ON, True).act(ATTR_SPEED, 2).act(ATTR_DIR, True), EncCmd(0x01).eq("param", 0x21)).no_direct(),
+    Trans(Fan6SpeedCmd().act(ATTR_ON, True).act(ATTR_SPEED, 3).act(ATTR_DIR, True), EncCmd(0x01).eq("param", 0x0F)).no_direct(),
+    Trans(Fan6SpeedCmd().act(ATTR_ON, True).act(ATTR_SPEED, 4).act(ATTR_DIR, True), EncCmd(0x01).eq("param", 0x10)).no_direct(),
+    Trans(Fan6SpeedCmd().act(ATTR_ON, True).act(ATTR_SPEED, 6).act(ATTR_DIR, True), EncCmd(0x01).eq("param", 0x11)).no_direct(),
+    Trans(FanCmd().act(ATTR_ON, True).act(ATTR_DIR, True), EncCmd(0x01).eq("param", 0x12)).no_direct(),  # Summer: powers the fan on, forward
+    Trans(FanCmd().act(ATTR_ON, True).act(ATTR_DIR, False), EncCmd(0x01).eq("param", 0x14)).no_direct(),  # Winter: powers the fan on, reverse
+    Trans(FanCmd().act(ATTR_ON, True).act(ATTR_PRESET, ATTR_PRESET_SLEEP), EncCmd(0x01).eq("param", 0x0E)).no_direct(),  # Sleep: powers the fan on
+    # speed restored by the device on power on: also powers the fan on
+    Trans(FanNSpeedCmd(0, 31).act(ATTR_ON, True).act(ATTR_SPEED), EncCmd(0x03).eq("param", 0x01)).copy(ATTR_SPEED, "arg0").no_direct(),
+]
+
+# Encoder commands for which the reverse (device -> HA) translation is taken over by the R00134 entries above
+_ENC_R00134_REV_TAKEN_OVER = [
+    *[EncCmd(0x01).eq("param", param).create() for param in (0x0E, 0x0F, 0x10, 0x11, 0x12, 0x14)],
+    EncCmd(0x03).eq("param", 0x01).create(),
+]
+
+# 'R00134 remote' translator set: the default V0 translators with the reverse side of the commands listed above replaced
+# by the R00134 ones. The direct (HA -> device) behavior is strictly identical to the one of the default translator set.
+TRANS_R00134_V0 = TranslatorSet([tr for tr in TRANS_V0 if not any(tr.enc.matches(enc) for enc in _ENC_R00134_REV_TAKEN_OVER)])
+TRANS_R00134_V0.add_translators(
+    [
+        # decode of 0x0E / 0x12 / 0x14 is owned by the ON carrying R00134 entries, the encode from HA is unchanged
+        Trans(FanCmd().act(ATTR_PRESET, ATTR_PRESET_SLEEP), EncCmd(0x01).eq("param", 0x0E)).no_reverse(),
+        Trans(FanCmd().act(ATTR_DIR, True), EncCmd(0x01).eq("param", 0x12)).no_reverse(),  # Forward
+        Trans(FanCmd().act(ATTR_DIR, False), EncCmd(0x01).eq("param", 0x14)).no_reverse(),  # Reverse
+        # direct only speed translators, re defined as removed by the cmd 0x03 filter
+        Trans(Fan8SpeedCmd().act(ATTR_SPEED).eq(ATTR_ON, True), EncCmd(0x03).eq("param", 0x01)).copy(ATTR_SPEED, "arg0", 31.0 / 8.0).no_reverse(),
+        Trans(Fan6SpeedCmd().act(ATTR_SPEED).eq(ATTR_ON, True), EncCmd(0x03).eq("param", 0x01)).copy(ATTR_SPEED, "arg0", 31.0 / 6.0).no_reverse(),
+        *TRANS_REMOTE_R00134_V0,
+    ]
+)
+
 TRANS_V1 = [
     Trans(LightCmd().act(ATTR_ON, True), EncCmd(0x01).eq("param", 0x01)),
     Trans(LightCmd().act(ATTR_ON, False), EncCmd(0x01).eq("param", 0x02)),
@@ -193,9 +245,11 @@ TRANS_V1 = [
     Trans(LightCmd().act(ATTR_BR, 1.0), EncCmd(0x01).eq("param", 0x09)).no_direct(),
 ]
 
+R00134 = "R00134 remote"
+
 CODECS = [
-    MantraEncoder().id("mantra_v0").header([0x4E, 0x6F]).prefix([0x72, 0x0E]).ble(0x1A, 0xFF).add_translators(TRANS_V0),
-    MantraEncoder().id("mantra_v0", "ios").header([0x4E, 0x6F]).prefix([0x72, 0x0E]).footer([0x04, 0x03, 0x02, 0x01]).ble(0x1A, 0x05).add_translators(TRANS_V0),
+    MantraEncoder().id("mantra_v0").header([0x4E, 0x6F]).prefix([0x72, 0x0E]).ble(0x1A, 0xFF).add_translators(TRANS_V0).add_translator_set(R00134, TRANS_R00134_V0),
+    MantraEncoder().id("mantra_v0", "ios").header([0x4E, 0x6F]).prefix([0x72, 0x0E]).footer([0x04, 0x03, 0x02, 0x01]).ble(0x1A, 0x05).add_translators(TRANS_V0).add_translator_set(R00134, TRANS_R00134_V0),
     MantraEncoder().id("mantra_v1").header([0x4E, 0x6F]).prefix([0x72, 0x0F]).ble(0x1A, 0xFF).add_translators(TRANS_V1),
     MantraEncoder().id("mantra_v1", "ios").header([0x4E, 0x6F]).prefix([0x72, 0x0F]).footer([0x04, 0x03, 0x02, 0x01]).ble(0x1A, 0x05).add_translators(TRANS_V1),
 ]  # fmt: skip
