@@ -244,12 +244,17 @@
       },
       "config_remote_update": {
         "title": "Configurar opciones del controlador vinculado",
-        "description": "Controlador vinculado:\n\n    Códec: {codec}\n    ID: {id}\n    Índice: {index}"
+        "description": "Controlador vinculado:\n\n    Códec: {codec}\n    ID: {id}\n    Índice: {index}",
+        "data": {
+          "paired": "Controlling the Device",
+          "tr_set": "Translator Set"
+        }
       },
       "config_technical": {
         "title": "Configurar opciones técnicas",
         "description": "Cada comando se emite al adaptador seleccionado 'Repeticiones' veces, en un 'Intervalo' determinado (ms), respetando un retardo de 'Duración mínima' entre 2 comandos distintos.\n\n¡Modifícalo solo si sabes lo que haces!\n\nSe DESACONSEJA SERIAMENTE usar múltiples adaptadores; no se prestará soporte técnico si lo haces.",
         "data": {
+          "tr_set": "Translator Set",
           "adapter_ids": "Adaptador(es) BLE ADV",
           "interval": "Intervalo",
           "repeats": "Repeticiones",
@@ -311,6 +316,7 @@
     },
     "effects": {
       "options": {
+        "nm": "Night Mode",
         "rgb": "Ciclo RGB",
         "rgbk": "Ciclo RGBK"
       }
@@ -364,6 +370,7 @@
         "state_attributes": {
           "effect": {
             "state": {
+              "nm": "Night Mode",
               "rgb": "Ciclo RGB",
               "rgbk": "Ciclo RGBK"
             }
@@ -375,6 +382,7 @@
         "state_attributes": {
           "effect": {
             "state": {
+              "nm": "Night Mode",
               "rgb": "Ciclo RGB",
               "rgbk": "Ciclo RGBK"
             }
@@ -386,6 +394,7 @@
         "state_attributes": {
           "effect": {
             "state": {
+              "nm": "Night Mode",
               "rgb": "Ciclo RGB",
               "rgbk": "Ciclo RGBK"
             }
