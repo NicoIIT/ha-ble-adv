@@ -75,6 +75,7 @@ class _TestEncoderFullAll:
     PARAM_NAMES: tuple[str, str, str, str, str, str, str] = ("enc_name", "params", "tr_set", "raw", "enc_str", "conf_str", "ent_str")
 
     _with_reverse = True
+    _compare_args = True
 
     def test_decode_reencode(self, enc_name: str, params: list[Any], tr_set: str, raw: str, enc_str: str, conf_str: str, ent_str: str) -> None:
         """Validate a decoding / re-encoding."""
@@ -92,7 +93,11 @@ class _TestEncoderFullAll:
         enc_cmds = codec.ent_to_enc(ent_attrs[0], tr_set)
         if self._with_reverse:
             assert len(enc_cmds) == 1
-            assert enc_cmds[0] == enc_cmd
+            if self._compare_args:
+                assert enc_cmds[0] == enc_cmd
+            else:
+                assert enc_cmds[0].cmd == enc_cmd.cmd
+                assert enc_cmds[0].param == enc_cmd.param
             assert adv in codec.encode_advs(enc_cmd, conf)
 
 
