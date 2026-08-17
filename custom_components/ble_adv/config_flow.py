@@ -60,6 +60,7 @@ from .const import (
     CONF_LIGHTS,
     CONF_MAX_ENTITY_NB,
     CONF_MIN_BRIGHTNESS,
+    CONF_PAIRED,
     CONF_PARAMS,
     CONF_PHONE_APP,
     CONF_PRESETS,
@@ -72,6 +73,7 @@ from .const import (
     CONF_REPEATS,
     CONF_REVERSED,
     CONF_TECHNICAL,
+    CONF_TRANS_SET,
     CONF_TYPE_NONE,
     CONF_USE_DIR,
     CONF_USE_OSC,
@@ -683,9 +685,10 @@ class BleAdvConfigFlow(ConfigFlow, domain=DOMAIN):
         codec: BleAdvCodec = self.coordinator.codecs[self._data[CONF_DEVICE][CONF_CODEC_ID]]
         sections: dict[str, tuple[dict[vol.Schemable, Any], bool]] = {}
         forced_cmds = [CONF_FORCED_ON, CONF_FORCED_OFF]
+        tr_set: str = self._data[CONF_TECHNICAL].get(CONF_TRANS_SET, BleAdvCodec.DEF_TRANS_NAME)
 
         # Build one section for each Light supported by the codec
-        for i, feats in enumerate(codec.get_supported_features(LIGHT_TYPE)):
+        for i, feats in enumerate(codec.get_supported_features(LIGHT_TYPE, tr_set)):
             if ATTR_SUB_TYPE in feats:
                 opts = self._data[CONF_LIGHTS][i]
                 types = [*feats[ATTR_SUB_TYPE], CONF_TYPE_NONE]
@@ -708,7 +711,7 @@ class BleAdvConfigFlow(ConfigFlow, domain=DOMAIN):
                 sections[f"{LIGHT_TYPE}_{i}"] = (schema_opts, (i == 0) or CONF_TYPE in opts)
 
         # Build one section for each Fan supported by the codec
-        for i, feats in enumerate(codec.get_supported_features(FAN_TYPE)):
+        for i, feats in enumerate(codec.get_supported_features(FAN_TYPE, tr_set)):
             if ATTR_SPEED_COUNT in feats:
                 opts = self._data[CONF_FANS][i]
                 # keep backward compatibility for 'type', but a refactor of the UI with the speed count as input
@@ -771,11 +774,22 @@ class BleAdvConfigFlow(ConfigFlow, domain=DOMAIN):
     async def async_step_config_remote_update(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         """Update Remote Options."""
         if user_input is not None:
+            self._data[CONF_REMOTE][CONF_TRANS_SET] = user_input[CONF_TRANS_SET]
             return await self.async_step_configure()
+
+        codec: BleAdvCodec = self.coordinator.codecs[self._data[CONF_REMOTE][CONF_CODEC_ID]]
+        avail_tr_set = list(codec.get_translator_sets().keys())
+        def_tr_set = self._data[CONF_REMOTE].get(CONF_TRANS_SET, BleAdvCodec.DEF_TRANS_NAME)
+        def_paired = self._data[CONF_REMOTE].get(CONF_PAIRED, True)
 
         return self.async_show_form(
             step_id="config_remote_update",
-            data_schema=vol.Schema({}),
+            data_schema=vol.Schema(
+                {
+                    vol.Required(CONF_TRANS_SET, default=def_tr_set): self._get_selector("", avail_tr_set),
+                    vol.Required(CONF_PAIRED, default=def_paired): bool,
+                }
+            ),
             description_placeholders=self._remote_conf_placeholders(),
         )
 
@@ -791,9 +805,13 @@ class BleAdvConfigFlow(ConfigFlow, domain=DOMAIN):
         def_tech = self._data[CONF_TECHNICAL]
         avail_adapters = self.coordinator.get_adapter_ids()
         def_adapters = [adapt for adapt in def_tech[CONF_ADAPTER_IDS] if adapt in avail_adapters]
+        codec: BleAdvCodec = self.coordinator.codecs[self._data[CONF_DEVICE][CONF_CODEC_ID]]
+        def_tr_set = def_tech.get(CONF_TRANS_SET, BleAdvCodec.DEF_TRANS_NAME)
+        avail_tr_set = list(codec.get_translator_sets().keys())
         data_schema = vol.Schema(
             {
                 vol.Required(CONF_ADAPTER_IDS, default=def_adapters): self._get_multi_selector(CONF_ADAPTER_IDS, avail_adapters),
+                vol.Required(CONF_TRANS_SET, default=def_tr_set): self._get_selector("", avail_tr_set),
                 vol.Optional(CONF_DURATION, default=def_tech[CONF_DURATION]): selector.NumberSelector(
                     selector.NumberSelectorConfig(step=50, min=100, max=2000, mode=selector.NumberSelectorMode.SLIDER)
                 ),

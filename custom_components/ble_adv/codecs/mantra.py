@@ -8,7 +8,6 @@ from .const import (
     ATTR_CMD_CT_DOWN,
     ATTR_CMD_CT_UP,
     ATTR_CMD_TIMER,
-    ATTR_CMD_TOGGLE,
     ATTR_COLD,
     ATTR_CT_REV,
     ATTR_DIR,
@@ -45,7 +44,7 @@ class MantraEncoder(BleAdvCodec):
     interval: int = 100
     repeat: int = 6
     _len: int = 18
-    _tx_max: int = 0x0FFF
+    _tx_max: int = 0xFFFF
     _family = bytes([0x12, 0x34, 0x56, 0x78])
 
     def _whiten16(self, buffer: bytes, seed: int, param: int = 4777, xorer: int = 73) -> bytearray:
@@ -83,8 +82,7 @@ class MantraEncoder(BleAdvCodec):
 
         conf = BleAdvConfig()
         conf.tx_count = int.from_bytes(decoded[0:2])
-        conf.index = (conf.tx_count & 0xF000) >> 12
-        conf.tx_count = conf.tx_count & 0x0FFF
+        conf.index = 0
         conf.id = int.from_bytes(decoded[8:10])
 
         enc_cmd = BleAdvEncCmd(decoded[3])
@@ -97,14 +95,9 @@ class MantraEncoder(BleAdvCodec):
 
         return enc_cmd, conf
 
-    def is_matching_config(self, conf: BleAdvConfig, ref_conf: BleAdvConfig) -> bool:
-        """Check if a decoded config matches a reference listener config, only based on the id."""
-        # Remotes (R00134) carry their rolling 16 bits tx counter into the index nibble, so index is not a stable identity: only the id is.
-        return conf.id == ref_conf.id
-
     def convert_from_enc(self, enc_cmd: BleAdvEncCmd, conf: BleAdvConfig) -> bytes:
         """Convert an encoder command and a config into a readable buffer."""
-        count = (conf.tx_count + (conf.index << 12)).to_bytes(2)
+        count = conf.tx_count.to_bytes(2)
         uid = conf.id.to_bytes(2)
         return bytes(
             [*count, 0x06, enc_cmd.cmd, *self._family, *uid, enc_cmd.param, enc_cmd.arg0, enc_cmd.arg1, enc_cmd.arg2, enc_cmd.arg3, enc_cmd.arg4]
@@ -150,18 +143,15 @@ TRANS_APP_V0 = [
     Trans(FanCmd().act(ATTR_ON, True), EncCmd(0x01).eq("param", 0x07)),
     Trans(FanCmd().act(ATTR_ON, False), EncCmd(0x01).eq("param", 0x08)),
     Trans(FanCmd().act(ATTR_PRESET, ATTR_PRESET_BREEZE), EncCmd(0x01).eq("param", 0x0D)),
-    # 0x0E/0x12/0x14 decode is owned by the ON-carrying R00134 variants below, as the device also powers the fan on; encode from HA is unchanged
-    Trans(FanCmd().act(ATTR_PRESET, ATTR_PRESET_SLEEP), EncCmd(0x01).eq("param", 0x0E)).no_reverse(),
-    Trans(FanCmd().act(ATTR_DIR, True), EncCmd(0x01).eq("param", 0x12)).no_reverse(),  # Forward
-    Trans(FanCmd().act(ATTR_DIR, False), EncCmd(0x01).eq("param", 0x14)).no_reverse(),  # Reverse
-    Trans(FanNSpeedCmd(0, 31).act(ATTR_ON, True).act(ATTR_SPEED), EncCmd(0x03).eq("param", 0x01)).copy(ATTR_SPEED, "arg0").no_direct(),
+    Trans(FanCmd().act(ATTR_PRESET, ATTR_PRESET_SLEEP), EncCmd(0x01).eq("param", 0x0E)),
+    Trans(FanCmd().act(ATTR_DIR, True), EncCmd(0x01).eq("param", 0x12)),  # Forward
+    Trans(FanCmd().act(ATTR_DIR, False), EncCmd(0x01).eq("param", 0x14)),  # Reverse
+    Trans(FanNSpeedCmd(0, 31).act(ATTR_SPEED).eq(ATTR_ON, True), EncCmd(0x03).eq("param", 0x01)).copy(ATTR_SPEED, "arg0").no_direct(),
     Trans(Fan8SpeedCmd().act(ATTR_SPEED).eq(ATTR_ON, True), EncCmd(0x03).eq("param", 0x01)).copy(ATTR_SPEED, "arg0", 31.0 / 8.0).no_reverse(),
     Trans(Fan6SpeedCmd().act(ATTR_SPEED).eq(ATTR_ON, True), EncCmd(0x03).eq("param", 0x01)).copy(ATTR_SPEED, "arg0", 31.0 / 6.0).no_reverse(),
-    # 30/50/70/100% preset ladder (0x21/0x0F/0x10/0x11) mapped monotonically to speeds 2/3/4/6;
-    # presets are device-internal levels, tracking is label-faithful
-    Trans(Fan6SpeedCmd().act(ATTR_ON, True).act(ATTR_SPEED, 3).act(ATTR_DIR, True), EncCmd(0x01).eq("param", 0x0F)).no_direct(),
-    Trans(Fan6SpeedCmd().act(ATTR_ON, True).act(ATTR_SPEED, 4).act(ATTR_DIR, True), EncCmd(0x01).eq("param", 0x10)).no_direct(),
-    Trans(Fan6SpeedCmd().act(ATTR_ON, True).act(ATTR_SPEED, 6).act(ATTR_DIR, True), EncCmd(0x01).eq("param", 0x11)).no_direct(),
+    Trans(Fan6SpeedCmd().act(ATTR_SPEED, 2).act(ATTR_DIR, True), EncCmd(0x01).eq("param", 0x0F)).no_direct(),
+    Trans(Fan6SpeedCmd().act(ATTR_SPEED, 4).act(ATTR_DIR, True), EncCmd(0x01).eq("param", 0x10)).no_direct(),
+    Trans(Fan6SpeedCmd().act(ATTR_SPEED, 6).act(ATTR_DIR, True), EncCmd(0x01).eq("param", 0x11)).no_direct(),
 ]
 
 TRANS_REMOTE_V0 = [
@@ -180,26 +170,7 @@ TRANS_REMOTE_V0 = [
     TransRemote(Fan8SpeedCmd().act(ATTR_PRESET).act(ATTR_SPEED), EncCmd(0x10).eq("param", 0x26)),
 ]
 
-# R00134 physical remote: decode-only entries in the app command space (cmd 0x01)
-TRANS_REMOTE_R00134_V0 = [
-    Trans(FanCmd().act(ATTR_ON, ATTR_CMD_TOGGLE).act(ATTR_DIR, True), EncCmd(0x01).eq("param", 0x04)).no_direct(),
-    Trans(CTLightCmd().act(ATTR_ON, True).act(ATTR_CMD, ATTR_CMD_CT_DOWN).eq(ATTR_STEP, 1.0 / 6.0), EncCmd(0x01).eq("param", 0x15)).no_direct(),
-    Trans(CTLightCmd().act(ATTR_ON, True).act(ATTR_CMD, ATTR_CMD_CT_UP).eq(ATTR_STEP, 1.0 / 6.0), EncCmd(0x01).eq("param", 0x16)).no_direct(),
-    Trans(CTLightCmd().act(ATTR_ON, True).act(ATTR_CMD, ATTR_CMD_BR_UP).eq(ATTR_STEP, 1.0 / 7.0), EncCmd(0x01).eq("param", 0x17)).no_direct(),
-    Trans(CTLightCmd().act(ATTR_ON, True).act(ATTR_CMD, ATTR_CMD_BR_DOWN).eq(ATTR_STEP, 1.0 / 7.0), EncCmd(0x01).eq("param", 0x18)).no_direct(),
-    # light/sync button: BR 100%, also cycles CT over 3 presets - deliberately untracked, cannot be resynced after a lost frame
-    Trans(LightCmd().act(ATTR_ON, True).act(ATTR_BR, 1.0), EncCmd(0x01).eq("param", 0x19)).no_direct(),
-    Trans(LightCmd().act(ATTR_ON, True).act(ATTR_BR, 0.3), EncCmd(0x01).eq("param", 0x1D)).no_direct(),
-    Trans(LightCmd().act(ATTR_ON, True).act(ATTR_BR, 0.5), EncCmd(0x01).eq("param", 0x1E)).no_direct(),
-    Trans(LightCmd().act(ATTR_ON, True).act(ATTR_BR, 0.7), EncCmd(0x01).eq("param", 0x1F)).no_direct(),
-    Trans(LightCmd().act(ATTR_ON, True).act(ATTR_BR, 1.0), EncCmd(0x01).eq("param", 0x20)).no_direct(),  # BR 100% button
-    Trans(Fan6SpeedCmd().act(ATTR_ON, True).act(ATTR_SPEED, 2).act(ATTR_DIR, True), EncCmd(0x01).eq("param", 0x21)).no_direct(),
-    Trans(FanCmd().act(ATTR_ON, True).act(ATTR_DIR, True), EncCmd(0x01).eq("param", 0x12)).no_direct(),  # Summer: powers the fan on, forward
-    Trans(FanCmd().act(ATTR_ON, True).act(ATTR_DIR, False), EncCmd(0x01).eq("param", 0x14)).no_direct(),  # Winter: powers the fan on, reverse
-    Trans(FanCmd().act(ATTR_ON, True).act(ATTR_PRESET, ATTR_PRESET_SLEEP), EncCmd(0x01).eq("param", 0x0E)).no_direct(),  # Sleep: powers the fan on
-]
-
-TRANS_V0 = [*TRANS_APP_V0, *TRANS_REMOTE_V0, *TRANS_REMOTE_R00134_V0]
+TRANS_V0 = [*TRANS_APP_V0, *TRANS_REMOTE_V0]
 
 TRANS_V1 = [
     Trans(LightCmd().act(ATTR_ON, True), EncCmd(0x01).eq("param", 0x01)),

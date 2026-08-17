@@ -7,7 +7,7 @@ from copy import copy
 import pytest
 from ble_adv.codecs.models import BleAdvAdvertisement, BleAdvCodec, BleAdvEncCmd
 
-from . import CODECS, _TestEncoderBase, _TestEncoderBaseParams, _TestEncoderFull
+from . import CODECS, _TestEncoderBase, _TestEncoderBaseParams, _TestEncoderFull, _TestEncoderFullAll
 
 
 @pytest.mark.parametrize(
@@ -923,6 +923,25 @@ class TestEncoderFanlampRemoteV0(_TestEncoderFull):
     """Fanlamp Encoder / Decoder No Reverse tests."""
 
     _with_reverse = False
+
+
+@pytest.mark.parametrize(
+    _TestEncoderFullAll.PARAM_NAMES,
+    [
+        # Night Mode
+        (
+            "lampsmart_pro_v2",
+            [True, [0x30, 0x82, 0x00]],
+            "Night mode as effect",
+            "0201021B03F0083082367AFD5A553140281A76770F9180FFFCBDC6532BA5A9",
+            "cmd: 0x23, param: 0x00, args: [0,0,0]",
+            "id: 0x712950E6, index: 0, tx: 83, seed: 0x2B53",
+            "light_0: ['effect'] / {'effect': 'nm'}",
+        ),
+    ],
+)
+class TestEncoderFanlampSets(_TestEncoderFullAll):
+    """Fanlamp Encoder / Decoder Full ALL tests."""
 
 
 def _get_cmd(codec: BleAdvCodec, buffer: str) -> BleAdvEncCmd:

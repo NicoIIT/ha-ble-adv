@@ -244,12 +244,17 @@
       },
       "config_remote_update": {
         "title": "Nastavenie možností pripojeného ovládača",
-        "description": "Pripojený ovládač:\n\n    Kodek: {codec}\n    ID: {id}\n    Index: {index}"
+        "description": "Pripojený ovládač:\n\n    Kodek: {codec}\n    ID: {id}\n    Index: {index}",
+        "data": {
+          "paired": "Controlling the Device",
+          "tr_set": "Translator Set"
+        }
       },
       "config_technical": {
         "title": "Konfigurácia technických možností",
         "description": "Každý príkaz sa odošle do vybraných adaptérov 'Opakovania' s daným 'Intervalom' (ms) a s minimálnym časovým odstupom medzi dvoma príkazmi ('Minimálne trvanie').\n\nUpravujte len ak viete, čo robíte!\n\nPoužitie viacerých adaptérov sa DÔRAZNE NEODPORÚČA, nebude poskytovaná žiadna podpora.",
         "data": {
+          "tr_set": "Translator Set",
           "adapter_ids": "BLE ADV adaptér(y)",
           "interval": "Interval",
           "repeats": "Opakovania",
@@ -311,6 +316,7 @@
     },
     "effects": {
       "options": {
+        "nm": "Night Mode",
         "rgb": "RGB cyklus",
         "rgbk": "RGBK cyklus"
       }
@@ -364,6 +370,7 @@
         "state_attributes": {
           "effect": {
             "state": {
+              "nm": "Night Mode",
               "rgb": "RGB cyklus",
               "rgbk": "RGBK cyklus"
             }
@@ -375,6 +382,7 @@
         "state_attributes": {
           "effect": {
             "state": {
+              "nm": "Night Mode",
               "rgb": "RGB cyklus",
               "rgbk": "RGBK cyklus"
             }
@@ -386,6 +394,7 @@
         "state_attributes": {
           "effect": {
             "state": {
+              "nm": "Night Mode",
               "rgb": "RGB cyklus",
               "rgbk": "RGBK cyklus"
             }

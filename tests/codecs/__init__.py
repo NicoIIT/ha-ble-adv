@@ -72,11 +72,11 @@ class _TestEncoderBaseParams(_TestEncoderBaseAll):
 
 
 class _TestEncoderFullAll:
-    PARAM_NAMES: tuple[str, str, str, str, str, str] = ("enc_name", "params", "raw", "enc_str", "conf_str", "ent_str")
+    PARAM_NAMES: tuple[str, str, str, str, str, str, str] = ("enc_name", "params", "tr_set", "raw", "enc_str", "conf_str", "ent_str")
 
     _with_reverse = True
 
-    def test_decode_reencode(self, enc_name: str, params: list[Any], raw: str, enc_str: str, conf_str: str, ent_str: str) -> None:
+    def test_decode_reencode(self, enc_name: str, params: list[Any], tr_set: str, raw: str, enc_str: str, conf_str: str, ent_str: str) -> None:
         """Validate a decoding / re-encoding."""
         adv = BleAdvAdvertisement.FromRaw(_from_dotted(raw))
         codec = CODECS[enc_name]
@@ -86,10 +86,10 @@ class _TestEncoderFullAll:
         assert conf is not None
         assert conf.codec_params == params
         assert repr(conf) == conf_str
-        ent_attrs = codec.enc_to_ent(enc_cmd)
+        ent_attrs = codec.enc_to_ent(enc_cmd, tr_set)
         assert len(ent_attrs) == 1
         assert repr(ent_attrs[0]) == ent_str
-        enc_cmds = codec.ent_to_enc(ent_attrs[0])
+        enc_cmds = codec.ent_to_enc(ent_attrs[0], tr_set)
         if self._with_reverse:
             assert len(enc_cmds) == 1
             assert enc_cmds[0] == enc_cmd
@@ -101,4 +101,4 @@ class _TestEncoderFull(_TestEncoderFullAll):
 
     def test_decode_reencode(self, enc_name: str, raw: str, enc_str: str, conf_str: str, ent_str: str) -> None:
         eff_id, params = dyn_codec_params(enc_name)
-        return super().test_decode_reencode(eff_id, params, raw, enc_str, conf_str, ent_str)
+        return super().test_decode_reencode(eff_id, params, BleAdvCodec.DEF_TRANS_NAME, raw, enc_str, conf_str, ent_str)

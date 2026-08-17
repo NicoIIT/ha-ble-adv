@@ -3,11 +3,13 @@
 from homeassistant.const import Platform
 
 DOMAIN = "ble_adv"
-PLATFORMS = [Platform.LIGHT, Platform.FAN]
+PLATFORMS = [Platform.LIGHT, Platform.FAN, Platform.EVENT]
+
+EVENT_TYPE = "event"
 
 CONF_COORDINATOR_ID = "coordinator_unique_id"
 
-CONF_LAST_VERSION = 7
+CONF_LAST_VERSION = 8
 
 CONF_IGN_ADAPTERS = "ignored_adapters"
 CONF_IGN_DURATION = "ignored_duration"
@@ -18,6 +20,7 @@ CONF_INDEX = "index"
 CONF_CODEC_ID = "codec_id_dyn"
 CONF_CODEC_ID_OLD = "codec_id"
 CONF_PARAMS = "params"
+CONF_TRANS_SET = "tr_set"
 CONF_ADAPTER_ID = "adapter_id"
 CONF_ADAPTER_IDS = "adapter_ids"
 CONF_FORCED_ID = "forced_id"
@@ -45,6 +48,7 @@ CONF_REVERSED = "reversed"
 CONF_LIGHTS = "lights"
 CONF_FANS = "fans"
 CONF_REMOTE = "remote"
+CONF_PAIRED = "paired"
 CONF_MAX_ENTITY_NB = 3  # The max nb of entity that the config can handle in translations json files
 
 # Taken from https://www.bluetooth.com/specifications/assigned-numbers/

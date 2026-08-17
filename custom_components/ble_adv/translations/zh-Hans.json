@@ -244,12 +244,17 @@
       },
       "config_remote_update": {
         "title": "配置已关联控制器选项",
-        "description": "已关联控制器：\n\n    编解码器：{codec}\n    ID：{id}\n    索引：{index}"
+        "description": "已关联控制器：\n\n    编解码器：{codec}\n    ID：{id}\n    索引：{index}",
+        "data": {
+          "paired": "Controlling the Device",
+          "tr_set": "Translator Set"
+        }
       },
       "config_technical": {
         "title": "配置技术选项",
         "description": "每条命令会以指定的“间隔”（毫秒），向给定适配器广播“重复次数”次，并在两条不同命令之间遵守“最小时长”的延迟。\n\n只有在你清楚自己在做什么时才修改！\n\n强烈不建议使用多个适配器，也不会对此提供支持。",
         "data": {
+          "tr_set": "Translator Set",
           "adapter_ids": "BLE ADV 适配器",
           "interval": "间隔",
           "repeats": "重复次数",
@@ -311,6 +316,7 @@
     },
     "effects": {
       "options": {
+        "nm": "Night Mode",
         "rgb": "RGB 循环",
         "rgbk": "RGBK 循环"
       }
@@ -364,6 +370,7 @@
         "state_attributes": {
           "effect": {
             "state": {
+              "nm": "Night Mode",
               "rgb": "RGB 循环",
               "rgbk": "RGBK 循环"
             }
@@ -375,6 +382,7 @@
         "state_attributes": {
           "effect": {
             "state": {
+              "nm": "Night Mode",
               "rgb": "RGB 循环",
               "rgbk": "RGBK 循环"
             }
@@ -386,6 +394,7 @@
         "state_attributes": {
           "effect": {
             "state": {
+              "nm": "Night Mode",
               "rgb": "RGB 循环",
               "rgbk": "RGBK 循环"
             }

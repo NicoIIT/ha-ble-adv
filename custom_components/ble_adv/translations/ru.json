@@ -244,12 +244,17 @@
       },
       "config_remote_update": {
         "title": "Настройка параметров связанного контроллера",
-        "description": "Связанный контроллер:\n\n    Кодек: {codec}\n    ID: {id}\n    Индекс: {index}"
+        "description": "Связанный контроллер:\n\n    Кодек: {codec}\n    ID: {id}\n    Индекс: {index}",
+        "data": {
+          "paired": "Controlling the Device",
+          "tr_set": "Translator Set"
+        }
       },
       "config_technical": {
         "title": "Настройка технических параметров",
         "description": "Каждая команда отправляется в выбранные адаптеры 'Повторения' раз с заданным 'Интервалом' (мс) и с минимальной задержкой 'Минимальная длительность' между двумя различными командами.\n\nИзменяйте только если знаете, что делаете!\n\nИспользование нескольких адаптеров СЕРЬЕЗНО НЕ РЕКОМЕНДУЕТСЯ, поддержка предоставляться не будет.",
         "data": {
+          "tr_set": "Translator Set",
           "adapter_ids": "BLE ADV адаптер(ы)",
           "interval": "Интервал",
           "repeats": "Повторения",
@@ -311,6 +316,7 @@
     },
     "effects": {
       "options": {
+        "nm": "Night Mode",
         "rgb": "RGB цикл",
         "rgbk": "RGBK цикл"
       }
@@ -364,6 +370,7 @@
         "state_attributes": {
           "effect": {
             "state": {
+              "nm": "Night Mode",
               "rgb": "RGB цикл",
               "rgbk": "RGBK цикл"
             }
@@ -375,6 +382,7 @@
         "state_attributes": {
           "effect": {
             "state": {
+              "nm": "Night Mode",
               "rgb": "RGB цикл",
               "rgbk": "RGBK цикл"
             }
@@ -386,6 +394,7 @@
         "state_attributes": {
           "effect": {
             "state": {
+              "nm": "Night Mode",
               "rgb": "RGB цикл",
               "rgbk": "RGBK цикл"
             }

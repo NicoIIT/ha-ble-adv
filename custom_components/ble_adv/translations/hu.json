@@ -244,12 +244,17 @@
       },
       "config_remote_update": {
         "title": "Kapcsolt vezérlő beállításainak konfigurálása",
-        "description": "Kapcsolt vezérlő:\n\n    Kodek: {codec}\n    Azonosító: {id}\n    Index: {index}"
+        "description": "Kapcsolt vezérlő:\n\n    Kodek: {codec}\n    Azonosító: {id}\n    Index: {index}",
+        "data": {
+          "paired": "Controlling the Device",
+          "tr_set": "Translator Set"
+        }
       },
       "config_technical": {
         "title": "Technikai beállítások konfigurálása",
         "description": "Minden parancs az adott adapter(ek)hez 'Ismétlések' alkalommal kerül hirdetésre, megadott 'Időközzel' (ms), és 'Minimális időtartam' késleltetéssel két különböző parancs között.\n\nCsak akkor módosítsa, ha tudja, mit csinál!\n\nTöbb adapter használata KOMOLYAN ELLENJAVALLT, nem nyújtunk támogatást hozzá.",
         "data": {
+          "tr_set": "Translator Set",
           "adapter_ids": "BLE ADV adapter(ek)",
           "interval": "Időköz",
           "repeats": "Ismétlések",
@@ -311,6 +316,7 @@
     },
     "effects": {
       "options": {
+        "nm": "Night Mode",
         "rgb": "RGB ciklus",
         "rgbk": "RGBK ciklus"
       }
@@ -364,6 +370,7 @@
         "state_attributes": {
           "effect": {
             "state": {
+              "nm": "Night Mode",
               "rgb": "RGB ciklus",
               "rgbk": "RGBK ciklus"
             }
@@ -375,6 +382,7 @@
         "state_attributes": {
           "effect": {
             "state": {
+              "nm": "Night Mode",
               "rgb": "RGB ciklus",
               "rgbk": "RGBK ciklus"
             }
@@ -386,6 +394,7 @@
         "state_attributes": {
           "effect": {
             "state": {
+              "nm": "Night Mode",
               "rgb": "RGB ciklus",
               "rgbk": "RGBK ciklus"
             }

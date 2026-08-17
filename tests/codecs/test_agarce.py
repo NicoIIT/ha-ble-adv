@@ -14,6 +14,7 @@ from ble_adv.codecs.const import (
     LIGHT_TYPE_CWW,
     LIGHT_TYPE_ONOFF,
 )
+from ble_adv.codecs.models import BleAdvCodec
 
 from . import _TestEncoderBase, _TestEncoderFull
 
@@ -186,5 +187,7 @@ class TestEncoderAgarceNoReverse(_TestEncoderFull):
 def test_supported_features() -> None:
     """Test the specific supported features."""
     codec = AgarceEncoder().add_translators(TRANS)
-    assert codec.get_supported_features(LIGHT_TYPE) == [{ATTR_ON: {False, True}, ATTR_SUB_TYPE: {LIGHT_TYPE_ONOFF, LIGHT_TYPE_CWW}}]
-    assert codec.get_supported_features(FAN_TYPE) == [{ATTR_SPEED_COUNT: {6}, ATTR_PRESET: {ATTR_PRESET_BREEZE}}]
+    assert codec.get_supported_features(LIGHT_TYPE, BleAdvCodec.DEF_TRANS_NAME) == [
+        {ATTR_ON: {False, True}, ATTR_SUB_TYPE: {LIGHT_TYPE_ONOFF, LIGHT_TYPE_CWW}}
+    ]
+    assert codec.get_supported_features(FAN_TYPE, BleAdvCodec.DEF_TRANS_NAME) == [{ATTR_SPEED_COUNT: {6}, ATTR_PRESET: {ATTR_PRESET_BREEZE}}]

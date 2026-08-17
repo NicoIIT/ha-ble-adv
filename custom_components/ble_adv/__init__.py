@@ -34,6 +34,7 @@ from .const import (
     CONF_LAST_VERSION,
     CONF_LIGHTS,
     CONF_MAX_ENTITY_NB,
+    CONF_PAIRED,
     CONF_PARAMS,
     CONF_RAW,
     CONF_REFRESH_DIR_ON_START,
@@ -43,6 +44,7 @@ from .const import (
     CONF_REPEAT,
     CONF_REPEATS,
     CONF_TECHNICAL,
+    CONF_TRANS_SET,
     CONF_USE_DIR,
     CONF_USE_OSC,
     DOMAIN,
@@ -157,6 +159,10 @@ async def async_migrate_entry(hass: HomeAssistant, config_entry: ConfigEntry) ->
             new_data[CONF_REMOTE][CONF_CODEC_ID] = new_id
             new_data[CONF_REMOTE][CONF_PARAMS] = params
             update_needed = True
+    if new_data[CONF_DEVICE][CONF_CODEC_ID] == "zhijia_v2_fl":
+        new_data[CONF_DEVICE][CONF_CODEC_ID] = "zhijia_v2"
+        new_data[CONF_TECHNICAL][CONF_TRANS_SET] = "fl"
+        update_needed = True
 
     if config_entry.version < 2:
         coordinator = await get_coordinator(hass)
@@ -197,12 +203,16 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         tech_conf[CONF_REPEATS],
         tech_conf[CONF_INTERVAL],
         tech_conf[CONF_DURATION],
-        BleAdvConfig(device_conf[CONF_FORCED_ID], device_conf[CONF_INDEX], device_conf.get(CONF_PARAMS)),
+        BleAdvConfig(device_conf[CONF_FORCED_ID], device_conf[CONF_INDEX], device_conf.get(CONF_PARAMS), tech_conf.get(CONF_TRANS_SET)),
         coordinator,
     )
     if CONF_REMOTE in entry.data and CONF_CODEC_ID in entry.data[CONF_REMOTE]:
         rconf = entry.data[CONF_REMOTE]
-        device.add_listener(rconf[CONF_CODEC_ID], BleAdvConfig(rconf[CONF_FORCED_ID], rconf[CONF_INDEX], rconf.get(CONF_PARAMS)))
+        device.add_listener(
+            rconf[CONF_CODEC_ID],
+            BleAdvConfig(rconf[CONF_FORCED_ID], rconf[CONF_INDEX], rconf.get(CONF_PARAMS), rconf.get(CONF_TRANS_SET)),
+            rconf.get(CONF_PAIRED, True),
+        )
 
     hass.data[DOMAIN][entry.entry_id] = device
     coordinator.add_device(device)

@@ -244,12 +244,17 @@
       },
       "config_remote_update": {
         "title": "Configuration des Options de Télécommande",
-        "description": "Télécommande associée:\n\n    Codec: {codec}\n    Id: {id}\n    Index: {index}"
+        "description": "Télécommande associée:\n\n    Codec: {codec}\n    Id: {id}\n    Index: {index}",
+        "data": {
+          "paired": "Contrôle l'appareil",
+          "tr_set": "Translator Set"
+        }
       },
       "config_technical": {
         "title": "Configuration Technique",
         "description": "Chaque commande est envoyée 'Répétitions' fois par l'adaptateur séléctionné, à 'Interval' (ms) d'interval, avec un délai minimum de 'Délai Minimum' (ms) entre 2 commandes successives.\n\nNe modifier que si vous savez ce que vous faites!\n\nLa séléction de plusieurs Adaptateurs est possible mais FORTEMENT DECONSEILLEE, aucune aide ne sera apportée dans ce cas.",
         "data": {
+          "tr_set": "Translator Set",
           "adapter_ids": "Adaptateur(s) BLE ADV",
           "interval": "Interval",
           "repeats": "Répétitions",
@@ -311,6 +316,7 @@
     },
     "effects": {
       "options": {
+        "nm": "Mode Nuit",
         "rgb": "RGB Cycle",
         "rgbk": "RGBK Cycle"
       }
@@ -364,6 +370,7 @@
         "state_attributes": {
           "effect": {
             "state": {
+              "nm": "Mode Nuit",
               "rgb": "RGB Cycle",
               "rgbk": "RGBK Cycle"
             }
@@ -375,6 +382,7 @@
         "state_attributes": {
           "effect": {
             "state": {
+              "nm": "Mode Nuit",
               "rgb": "RGB Cycle",
               "rgbk": "RGBK Cycle"
             }
@@ -386,6 +394,7 @@
         "state_attributes": {
           "effect": {
             "state": {
+              "nm": "Mode Nuit",
               "rgb": "RGB Cycle",
               "rgbk": "RGBK Cycle"
             }
