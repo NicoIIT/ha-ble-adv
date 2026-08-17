@@ -33,7 +33,7 @@ The Protocols supported are the ones used by the following Android Phone Apps (a
 * [Zhi Guang](https://play.google.com/store/apps/details?id=com.cxw.zhiguang) (2 different versions: one based on zhimei, one based on zhijia)
 * [Zhi Mei Deng Kong](http://mihuan.iotworkshop.com/zhiguang/) (not available on Play Store)
 * [Mantra Lighting](https://play.google.com/store/apps/details?id=com.newenergy.baolilan) (Models Coin, Groenland)
-* [Smart Light / Argrace Smart](https://apkpure.com/argrace-smart/ai.argrace.oem) (No RGB, Only the control by device, not the Master Control) (not available on Play Store anymore, seems abandoned)
+* [Smart Light / Argrace Smart](https://apkpure.com/argrace-smart/ai.argrace.oem) (No RGB, Only the control by device, not the Master Control, PARTIAL support for some remotes) (not available on Play Store anymore, seems abandoned)
 * [LE Light Pro / 乐智光Pro](https://openapi.lelight.top/dl/cqan) (not available on Play Store)
 * [RuiXin](https://rx-etech.com/rxzn.html) Sanweyter devices (No RGB, no Timer, Remote Temperature Switch not reflected in HA) (not available on Play Store)
 * [RW.LIGHT](https://play.google.com/store/apps/details?id=com.rw.rwblelight) (No control by Group, No support for AURA / IR / FIBER types)

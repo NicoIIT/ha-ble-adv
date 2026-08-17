@@ -161,6 +161,13 @@ class TestEncoderAgarceFull(_TestEncoderFull):
             "id: 0x100061C8, index: 17, tx: 185, seed: 0xA312",
             "device_0: ['on'] / {'on': False}",
         ),
+        (
+            "agarce_vr4",
+            "19FFF909043AE8A28903766E54FAA0D11156486E1A0EF84DC05B",
+            "cmd: 0x4E, param: 0x00, args: [221,255,0]",
+            "id: 0x1BC6719CA729, index: 0, tx: 147, seed: 0x89A2E83A",
+            "device_0: ['on'] / {'on': False}",
+        ),
         # DEVICE ALL ON
         (
             "agarce_v4",
@@ -176,12 +183,95 @@ class TestEncoderAgarceFull(_TestEncoderFull):
             "id: 0x100061C8, index: 17, tx: 187, seed: 0xD78E",
             "device_0: ['on'] / {'on': True}",
         ),
+        # Light Toogle
+        (
+            "agarce_vr3",
+            "19FFF909035D74D34ECAEA1F933DD14D7631D41F822989D16AD9",
+            "cmd: 0x11, param: 0x00, args: [61,255,0]",
+            "id: 0x1BC6719CA729, index: 0, tx: 61, seed: 0x4ED3745D",
+            "light_0: ['cmd'] / {'cmd': 'toggle'}",
+        ),
+        # BR+
+        (
+            "agarce_vr4",
+            "19FFF90904F3CD35D71053F90AA437F4D89F6DF909E66F6830F2",
+            "cmd: 0x03, param: 0x00, args: [107,255,0]",
+            "id: 0x1BC6719CA729, index: 0, tx: 73, seed: 0xD735CDF3",
+            "light_0: ['cmd'] / {'sub_type': 'cww', 'cmd': 'B+', 'step': 0.1}",
+        ),
+        # BR-
+        (
+            "agarce_vr3",
+            "19FFF909035E7AEAA8BFE42675DBE8437532DA267129B0DF08A3",
+            "cmd: 0x04, param: 0x00, args: [219,255,0]",
+            "id: 0x1BC6719CA729, index: 0, tx: 75, seed: 0xA8EA7A5E",
+            "light_0: ['cmd'] / {'sub_type': 'cww', 'cmd': 'B-', 'step': 0.1}",
+        ),
+        # K+
+        (
+            "agarce_vr4",
+            "19FFF90904DD75D4503BEB188D23D64CF6B1D51888188ED0C2F8",
+            "cmd: 0x05, param: 0x00, args: [18,255,0]",
+            "id: 0x1BC6719CA729, index: 0, tx: 76, seed: 0x50D475DD",
+            "light_0: ['cmd'] / {'sub_type': 'cww', 'cmd': 'K+', 'step': 0.1}",
+        ),
+        # K-
+        (
+            "agarce_vr3",
+            "19FFF90903F0C20924155CC5F9570BFBDB9C62C5FFA75367BA40",
+            "cmd: 0x06, param: 0x00, args: [217,255,0]",
+            "id: 0x1BC6719CA729, index: 0, tx: 79, seed: 0x2409C2F0",
+            "light_0: ['cmd'] / {'sub_type': 'cww', 'cmd': 'K-', 'step': 0.1}",
+        ),
+        # TIMER 2H
+        (
+            "agarce_vr4",
+            "19FFF909041451461BEACF8AC66844683F78F18A8C1F1CF4907E",
+            "cmd: 0x4A, param: 0x00, args: [94,255,0]",
+            "id: 0x1BC6719CA729, index: 0, tx: 84, seed: 0x1B465114",
+            "device_0: ['cmd'] / {'cmd': 'timer', 's': 7200}",
+        ),
     ],
 )
 class TestEncoderAgarceNoReverse(_TestEncoderFull):
     """Agarce Encoder / Decoder No Reverse tests."""
 
     _with_reverse = False
+
+
+@pytest.mark.parametrize(
+    _TestEncoderFull.PARAM_NAMES,
+    [
+        # FAN 1
+        (
+            "agarce_vr4",
+            "19FFF9090445165860AC8894BD135A2F6E29B694816902B3AB7D",
+            "cmd: 0x3C, param: 0x00, args: [83,255,0]",
+            "id: 0x1BC6719CA729, index: 0, tx: 67, seed: 0x60581645",
+            "fan_0: ['on', 'speed'] / {'speed_count': 6, 'on': True, 'speed': 1.0}",
+        ),
+        # FAN 6
+        (
+            "agarce_vr4",
+            "19FFF90904ECB3CF3D693503E03E0E85F87CE203A1B99516FA73",
+            "cmd: 0x41, param: 0x00, args: [222,255,0]",
+            "id: 0xEA3A4E936459, index: 0, tx: 47, seed: 0x3DCFB3EC",
+            "fan_0: ['on', 'speed'] / {'speed_count': 6, 'on': True, 'speed': 6.0}",
+        ),
+        # FAN OFF
+        (
+            "agarce_vr3",
+            "19FFF90903669A6BAD8E04A770DE69A34D0A3AA732AD313FFC4B",
+            "cmd: 0x42, param: 0x00, args: [90,255,0]",
+            "id: 0x1BC6719CA729, index: 0, tx: 66, seed: 0xAD6B9A66",
+            "fan_0: ['on'] / {'on': False}",
+        ),
+    ],
+)
+class TestEncoderAgarceNoArgs(_TestEncoderFull):
+    """Agarce Encoder / Decoder No Args tests."""
+
+    _compare_args = False
 
 
 def test_supported_features() -> None:
