@@ -326,9 +326,27 @@
         "breeze": "Natural wind",
         "sleep": "Sleep mode"
       }
+    },
+    "tr_set": {
+      "options": {
+        "fl": "Flickering",
+        "no_nm": "No Night Mode",
+        "nm_as_effect": "Night Mode as Effect",
+        "nm_as_second_light": "Night Mode as Second Light"
+      }
     }
   },
   "entity": {
+    "event": {
+      "event": {
+        "name": "Encoded Command"
+      }
+    },
+    "switch": {
+      "silent": {
+        "name": "No Command Mode"
+      }
+    },
     "fan": {
       "fan_0": {
         "name": "Main Fan",

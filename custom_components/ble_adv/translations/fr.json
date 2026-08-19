@@ -326,9 +326,27 @@
         "breeze": "Naturel",
         "sleep": "Mode Sommeil"
       }
+    },
+    "tr_set": {
+      "options": {
+        "fl": "Clignotement",
+        "no_nm": "Pas de mode Nuit",
+        "nm_as_effect": "Mode Nuit comme Effet",
+        "nm_as_second_light": "Mode Nuit comme seconde lampe"
+      }
     }
   },
   "entity": {
+    "event": {
+      "event": {
+        "name": "Commande Encodée"
+      }
+    },
+    "switch": {
+      "silent": {
+        "name": "Ne pas envoyer de Commande"
+      }
+    },
     "fan": {
       "fan_0": {
         "name": "Ventilateur Principal",

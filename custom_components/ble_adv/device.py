@@ -9,6 +9,8 @@ from datetime import datetime, timedelta
 from typing import Any
 
 from homeassistant.components.event import EventDeviceClass, EventEntity
+from homeassistant.components.switch import SwitchDeviceClass, SwitchEntity
+from homeassistant.const import EntityCategory
 from homeassistant.core import CALLBACK_TYPE, HomeAssistant
 from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.event import async_track_point_in_utc_time
@@ -55,6 +57,8 @@ class BleAdvStateAttribute:
 class BleAdvDeviceEntity(RestoreEntity):
     """Base Device Entity class."""
 
+    _attr_has_entity_name = True
+
     def __init__(self, ent_type: str, device: BleAdvDevice) -> None:
         self._device: BleAdvDevice = device
         self._attr_device_info: DeviceInfo = device.device_info
@@ -79,11 +83,37 @@ class BleAdvEvent(BleAdvDeviceEntity, EventEntity):
         self.async_write_ha_state()
 
 
+class BleAdvSwitch(BleAdvDeviceEntity, SwitchEntity):
+    """Base Switch Entity."""
+
+    _attr_device_class = SwitchDeviceClass.SWITCH
+    _attr_entity_category = EntityCategory.CONFIG
+
+    def __init__(self, device: BleAdvDevice, switch_type: str) -> None:
+        super().__init__(switch_type, device)
+        device.set_silent_switch_entity(self)
+
+    async def async_turn_on(self, **_: Any) -> None:  # noqa: ANN401
+        """Turn on."""
+        self._attr_is_on = True
+        self.async_write_ha_state()
+
+    async def async_turn_off(self, **_: Any) -> None:  # noqa: ANN401
+        """Turn off."""
+        self._attr_is_on = False
+        self.async_write_ha_state()
+
+    async def async_added_to_hass(self) -> None:
+        """Restore ON / OFF state."""
+        await super().async_added_to_hass()
+        last_state = await self.async_get_last_state()
+        self._attr_is_on = last_state.state == "on" if last_state else False
+
+
 class BleAdvEntity(BleAdvDeviceEntity):
     """Base Ble Adv Entity class."""
 
     _state_attributes: frozenset[BleAdvStateAttribute] = frozenset()
-    _attr_has_entity_name = True
 
     def __init__(self, base_type: str, sub_type: str | None, device: BleAdvDevice, index: int = 0) -> None:
         super().__init__(f"{base_type}_{index}", device)
@@ -222,6 +252,7 @@ class BleAdvDevice(BleAdvBaseDevice):
         self.codec_name: str = codec_from_dyn(self.codec_id, self.config.codec_params)
         self._entities: list[BleAdvEntity] = []
         self._event_entity: BleAdvEvent | None = None
+        self._silent_switch_entity: BleAdvSwitch | None = None
         self._timer_cancel: CALLBACK_TYPE | None = None
         self.logger = _DeviceLoggingAdapter(_LOGGER, {"name": self.name})
 
@@ -246,12 +277,19 @@ class BleAdvDevice(BleAdvBaseDevice):
         """Set the Event Entity."""
         self._event_entity = ent
 
+    def set_silent_switch_entity(self, ent: BleAdvSwitch) -> None:
+        """Set the Silent Switch Entity."""
+        self._silent_switch_entity = ent
+
     def add_entity(self, ent: BleAdvEntity) -> None:
         """Add entity to this device."""
         self._entities.append(ent)
 
     async def apply_change(self, ent_attr: BleAdvEntAttr) -> None:
         """Apply changes."""
+        if self._silent_switch_entity is not None and self._silent_switch_entity.is_on:
+            self.logger.info(f"Skipped Changes as Silent Mode activated: {ent_attr}")
+            return
         self.logger.info(f"Applying Changes: {ent_attr}")
         await self._async_cancel_timer()
         try:
