@@ -706,8 +706,9 @@ class BleAdvConfigFlow(ConfigFlow, domain=DOMAIN):
                     CONF_FORCED_CMDS, forced_cmds
                 )
                 if ATTR_EFFECT in feats:
-                    effects = list(feats[ATTR_EFFECT])
-                    schema_opts[vol.Required(CONF_EFFECTS, default=opts.get(CONF_EFFECTS, effects))] = self._get_multi_selector(CONF_EFFECTS, effects)
+                    effects = feats[ATTR_EFFECT]
+                    def_effects = [eff for eff in opts.get(CONF_EFFECTS, effects) if eff in effects]
+                    schema_opts[vol.Required(CONF_EFFECTS, default=def_effects)] = self._get_multi_selector(CONF_EFFECTS, list(effects))
                 sections[f"{LIGHT_TYPE}_{i}"] = (schema_opts, (i == 0) or CONF_TYPE in opts)
 
         # Build one section for each Fan supported by the codec
@@ -730,8 +731,9 @@ class BleAdvConfigFlow(ConfigFlow, domain=DOMAIN):
                     CONF_FORCED_CMDS, forced_cmds
                 )
                 if ATTR_PRESET in feats:
-                    presets = list(feats[ATTR_PRESET])
-                    schema_opts[vol.Required(CONF_PRESETS, default=opts.get(CONF_PRESETS, presets))] = self._get_multi_selector(CONF_PRESETS, presets)
+                    presets = feats[ATTR_PRESET]
+                    def_presets = [preset for preset in opts.get(CONF_PRESETS, presets) if preset in presets]
+                    schema_opts[vol.Required(CONF_PRESETS, default=def_presets)] = self._get_multi_selector(CONF_PRESETS, list(presets))
                 sections[f"{FAN_TYPE}_{i}"] = (schema_opts, CONF_TYPE in opts)
 
         # Finalize schema with all sections
@@ -796,9 +798,12 @@ class BleAdvConfigFlow(ConfigFlow, domain=DOMAIN):
     async def async_step_config_technical(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         """Configure Technical."""
         errors = {}
+        def_tr_set = self._data[CONF_TECHNICAL].get(CONF_TRANS_SET, BleAdvCodec.DEF_TRANS_NAME)
         if user_input is not None:
             self._data[CONF_TECHNICAL] = user_input
             if len(self._data[CONF_TECHNICAL][CONF_ADAPTER_IDS]) > 0:
+                if def_tr_set != user_input[CONF_TRANS_SET]:
+                    return await self.async_step_config_entities()
                 return await self.async_step_configure()
             errors["base"] = "missing_adapter"
 
@@ -806,8 +811,8 @@ class BleAdvConfigFlow(ConfigFlow, domain=DOMAIN):
         avail_adapters = self.coordinator.get_adapter_ids()
         def_adapters = [adapt for adapt in def_tech[CONF_ADAPTER_IDS] if adapt in avail_adapters]
         codec: BleAdvCodec = self.coordinator.codecs[self._data[CONF_DEVICE][CONF_CODEC_ID]]
-        def_tr_set = def_tech.get(CONF_TRANS_SET, BleAdvCodec.DEF_TRANS_NAME)
         avail_tr_set = list(codec.get_translator_sets().keys())
+        def_tr_set = def_tr_set if def_tr_set in avail_tr_set else BleAdvCodec.DEF_TRANS_NAME
         data_schema = vol.Schema(
             {
                 vol.Required(CONF_ADAPTER_IDS, default=def_adapters): self._get_multi_selector(CONF_ADAPTER_IDS, avail_adapters),

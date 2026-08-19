@@ -61,11 +61,27 @@ class FanLampEncoder(BleAdvCodec):
         return crc_hqx(buffer, seed)
 
     def add_translators(self, translators: list[Trans]) -> Self:
-        """Add translators for default set, and add supplementary "night_mode" set with night mode as effect."""
+        """Add translators for default set, and add supplementary "night_mode" sets."""
         self.add_translator_set(self.DEF_TRANS_NAME, TranslatorSet(translators))
-        new_set = TranslatorSet([tr for tr in translators if not tr.enc.matches(BleAdvEncCmd(0x23))])
-        new_set.add_translators([Trans(LightCmd().act(ATTR_EFFECT, ATTR_EFFECT_NM), EncCmd(0x23))])
-        self.add_translator_set("Night mode as effect", TranslatorSet(new_set))
+        no_nm_set = TranslatorSet([tr for tr in translators if not any(tr.enc.matches(BleAdvEncCmd(cmd)) for cmd in [0x12, 0x13, 0x23])])
+        self.add_translator_set("no_nm", no_nm_set)
+        self.add_translator_set(
+            "nm_as_effect",
+            TranslatorSet(no_nm_set[:]).add_translators(
+                [
+                    Trans(LightCmd().act(ATTR_EFFECT, ATTR_EFFECT_NM), EncCmd(0x23)),
+                    Trans(LightCmd().act(ATTR_EFFECT).eq(ATTR_EFFECT, None), EncCmd(0x10)).no_reverse(),
+                ]
+            ),
+        )
+        self.add_translator_set(
+            "nm_as_second_light",
+            TranslatorSet(no_nm_set[:]).add_translators(
+                [
+                    Trans(LightCmd(1).act(ATTR_ON, ATTR_CMD_TOGGLE), EncCmd(0x23)),
+                ]
+            ),
+        )
         return self
 
 

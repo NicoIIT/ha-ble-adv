@@ -928,15 +928,25 @@ class TestEncoderFanlampRemoteV0(_TestEncoderFull):
 @pytest.mark.parametrize(
     _TestEncoderFullAll.PARAM_NAMES,
     [
-        # Night Mode
+        # Night Mode as effect
         (
             "lampsmart_pro_v2",
             [True, [0x30, 0x82, 0x00]],
-            "Night mode as effect",
+            "nm_as_effect",
             "0201021B03F0083082367AFD5A553140281A76770F9180FFFCBDC6532BA5A9",
             "cmd: 0x23, param: 0x00, args: [0,0,0]",
             "id: 0x712950E6, index: 0, tx: 83, seed: 0x2B53",
             "light_0: ['effect'] / {'effect': 'nm'}",
+        ),
+        # Night Mode as second light
+        (
+            "lampsmart_pro_v2",
+            [True, [0x30, 0x82, 0x00]],
+            "nm_as_second_light",
+            "0201021B03F0083082367AFD5A553140281A76770F9180FFFCBDC6532BA5A9",
+            "cmd: 0x23, param: 0x00, args: [0,0,0]",
+            "id: 0x712950E6, index: 0, tx: 83, seed: 0x2B53",
+            "light_1: ['on'] / {'on': 'toggle'}",
         ),
     ],
 )
