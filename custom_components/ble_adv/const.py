@@ -3,9 +3,10 @@
 from homeassistant.const import Platform
 
 DOMAIN = "ble_adv"
-PLATFORMS = [Platform.LIGHT, Platform.FAN, Platform.EVENT]
+PLATFORMS = [Platform.LIGHT, Platform.FAN, Platform.EVENT, Platform.SWITCH]
 
 EVENT_TYPE = "event"
+SILENT_SWITCH_TYPE = "silent"
 
 CONF_COORDINATOR_ID = "coordinator_unique_id"
 

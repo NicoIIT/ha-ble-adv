@@ -30,6 +30,8 @@ class _Device(mock.AsyncMock):
     force_send = False
 
     add_entity = mock.MagicMock()
+    set_silent_switch_entity = mock.MagicMock()
+    set_event_entity = mock.MagicMock()
 
     def assert_apply_change(self, ent: BleAdvEntity, chgs: list[str]) -> None:
         self.apply_change.assert_called_once_with(BleAdvEntAttr(chgs, ent.get_attrs(), ent._base_type, ent._index))  # noqa: SLF001

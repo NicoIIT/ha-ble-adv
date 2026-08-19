@@ -8,10 +8,9 @@ from unittest import mock
 from ble_adv.adapters import BleAdvQueueItem
 from ble_adv.codecs.const import ATTR_CMD, ATTR_CMD_PAIR, ATTR_CMD_TIMER, ATTR_CMD_TOGGLE, ATTR_ON, ATTR_SUB_TYPE, ATTR_TIME, DEVICE_TYPE
 from ble_adv.codecs.models import BleAdvAdvertisement, BleAdvConfig, BleAdvEncCmd, BleAdvEntAttr
-from ble_adv.const import CONF_FORCED_OFF, CONF_FORCED_ON
+from ble_adv.const import CONF_FORCED_OFF, CONF_FORCED_ON, SILENT_SWITCH_TYPE
 from ble_adv.coordinator import BleAdvCoordinator
-from ble_adv.device import ATTR_AVAILABLE, ATTR_IS_ON, BleAdvDevice, BleAdvEntity, BleAdvStateAttribute
-from ble_adv.event import BleAdvEvent
+from ble_adv.device import ATTR_AVAILABLE, ATTR_IS_ON, BleAdvDevice, BleAdvEntity, BleAdvEvent, BleAdvStateAttribute, BleAdvSwitch
 from homeassistant.const import STATE_ON
 from homeassistant.core import HomeAssistant, State
 
@@ -76,6 +75,9 @@ async def test_device(hass: HomeAssistant, coord: BleAdvCoordinator) -> None:
     event_ent = BleAdvEvent(device)
     event_ent._trigger_event = mock.MagicMock()  # pyright: ignore[reportAttributeAccessIssue]  # noqa: SLF001
     event_ent.async_write_ha_state = mock.MagicMock()
+    silent_ent = BleAdvSwitch(device, SILENT_SWITCH_TYPE)
+    silent_ent.async_write_ha_state = mock.MagicMock()
+    await silent_ent.async_added_to_hass()
     assert not device.available
     ent0.set_state_attribute(ATTR_AVAILABLE, True)
     assert ent0.available
@@ -86,7 +88,12 @@ async def test_device(hass: HomeAssistant, coord: BleAdvCoordinator) -> None:
     on_cmd = BleAdvEntAttr([ATTR_ON], {ATTR_ON: True}, "ent_type", 0)
     await device.apply_change(on_cmd)
     coord.advertise.assert_called_once_with("my_adapter", "my_device", BleAdvQueueItem(0x10, 1, 100, 20, [adv.to_raw()], 2))
+    coord.advertise.reset_mock()
     assert not ent0.is_on
+    await silent_ent.async_turn_on()
+    await device.apply_change(on_cmd)
+    coord.advertise.assert_not_called()
+    await silent_ent.async_turn_off()
     await device.async_on_enc_cmd(BleAdvEncCmd(0x10))
     event_ent.async_write_ha_state.assert_called_once()
     event_ent.async_write_ha_state.reset_mock()
