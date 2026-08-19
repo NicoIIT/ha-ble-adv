@@ -522,8 +522,8 @@ class BleAdvCodec(ABC):
         return self._translator_maps
 
     def get_translators(self, translator_set_name: str) -> TranslatorSet:
-        """Get the translators from the set name."""
-        return self._translator_maps.get(translator_set_name, TranslatorSet())
+        """Get the translators from the set name, defaulting on the default set."""
+        return self._translator_maps.get(translator_set_name, self._translator_maps[self.DEF_TRANS_NAME])
 
     def get_supported_features(self, base_type: str, translator_set_name: str) -> list[dict[str, set[Any]]]:
         """Get the features supported by the translators in DIRECT mode only.
