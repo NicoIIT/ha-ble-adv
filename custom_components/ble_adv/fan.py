@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import contextlib
 import json
 from math import ceil
 from pathlib import Path
@@ -53,14 +54,12 @@ def _load_preset_mappings(language: str) -> tuple[dict[str, str], dict[str, str]
     for lang in (language, language.split("-", maxsplit=1)[0], "en"):
         lang_file = TRANSLATIONS_PATH / f"{lang}.json"
         if lang_file.is_file():
-            try:
+            with contextlib.suppress(OSError, json.JSONDecodeError):
                 with lang_file.open(encoding="utf-8") as f:
                     data = json.load(f)
                 display_map = data.get("selector", {}).get("presets", {}).get("options", {})
                 if display_map:
                     break
-            except Exception:  # noqa: BLE001
-                pass
 
     canonical_map = {v: k for k, v in display_map.items()}
     canonical_map.update({k: k for k in display_map})
