@@ -131,6 +131,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
 class BleAdvFan(BleAdvEntity, FanEntity):
     """Ble Adv Fan Entity."""
 
+    _attr_icon = "mdi:ceiling-fan"
+
     _state_attributes = frozenset(
         [
             BleAdvStateAttribute(ATTR_IS_ON, False, [ATTR_ON]),
