@@ -87,7 +87,7 @@ def _get_preset_mappings(language: str) -> tuple[dict[str, str], dict[str, str]]
     """Get display and canonical mappings for a language."""
     display_map = (
         PRESET_TRANSLATIONS.get(language)
-        or PRESET_TRANSLATIONS.get(language.split("-")[0])
+        or PRESET_TRANSLATIONS.get(language.split("-", maxsplit=1)[0])
         or PRESET_TRANSLATIONS.get("en", {})
     )
     # Bidirectional canonical map covering all supported languages
