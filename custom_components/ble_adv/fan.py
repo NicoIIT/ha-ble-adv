@@ -86,9 +86,7 @@ PRESET_TRANSLATIONS: dict[str, dict[str, str]] = {
 def _get_preset_mappings(language: str) -> tuple[dict[str, str], dict[str, str]]:
     """Get display and canonical mappings for a language."""
     display_map = (
-        PRESET_TRANSLATIONS.get(language)
-        or PRESET_TRANSLATIONS.get(language.split("-", maxsplit=1)[0])
-        or PRESET_TRANSLATIONS.get("en", {})
+        PRESET_TRANSLATIONS.get(language) or PRESET_TRANSLATIONS.get(language.split("-", maxsplit=1)[0]) or PRESET_TRANSLATIONS.get("en", {})
     )
     # Bidirectional canonical map covering all supported languages
     canonical_map = {}
@@ -126,11 +124,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
     """Entry setup."""
     device: BleAdvDevice = hass.data[DOMAIN][entry.entry_id]
     language = hass.config.language or "en"
-    entities = [
-        create_entity(options, device, i, language)
-        for i, options in enumerate(entry.data[CONF_FANS])
-        if CONF_TYPE in options
-    ]
+    entities = [create_entity(options, device, i, language) for i, options in enumerate(entry.data[CONF_FANS]) if CONF_TYPE in options]
     async_add_entities(entities, True)
 
 
