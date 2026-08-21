@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+import json
 from math import ceil
+from pathlib import Path
 from typing import Any
 
 from homeassistant.components.fan import (
@@ -42,62 +44,26 @@ from .const import (
 )
 from .device import ATTR_IS_ON, BleAdvDevice, BleAdvEntAttr, BleAdvEntity, BleAdvStateAttribute
 
-# Multi-language preset mappings for all integration locales
-PRESET_TRANSLATIONS: dict[str, dict[str, str]] = {
-    "en": {
-        "sleep": "Sleep Mode",
-        "breeze": "Breeze Mode",
-    },
-    "es": {
-        "sleep": "Modo Sueño",
-        "breeze": "Modo Brisa",
-    },
-    "fr": {
-        "sleep": "Mode Nuit",
-        "breeze": "Mode Brise",
-    },
-    "ru": {
-        "sleep": "Спящий режим",
-        "breeze": "Режим бриза",
-    },
-    "cs": {
-        "sleep": "Režim spánku",
-        "breeze": "Režim vánku",
-    },
-    "sk": {
-        "sleep": "Režim spánku",
-        "breeze": "Režim vánku",
-    },
-    "hu": {
-        "sleep": "Alvó mód",
-        "breeze": "Szellő mód",
-    },
-    "zh": {
-        "sleep": "睡眠模式",
-        "breeze": "自然风模式",
-    },
-    "zh-Hans": {
-        "sleep": "睡眠模式",
-        "breeze": "自然风模式",
-    },
-}
+TRANSLATIONS_PATH = Path(__file__).parent / "translations"
 
 
-def _get_preset_mappings(language: str) -> tuple[dict[str, str], dict[str, str]]:
-    """Get display and canonical mappings for a language."""
-    display_map = (
-        PRESET_TRANSLATIONS.get(language) or PRESET_TRANSLATIONS.get(language.split("-", maxsplit=1)[0]) or PRESET_TRANSLATIONS.get("en", {})
-    )
-    # Bidirectional canonical map covering all supported languages
-    canonical_map = {}
-    for lang_dict in PRESET_TRANSLATIONS.values():
-        for k, v in lang_dict.items():
-            canonical_map[v] = k
-            canonical_map[k] = k
-    canonical_map["Modo Dormir"] = "sleep"
-    canonical_map["Modo Sueño"] = "sleep"
-    canonical_map["Modo Brisa"] = "breeze"
+def _load_preset_mappings(language: str) -> tuple[dict[str, str], dict[str, str]]:
+    """Load preset mappings dynamically from translations directory."""
+    display_map: dict[str, str] = {}
+    for lang in (language, language.split("-", maxsplit=1)[0], "en"):
+        lang_file = TRANSLATIONS_PATH / f"{lang}.json"
+        if lang_file.is_file():
+            try:
+                with lang_file.open(encoding="utf-8") as f:
+                    data = json.load(f)
+                display_map = data.get("selector", {}).get("presets", {}).get("options", {})
+                if display_map:
+                    break
+            except Exception:  # noqa: BLE001
+                pass
 
+    canonical_map = {v: k for k, v in display_map.items()}
+    canonical_map.update({k: k for k in display_map})
     return display_map, canonical_map
 
 
@@ -159,7 +125,7 @@ class BleAdvFan(BleAdvEntity, FanEntity):
         super().__init__(FAN_TYPE, None, device, index)
         self._attr_supported_features: FanEntityFeature = features
         self._attr_speed_count: int = speed_count
-        self._display_map, self._canonical_map = _get_preset_mappings(language)
+        self._display_map, self._canonical_map = _load_preset_mappings(language)
         self._attr_preset_modes = [self._display_map.get(p, p) for p in presets]
 
     @property
