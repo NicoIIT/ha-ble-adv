@@ -10,19 +10,32 @@ body:
   attributes:
     label: Checklist
     options:
+      - label: I **_CAREFULLY_** read the [Contribution Guidelines](../CONTRIBUTING.md) of the project and this issue fully complies with them.
+        required: true
       - label: I have checked the [README](https://github.com/NicoIIT/ha-ble-adv?tab=readme-ov-file#home-assistant-ble-adv-ceiling-fan--lamps) and the Phone App is not already supported.
         required: true
       - label: This issue is not a duplicate app request of [previous app requests](https://github.com/NicoIIT/ha-ble-adv/issues?q=is%3Aissue%20state%3Aopen%20label%3Aenhancement).
         required: true
       - label: I am not requesting for the support of a new device brand, as this integration is supporting Android Phone App protocols and not device brands.
         required: true
+      - label: The phone App is paired to my Device and successfully controls it, and fails to control it if I shutdown Bluetooth.
+        required: true
       - label: I checked the Phone App is effectively using BLE ADV commands to control my Device using the [Listening Tool](https://github.com/NicoIIT/ha-ble-adv/wiki/How-to-know-if-my-Physical-Remote-is-using-BLE-Advertising-to-control-my-device#the-included-listening-tool).
         required: true
 
 - type: textarea
   attributes:
-    label: "Android Phone app info"
-    description: "All the info you have to allow the developper to find it and install it. (EXACT name on the Android App Store, download link, ...)"
+    label: "Android Phone app EXACT name"
+    description: "No comment here, only a name. Dot."
+    placeholder: "Fan Lamp Pro"
+  validations:
+    required: true
+
+- type: textarea
+  attributes:
+    label: "Link to the Android Phone app"
+    description: "The ANDROID Phone App playstore download link, or the download link provided by the manufacturer (as a QR Code for example)."
+    placeholder: "https://play.google.com/store/apps/details?id=..."
   validations:
     required: true
 
@@ -30,5 +43,8 @@ body:
   attributes:
     label: "Example BLE ADV messages"
     description: "Provide here the BLE ADV messages you captured using the [Listening Tool](https://github.com/NicoIIT/ha-ble-adv/wiki/How-to-know-if-my-Physical-Remote-is-using-BLE-Advertising-to-control-my-device#the-included-listening-tool) while pressing 5 times on the same (preferably Pair) Button of the phone App"
+    placeholder: |
+        0201021B16F00810003DDFBAAA5AF24C485BA97C9C67CF5A40924D5F12D701
+        1EFF5655188752B65F2B5E00FC315194509A68440A9FFC7BA939DFB27E6057
   validations:
     required: true

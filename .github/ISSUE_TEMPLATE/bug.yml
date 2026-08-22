@@ -17,27 +17,63 @@ body:
 
 - type: textarea
   attributes:
+    label: "Resolution attempts on my own"
+    description: "A list of the Troubleshooting guide steps I followed to resolve my issue but that did not work. If the maintainer finds a step in the guide that _could_ have solved your problem BUT that does not appear here he will reject this issue."
+  validations:
+    required: true
+
+- type: textarea
+  attributes:
     label: "Describe the issue"
     description: "A clear and concise description of what the issue is. 'It does not work' is not a valid description. Do not hesitate to add screenshots of the errors you are facing."
   validations:
     required: true
 
-- type: textarea
+- type: dropdown
   attributes:
-    label: Describe your physical setup
-    description: "Describe your setup by completing what follows (Please note some of the values MUST follow the recommended values in the Troubleshooting Guide)."
-    value: |
-      - Distance between the controller (Phone or Remote) and the Bluetooth Adapter: XX meters in direct view (no wall)
-      - Distance between the controller and the Device: XX meters in direct view (no wall)
-      - Distance between the Device and the Bluetooth Adapter: XX meters with a 30cm concrete wall in between
+    label: "Bluetooth Adapter Type"
+    description: "If nothing is selected, the issue will be rejected."
+    options:
+      - "--- Select a type ---"
+      - "Bluetooth Adapter of the HA Server"
+      - "Ble Adv Proxy"
   validations:
     required: true
+
+- type: input
+  attributes:
+    label: Distance in meters between the controller (Phone or Remote) and the Bluetooth Adapter
+  validations:
+    required: true
+    regex: "^[0-9]+$"
+
+- type: input
+  attributes:
+    label: Distance in meters between the controller and the Device
+  validations:
+    required: true
+    regex: "^[0-9]+$"
+
+- type: input
+  attributes:
+    label: Distance in meters between the Device and the Bluetooth Adapter
+  validations:
+    required: true
+    regex: "^[0-9]+$"
+
+- type: checkboxes
+  attributes:
+    label: Wall Checks
+    options:
+      - label: There is NO obstacle such as a wall in between the Controller and the Bluetooth Adapter
+      - label: There is NO obstacle such as a wall in between the Controller and the Device
+      - label: There is NO obstacle such as a wall in between the Device and the Bluetooth Adapter
 
 - type: textarea
   attributes:
     label: Reproduction steps
     description: "Without steps to reproduce, it will be hard to understand and even harder to fix. Please specify the EXACT time (with 'second' precision) at which you performed a specific action so that we can correlate with the time in the debug logs. The description of the action must also be very clear as in the example below, in particular on which device / controller you perform which action."
-    value: |
+    placeholder: |
       1. At 15:32:51 I pressed on the "Light On" button of my Physical Remote linked to ble_adv integration 'My Controller name'
       2. At 15:33:10 I changed the light from Cold to Warm using HA UI but the device went from Warm to Cold instead
       3.
@@ -51,6 +87,14 @@ body:
     description: |
       To enable debug logs please check the [Configuration Guide](https://github.com/NicoIIT/ha-ble-adv/wiki/Configuration-Guide#global-options).
       To know how to access those logs please check Home Assistant doc.
+    placeholder: |
+      2026-08-19 08:25:39.510 DEBUG (MainThread) [custom_components.ble_adv] BLE ADV: Setting component with conf {'ignored_duration': 60000}
+      2026-08-19 08:25:39.510 DEBUG (MainThread) [custom_components.ble_adv.adapters] BLE ADV Name Entities: []
+      2026-08-19 08:25:39.512 INFO (MainThread) [custom_components.ble_adv.adapters] MGMT Connected - fileno: 8
+      2026-08-19 08:25:39.513 DEBUG (MainThread) [custom_components.ble_adv.adapters] MGMT Nb HCI Adapters: 1
+      2026-08-19 08:25:39.514 DEBUG (MainThread) [custom_components.ble_adv.adapters] MGMT - HCI Adapters: [(0, '48:45:20:37:67:BF')]
+      2026-08-19 08:25:39.514 DEBUG (MainThread) [custom_components.ble_adv.adapters] Adding adapter 'hci/48:45:20:37:67:BF'/'0' of type BluetoothHCIAdapter
+
   validations:
     required: true
 
@@ -66,7 +110,9 @@ body:
   attributes:
     label: Checklist
     options:
-      - label: I checked the [troubleshooting guide](https://github.com/NicoIIT/ha-ble-adv/wiki/Troubleshooting-Guide) and the [configuration guide](https://github.com/NicoIIT/ha-ble-adv/wiki/Configuration-Guide) and it did not solve my issue
+      - label: I **_CAREFULLY_** read the [Contribution Guidelines](../CONTRIBUTING.md) of the project and this issue fully complies with them.
+        required: true
+      - label: I **_CAREFULLY_** checked the [troubleshooting guide](https://github.com/NicoIIT/ha-ble-adv/wiki/Troubleshooting-Guide) and the [configuration guide](https://github.com/NicoIIT/ha-ble-adv/wiki/Configuration-Guide) and it did not solve my issue
         required: true
       - label: I provided ALL mandatory info and in the requested format because I know that in the countrary the maintainer will not help.
         required: true

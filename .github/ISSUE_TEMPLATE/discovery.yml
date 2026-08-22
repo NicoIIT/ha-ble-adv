@@ -19,35 +19,94 @@ body:
   attributes:
     label: Checklist
     options:
-      - label: I carefully read the [Troubleshooting Guide](https://github.com/NicoIIT/ha-ble-adv/wiki/Troubleshooting-Guide) and it did not help.
+      - label: I **_CAREFULLY_** read the [Contribution Guidelines](../CONTRIBUTING.md) of the project and this issue fully complies with them.
+        required: true
+      - label: I **_CAREFULLY_** checked the [troubleshooting guide](https://github.com/NicoIIT/ha-ble-adv/wiki/Troubleshooting-Guide) and the [configuration guide](https://github.com/NicoIIT/ha-ble-adv/wiki/Configuration-Guide) and it did not solve my issue
         required: true
 
 - type: textarea
   attributes:
-    label: Describe your setup
-    description: "Describe your setup by completing what follows (Please note some of the values MUST follow the recommended values in the Troubleshooting Guide)."
-    value: |
-      - Device Brand / Type (if known): XXXXXXX
-      - Controller Type you are trying to duplicate: Remote / Phone App / Both / None (Manual or Pairing Flow)
-      - Supported ANDROID Phone App recommended by the Device manufacturer: XXXXXXX
-      - The Phone App is paired to my Device and controlling it: Yes / No
-      - Distance between the controller (Phone or Remote) and the Bluetooth Adapter: XX meters in direct view (no wall)
-      - Distance between the controller and the Device: XX meters in direct view (no wall)
-      - Distance between the Device and the Bluetooth Adapter: XX meters with a 30cm concrete wall in between
-
+    label: Device Brand / Type if known
+    description: "If unknown just say it."
   validations:
     required: true
 
 - type: textarea
   attributes:
+    label: Supported ANDROID Phone App recommended by the Device manufacturer
+    description: "If unknown you should read the [README](../README.md) more carefully..."
+  validations:
+    required: true
+
+- type: dropdown
+  attributes:
+    label: "Bluetooth Adapter Type"
+    description: "If nothing is selected, the issue will be rejected."
+    options:
+      - "--- Select a type ---"
+      - "Bluetooth Adapter of the HA Server"
+      - "Ble Adv Proxy"
+  validations:
+    required: true
+
+- type: dropdown
+  attributes:
+    label: "Controller Type you try to duplicate"
+    description: "If nothing is selected, the issue will be rejected."
+    options:
+      - "--- Select a type ---"
+      - "Physical Remote"
+      - "Supported Phone Application"
+      - "Unsupported Phone Application"
+  validations:
+    required: true
+
+
+- type: checkboxes
+  attributes:
+    label: Paired Controller
+    options:
+      - label: The Controller I am trying to duplicate is paired to my Device and controlling it
+
+
+- type: input
+  attributes:
+    label: Distance in meters between the controller (Phone or Remote) and the Bluetooth Adapter
+  validations:
+    required: true
+    regex: "^[0-9]+$"
+
+- type: input
+  attributes:
+    label: Distance in meters between the controller and the Device
+  validations:
+    required: true
+    regex: "^[0-9]+$"
+
+- type: input
+  attributes:
+    label: Distance in meters between the Device and the Bluetooth Adapter
+  validations:
+    required: true
+    regex: "^[0-9]+$"
+
+- type: checkboxes
+  attributes:
+    label: Wall Checks
+    options:
+      - label: There is NO obstacle such as a wall in between the Controller and the Bluetooth Adapter
+      - label: There is NO obstacle such as a wall in bewteen the Controller and the Device
+      - label: There is NO obstacle such as a wall in between the Device and the Bluetooth Adapter
+
+
+- type: textarea
+  attributes:
     label: Describe your issue
-    description: "Describe your issue and all the steps you followed in the troubleshooting guide."
-    value: |
-      EXAMPLE:
+    description: "Describe your issue and all the steps you followed in the troubleshooting guide. If ONE step is missing that _could_ have explained your problem, the issue will be rejected."
+    placeholder: |
+      When I try the recommended 'Duplicate Config' flow using the Phone App as a basis, 48 configurations are detected but none of them is making the light blink.
 
-      When I try the recommended 'Duplicate Config' flow using the Phone App as a basis, 4 configurations are detected but none of them is making the light blink.
-
-      I followed the troubleshouting guide until step 3.2a.2, including the bluetooth range check, without success.
+      I followed the troubleshouting guide step (01.19.19 - Kick my A**), and it worked OK.
 
   validations:
     required: true

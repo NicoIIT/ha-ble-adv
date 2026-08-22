@@ -10,6 +10,8 @@ body:
   attributes:
     label: Checklist
     options:
+      - label: I **_CAREFULLY_** read the [Contribution Guidelines](../CONTRIBUTING.md) of the project and this issue fully complies with them.
+        required: true
       - label: I have checked the [README](https://github.com/NicoIIT/ha-ble-adv?tab=readme-ov-file#home-assistant-ble-adv-ceiling-fan--lamps), the [config guide](https://github.com/NicoIIT/ha-ble-adv/wiki/Configuration-Guide) and the [troubleshooting guide](https://github.com/NicoIIT/ha-ble-adv/wiki/Troubleshooting-Guide) to be sure the feature is not existing alreay.
         required: true
       - label: I have filled out the template to the best of my ability.
@@ -33,9 +35,9 @@ body:
 - type: textarea
   attributes:
     label: "Describe alternatives you've considered"
-    description: "A clear and concise description of any alternative solutions or features you've considered."
+    description: "A clear and concise description of any alternative solutions or features you've considered. If none, search again and come back later."
   validations:
-    required: false
+    required: true
 
 - type: textarea
   attributes:
