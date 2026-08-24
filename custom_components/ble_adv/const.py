@@ -16,6 +16,7 @@ CONF_IGN_ADAPTERS = "ignored_adapters"
 CONF_IGN_DURATION = "ignored_duration"
 CONF_IGN_CIDS = "ignored_cids"
 CONF_IGN_MACS = "ignored_macs"
+CONF_KEEP_RECV = "keep_recv"
 
 CONF_INDEX = "index"
 CONF_CODEC_ID = "codec_id_dyn"

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import logging
 import sys
+from collections import deque
 from copy import copy
 from dataclasses import dataclass
 from datetime import datetime, timedelta
@@ -135,6 +136,7 @@ class BleAdvCoordinator:
         ign_duration: int,
         ign_cids: list[int],
         ign_macs: list[str],
+        keep_recv: int,
     ) -> None:
         """Init."""
         self.hass: HomeAssistant = hass
@@ -159,22 +161,30 @@ class BleAdvCoordinator:
         self._stop_listening_time: datetime | None = None
         self.listened_raw_advs: list[bytes] = []
         self.listened_decoded_confs: list[tuple[str, str, str, list[Any], BleAdvConfig]] = []
+        self._diags: deque[str] = deque(maxlen=keep_recv)
+
+    def _add_diag(self, msg: str, log_level: int = logging.DEBUG) -> None:
+        """Add a diagnostic log."""
+        if log_level != logging.NOTSET:
+            _LOGGER.log(log_level, msg)
+        self._diags.append(f"{datetime.now()} - {msg}")
 
     async def async_init(self) -> None:
         """Async Init."""
         await self._esp_bt_manager.async_init()
         self.hass.bus.async_listen_once(EVENT_HOMEASSISTANT_STOP, self.on_stop_event)
         if not self._hci_bt_manager.supported_by_host:
-            _LOGGER.info(f"Host BT Stack cannot be used as OS {sys.platform} does not support it")
+            self._add_diag(f"Host BT Stack cannot be used as OS {sys.platform} does not support it", logging.INFO)
             return
         try:
             await self._hci_bt_manager.async_init()
         except BaseException:
+            self._add_diag("Host BT Stack cannot be used", logging.INFO)
             _LOGGER.exception("Host BT Stack cannot be used")
 
     async def async_final(self) -> None:
         """Async Final: Clean-up."""
-        _LOGGER.info("Cleaning BT Connections.")
+        self._add_diag("Cleaning BT Connections.", logging.INFO)
         await self._hci_bt_manager.async_final()
         await self._esp_bt_manager.async_final()
 
@@ -220,14 +230,14 @@ class BleAdvCoordinator:
         self._devices.append(device)
         self._recompute_in_use_codecs()
         self._raw_last_advs.clear()
-        _LOGGER.debug(f"Registered device '{device.unique_id}'")
+        self._add_diag(f"Registered device '{device.unique_id}'")
 
     def remove_device(self, device: BleAdvBaseDevice) -> None:
         """Unregister a device."""
         self._devices = [x for x in self._devices if x.unique_id != device.unique_id]
         self._recompute_in_use_codecs()
         self._dec_last_advs.clear()
-        _LOGGER.debug(f"Unregistered device '{device.unique_id}'")
+        self._add_diag(f"Unregistered device '{device.unique_id}'")
 
     async def advertise(self, adapter_id: str | None, queue_id: str, qi: BleAdvQueueItem) -> None:
         """Advertise."""
@@ -236,7 +246,7 @@ class BleAdvCoordinator:
         elif adapter_id in self._esp_bt_manager.adapters:
             await self._esp_bt_manager.adapters[adapter_id].enqueue(queue_id, qi)
         else:
-            _LOGGER.error(f"Cannot process advertising: adapter '{adapter_id}' is not available.")
+            self._add_diag(f"Cannot process advertising: adapter '{adapter_id}' is not available.", logging.ERROR)
 
     async def inject_raw(self, dt: dict[str, Any]) -> dict[str, str]:
         """Injects a raw advertisement."""
@@ -284,7 +294,7 @@ class BleAdvCoordinator:
                         await device.async_on_enc_cmd(cons_cmd)
                         await device.async_on_command(recv.codec.enc_to_ent(cons_cmd, device.translator_set), not ct)
                     else:
-                        _LOGGER.debug("Ignored as duplicated TX Count or Seed")
+                        self._add_diag("Ignored as duplicated TX Count or Seed")
                 device.prev_tx_count = recv.conf.tx_count
                 device.prev_seed = recv.conf.seed
                 device.prev_cmd = recv.enc_cmd
@@ -313,6 +323,8 @@ class BleAdvCoordinator:
             # Exclude by Company ID
             if int.from_bytes(adv.raw[:2], "little") in self.ign_cids:
                 return
+
+            self._add_diag(f"{orig} - {raw_adv.hex().upper()}", logging.NOTSET)
 
             # Clean-up last raw / decoded advs based on expiry date
             now = datetime.now()
@@ -347,6 +359,7 @@ class BleAdvCoordinator:
                 self._raw_last_advs[raw_adv] = now + timedelta(milliseconds=self.ign_duration)
 
         except Exception:
+            self._add_diag(f"[{adapter_id}] Exception handling raw adv message", logging.INFO)
             _LOGGER.exception(f"[{adapter_id}] Exception handling raw adv message")
 
     def diagnostic_dump(self) -> dict[str, Any]:
@@ -361,6 +374,7 @@ class BleAdvCoordinator:
             "adapter_macs": list(self._adapter_macs),
             "last_unk_raw": {x.hex().upper(): y for x, y in self._raw_last_advs.items()},
             "last_dec_raw": {x.hex().upper(): y for x, y in self._dec_last_advs.items()},
+            "logs": list(self._diags),
         }
 
     async def full_diagnostic_dump(self) -> dict[str, Any]:
