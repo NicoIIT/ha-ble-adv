@@ -38,15 +38,15 @@ class LeEncoder(BleAdvCodec):
     _len = 21
     XBOXES: ClassVar[list[int]] = [0xCB, 0x6A, 0x95, 0x8D, 0xB6, 0x7B, 0x35, 0x5A, 0x6E, 0x49, 0x5C, 0x85, 0x37, 0x3C, 0xA6, 0x88]
 
-    def _checksum(self, buffer: bytes) -> int:
+    def _checksum(self, buffer: bytearray) -> int:
         return ((sum(buffer) + 1) & 0xFF) ^ 0xFF
 
-    def encode(self, buffer: bytes, salt: int) -> bytes:
+    def encode(self, buffer: bytearray, salt: int) -> bytearray:
         """Encode by xor and salt."""
         xora = self.XBOXES[salt & 15]
         return bytearray([x ^ xora for x in buffer])
 
-    def decrypt(self, buffer: bytes) -> bytes | None:
+    def decrypt(self, buffer: bytearray) -> bytearray | None:
         """Decrypt / unwhiten an incoming raw buffer into a readable buffer."""
         data_len = buffer[0]
         zero_len = self._len - data_len - 1
@@ -62,13 +62,13 @@ class LeEncoder(BleAdvCodec):
             return None
         return decoded_base[:-1]
 
-    def encrypt(self, buffer: bytes) -> bytes:
+    def encrypt(self, buffer: bytearray) -> bytearray:
         """Encrypt / whiten a readable buffer."""
         data = [len(buffer) + 2, 0x01, *buffer, self._checksum(buffer)]
         zero_buf = [0x00] * (self._len - len(data))
-        return bytes([*data[:6], *self.encode(bytes(data[6:]), data[2]), *zero_buf])
+        return bytearray([*data[:6], *self.encode(bytearray(data[6:]), data[2]), *zero_buf])
 
-    def convert_to_enc(self, decoded: bytes) -> tuple[BleAdvEncCmd | None, BleAdvConfig | None]:
+    def convert_to_enc(self, decoded: bytearray) -> tuple[BleAdvEncCmd | None, BleAdvConfig | None]:
         """Convert a readable buffer into an encoder command and a config."""
         conf = BleAdvConfig()
         conf.id = int.from_bytes(decoded[:4], "little")
@@ -83,11 +83,11 @@ class LeEncoder(BleAdvCodec):
 
         return enc_cmd, conf
 
-    def convert_from_enc(self, enc_cmd: BleAdvEncCmd, conf: BleAdvConfig) -> bytes:
+    def convert_from_enc(self, enc_cmd: BleAdvEncCmd, conf: BleAdvConfig) -> bytearray:
         """Convert an encoder command and a config into a readable buffer."""
         uid = conf.id.to_bytes(4, "little")
         args = [enc_cmd.arg0, enc_cmd.arg1, enc_cmd.arg2]
-        return bytes([*uid, 0xFE, conf.index, conf.tx_count, enc_cmd.cmd, enc_cmd.param, *args[: enc_cmd.param]])
+        return bytearray([*uid, 0xFE, conf.index, conf.tx_count, enc_cmd.cmd, enc_cmd.param, *args[: enc_cmd.param]])
 
 
 TRANS = [

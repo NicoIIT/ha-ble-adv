@@ -42,7 +42,7 @@ class RwEncoder(BleAdvCodec):
     _len = 18
     _seed_max = 0xF5
 
-    def _crc16(self, buffer: bytes) -> int:
+    def _crc16(self, buffer: bytearray) -> int:
         """CRC16 CCITT computing."""
         # // 0x696B = crc_hqx(bytes([0x52, 0x9C, 0x54, 0x6E, 0x55]), 0xFFFF))
         return crc_hqx(buffer, 0x696B)
@@ -51,7 +51,7 @@ class RwEncoder(BleAdvCodec):
         """Set common header."""
         return self.header([0xDD, 0xB2, 0xDA, 0x6C, 0x9F, 0x01, 0x7A, 0x34])
 
-    def decrypt(self, buffer: bytes) -> bytes | None:
+    def decrypt(self, buffer: bytearray) -> bytearray | None:
         """Decrypt / unwhiten an incoming raw buffer into a readable buffer."""
         decoded = reverse_all(whiten(buffer, 0x69))
         if (
@@ -65,7 +65,7 @@ class RwEncoder(BleAdvCodec):
             return None
 
         pivot = decoded[11] ^ decoded[13] ^ decoded[15]
-        return bytes(
+        return bytearray(
             [
                 decoded[0] ^ pivot,
                 decoded[1] ^ pivot,
@@ -81,10 +81,10 @@ class RwEncoder(BleAdvCodec):
             ]
         )
 
-    def encrypt(self, buffer: bytes) -> bytes:
+    def encrypt(self, buffer: bytearray) -> bytearray:
         """Encrypt / whiten a readable buffer."""
         b12 = buffer[1] ^ buffer[2]
-        encoded = bytes(
+        encoded = bytearray(
             [
                 buffer[0] ^ buffer[10],
                 buffer[1] ^ buffer[10],
@@ -107,7 +107,7 @@ class RwEncoder(BleAdvCodec):
         encoded += self._crc16(encoded).to_bytes(2)
         return whiten(reverse_all(encoded), 0x69)
 
-    def convert_to_enc(self, decoded: bytes) -> tuple[BleAdvEncCmd | None, BleAdvConfig | None]:
+    def convert_to_enc(self, decoded: bytearray) -> tuple[BleAdvEncCmd | None, BleAdvConfig | None]:
         """Convert a readable buffer into an encoder command and a config."""
         conf = BleAdvConfig()
         conf.id = int.from_bytes(decoded[2:6], "little")
@@ -122,10 +122,10 @@ class RwEncoder(BleAdvCodec):
 
         return enc_cmd, conf
 
-    def convert_from_enc(self, enc_cmd: BleAdvEncCmd, conf: BleAdvConfig) -> bytes:
+    def convert_from_enc(self, enc_cmd: BleAdvEncCmd, conf: BleAdvConfig) -> bytearray:
         """Convert an encoder command and a config into a readable buffer."""
         uid = conf.id.to_bytes(4, "little")
-        return bytes([enc_cmd.cmd, conf.tx_count, *uid, conf.index, enc_cmd.arg0, enc_cmd.arg1, enc_cmd.arg2, conf.seed])
+        return bytearray([enc_cmd.cmd, conf.tx_count, *uid, conf.index, enc_cmd.arg0, enc_cmd.arg1, enc_cmd.arg2, conf.seed])
 
 
 class TransRGB(Trans):

@@ -97,14 +97,14 @@ async def test_adapter(mock_socket: _AsyncSocketMock) -> None:
     assert hci_adapter.available, "HCI Adapter available"
     await hci_adapter.open()  # already opened, ignored
     assert mock_socket.get_calls() == []
-    mock_socket.simulate_recv(bytearray([0x00]))  # invalid message, ignored
+    mock_socket.simulate_recv(bytes([0x00]))  # invalid message, ignored
     await asyncio.sleep(0.1)
     hci_adapter._on_adv_recv.assert_not_called()
-    mock_socket.simulate_recv(bytearray([0x04, 0x3E, 0x00, 0x02, 0x01, 0x03, 0x01] + DEVICE_MAC_INT + [0x10] * 50))
+    mock_socket.simulate_recv(bytes([0x04, 0x3E, 0x00, 0x02, 0x01, 0x03, 0x01] + DEVICE_MAC_INT + [0x10] * 50))
     await asyncio.sleep(0.1)
     hci_adapter._on_adv_recv.assert_called_once_with("hci0", DEVICE_MAC_STR, bytearray([0x10] * 0x10))
     hci_adapter._on_adv_recv.reset_mock()
-    mock_socket.simulate_recv(bytearray([0x04, 0x3E, 0x00, 0x0D, 0x01, 0x03, 0x00, 0x01] + DEVICE_MAC_INT + [0x10] * 50))
+    mock_socket.simulate_recv(bytes([0x04, 0x3E, 0x00, 0x0D, 0x01, 0x03, 0x00, 0x01] + DEVICE_MAC_INT + [0x10] * 50))
     await asyncio.sleep(0.1)
     hci_adapter._on_adv_recv.assert_called_once_with("hci0", DEVICE_MAC_STR, bytearray([0x10] * 0x10))
     await hci_adapter.enqueue("q1", BleAdvQueueItem(20, 1, 150, 60, [b"msg01"], 2))

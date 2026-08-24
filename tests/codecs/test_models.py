@@ -230,17 +230,17 @@ class _TestCodec(BleAdvCodec):
         self._debug_mode = True
         self._len = 4
 
-    def decrypt(self, buffer: bytes) -> bytes | None:
+    def decrypt(self, buffer: bytearray) -> bytearray | None:
         return buffer
 
-    def encrypt(self, decoded: bytes) -> bytes:
+    def encrypt(self, decoded: bytearray) -> bytearray:
         return decoded
 
-    def convert_to_enc(self, _: bytes) -> tuple[BleAdvEncCmd | None, BleAdvConfig | None]:
+    def convert_to_enc(self, _: bytearray) -> tuple[BleAdvEncCmd | None, BleAdvConfig | None]:
         return BleAdvEncCmd(0x10), BleAdvConfig()
 
-    def convert_from_enc(self, _: BleAdvEncCmd, __: BleAdvConfig) -> bytes:
-        return b"test"
+    def convert_from_enc(self, _: BleAdvEncCmd, __: BleAdvConfig) -> bytearray:
+        return bytearray(b"test")
 
 
 def test_codec() -> None:

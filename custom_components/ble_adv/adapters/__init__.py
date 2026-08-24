@@ -244,7 +244,7 @@ class BluetoothHCIAdapter(BleAdvAdapter):
 
     CMD_RTO: float = 1.0
     ADV_INST: int = 1
-    FAKE_ADV: bytes = bytearray([0x1D, 0xFF, 0xFF, 0xFF] + [0x00] * 27)
+    FAKE_ADV: bytes = bytes([0x1D, 0xFF, 0xFF, 0xFF] + [0x00] * 27)
 
     HCI_SUCCESS = 0x00
     HCI_DISALLOWED = 0x0C
@@ -323,7 +323,7 @@ class BluetoothHCIAdapter(BleAdvAdapter):
         self._add_diag(f"Connected - fileno: {fileno}", logging.INFO)
 
         # Get LE Features to check if extended advertising is supported / needed
-        ret_code, data = await self._send_hci_cmd(self.OCF_LE_READ_LOCAL_SUPPORTED_FEATURES)
+        ret_code, data = await self._send_hci_cmd(self.OCF_LE_READ_LOCAL_SUPPORTED_FEATURES, b"")
         if ret_code == self.HCI_SUCCESS and data is not None:
             features = int.from_bytes(data, "little")
             self._use_ext_adv = bool(features & (1 << 12))
@@ -359,7 +359,7 @@ class BluetoothHCIAdapter(BleAdvAdapter):
             self._ret_data = data[7:]
             self._cmd_event.set()
 
-    async def _send_hci_cmd(self, cmd_type: int, cmd_data: bytes = bytearray(), *, log_on_error: bool = True) -> tuple[int, bytes | None]:
+    async def _send_hci_cmd(self, cmd_type: int, cmd_data: bytes | bytearray, *, log_on_error: bool = True) -> tuple[int, bytes | None]:
         if not self._opened:
             raise AdapterError("Adapter not available")
         data_len = len(cmd_data)
@@ -393,7 +393,7 @@ class BluetoothHCIAdapter(BleAdvAdapter):
     async def _advertise(self, item: BleAdvAdapterAdvItem) -> None:
         """Advertise the 'data' for the given interval."""
         # Patch the adv data to have full len 31
-        patched_data = bytearray(item.data) + bytearray([0x00] * (31 - len(item.data)))
+        patched_data = bytes([*item.data] + [0x00] * (31 - len(item.data)))
         async with self._adv_lock:
             min_adv = max(0x20, int(item.interval * 1.6))
             duration = float(0.0009 * item.repeat * item.interval)
@@ -695,7 +695,7 @@ class BleAdvBtHciManager(BleAdvBtManager):
         await self._async_init_retry(300, self.RECONNECT_RTO)
         self._reconnecting = False
 
-    async def send_mgmt_cmd(self, device_id: int, cmd_type: int, cmd_data: bytes = bytearray()) -> tuple[int, bytes]:
+    async def send_mgmt_cmd(self, device_id: int, cmd_type: int, cmd_data: bytes) -> tuple[int, bytes]:
         """Send a MGMT command."""
         if not self._mgmt_opened or self._mgmt_sock is None:
             raise AdapterError("Adapter not available")

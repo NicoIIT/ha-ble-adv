@@ -1,9 +1,9 @@
 """Utils for codecs."""
 
 
-def whiten(buffer: bytes, seed: int) -> bytes:
+def whiten(buffer: bytes | bytearray, seed: int) -> bytearray:
     """Whiten / Unwiten buffer with seed."""
-    obuf = []
+    obuf = bytearray()
     r = seed
     for val in buffer:
         b = 0
@@ -14,7 +14,7 @@ def whiten(buffer: bytes, seed: int) -> bytes:
                 b |= 1 << j
             r &= 0x7F
         obuf.append(val ^ b)
-    return bytes(obuf)
+    return obuf
 
 
 def reverse_byte(x: int) -> int:
@@ -24,12 +24,12 @@ def reverse_byte(x: int) -> int:
     return ((x & 0x0F) << 4) | ((x & 0xF0) >> 4)
 
 
-def reverse_all(buffer: bytes) -> bytes:
+def reverse_all(buffer: bytes | bytearray) -> bytearray:
     """Reverse All bytes in buffer."""
-    return bytes([reverse_byte(x) for x in buffer])
+    return bytearray([reverse_byte(x) for x in buffer])
 
 
-def crc16_le(buffer: bytes, seed: int, poly: int = 0x8408, ref_in: bool = True, ref_out: bool = True) -> int:
+def crc16_le(buffer: bytes | bytearray, seed: int, poly: int = 0x8408, ref_in: bool = True, ref_out: bool = True) -> int:
     """CRC16 ISO14443AB computing."""
     crc = seed if not ref_in else seed ^ 0xFFFF
     for byte in buffer:

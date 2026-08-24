@@ -45,9 +45,9 @@ class _AsyncSocketMock(AsyncSocketBase):
                 self._calls.append(("op_call", data[1], data[4:]))
                 if data[1] == 0x03 and self.hci_ext_adv:
                     features = (1 << 12).to_bytes(8, "little")
-                    self.simulate_recv(bytearray([0x04, 0x0E, 0x00, 0x00, data[1], 0x20, ret_code, *features]))
+                    self.simulate_recv(bytes([0x04, 0x0E, 0x00, 0x00, data[1], 0x20, ret_code, *features]))
                 else:
-                    self.simulate_recv(bytearray([0x04, 0x0E, 0x00, 0x00, data[1], 0x20, ret_code, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]))
+                    self.simulate_recv(bytes([0x04, 0x0E, 0x00, 0x00, data[1], 0x20, ret_code, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]))
                 self._base_call_result(None)
                 return
             self._calls.append(("mgmt", data[0], data))
