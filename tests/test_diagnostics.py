@@ -18,6 +18,7 @@ async def test_diagnostics(hass: HomeAssistant) -> None:
     # remove variable info
     diag["coordinator"]["esp"]["logs"].clear()
     diag["coordinator"]["hci"]["logs"].clear()
+    diag["coordinator"]["logs"].clear()
     diag["coordinator"]["hci"]["supported_by_host"] = True
     assert diag == {
         "coordinator": {
@@ -30,6 +31,7 @@ async def test_diagnostics(hass: HomeAssistant) -> None:
             "adapter_macs": [],
             "last_dec_raw": {},
             "last_unk_raw": {},
+            "logs": [],
         },
         "entry_data": config_entry.data,
     }
