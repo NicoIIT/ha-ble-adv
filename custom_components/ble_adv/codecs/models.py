@@ -22,7 +22,7 @@ from .const import (
 _LOGGER = logging.getLogger(__name__)
 
 
-def as_hex(buffer: bytes) -> str:
+def as_hex(buffer: bytes | bytearray) -> str:
     """Represent hex buffer as 00.01.02 format."""
     return str(hexlify(buffer, "."), "ascii").upper()
 
@@ -439,31 +439,31 @@ class BleAdvCodec(ABC):
         self.codec_id: str = ""
         self.match_id: str = ""
         self.match_params: list[Any] = []
-        self._header: bytearray = bytearray()  # header is excluded from the data sent to the child encoder
+        self._header: bytes = b""  # header is excluded from the data sent to the child encoder
         self._header_start_pos: int = 0
-        self._prefix: bytearray = bytearray()  # prefix is included in the data sent to the child encoder
-        self._footer: bytearray = bytearray()  # footer is excluded from the data sent to the child encoder
+        self._prefix: bytes = b""  # prefix is included in the data sent to the child encoder
+        self._footer: bytes = b""  # footer is excluded from the data sent to the child encoder
         self._ble_type: int = 0
         self._ad_flag: int = 0
         self._translator_maps: dict[str, TranslatorSet] = {self.DEF_TRANS_NAME: TranslatorSet()}
 
     @abstractmethod
-    def decrypt(self, buffer: bytes) -> bytes | None:
+    def decrypt(self, buffer: bytearray) -> bytearray | None:
         """Decrypt / unwhiten an incoming raw buffer into a readable buffer."""
 
     @abstractmethod
-    def encrypt(self, decoded: bytes) -> bytes:
+    def encrypt(self, decoded: bytearray) -> bytearray:
         """Encrypt / whiten a readable buffer."""
 
     @abstractmethod
-    def convert_to_enc(self, decoded: bytes) -> tuple[BleAdvEncCmd | None, BleAdvConfig | None]:
+    def convert_to_enc(self, decoded: bytearray) -> tuple[BleAdvEncCmd | None, BleAdvConfig | None]:
         """Convert a readable buffer into an encoder command and a config."""
 
     @abstractmethod
-    def convert_from_enc(self, enc_cmd: BleAdvEncCmd, conf: BleAdvConfig) -> bytes:
+    def convert_from_enc(self, enc_cmd: BleAdvEncCmd, conf: BleAdvConfig) -> bytearray:
         """Convert an encoder command and a config into a readable buffer."""
 
-    def convert_multi_from_enc(self, enc_cmd: BleAdvEncCmd, conf: BleAdvConfig) -> list[bytes]:
+    def convert_multi_from_enc(self, enc_cmd: BleAdvEncCmd, conf: BleAdvConfig) -> list[bytearray]:
         """Convert an encoder command and a config into a list of readable buffers."""
         # Call the single buffer encoder by default for standard encoders
         return [self.convert_from_enc(enc_cmd, conf)]
@@ -482,18 +482,18 @@ class BleAdvCodec(ABC):
 
     def header(self, header: list[int], start_pos: int = 0) -> Self:
         """Set header."""
-        self._header = bytearray(header)
+        self._header = bytes(header)
         self._header_start_pos = start_pos
         return self
 
     def prefix(self, prefix: list[int]) -> Self:
         """Set prefix."""
-        self._prefix = bytearray(prefix)
+        self._prefix = bytes(prefix)
         return self
 
     def footer(self, footer: list[int]) -> Self:
         """Set footer."""
-        self._footer = bytearray(footer)
+        self._footer = bytes(footer)
         return self
 
     def ble(self, ad_flag: int, ble_type: int) -> Self:
@@ -571,7 +571,7 @@ class BleAdvCodec(ABC):
         ):
             return None, None
         self.log_buffer(adv.raw, "Decode/Full")
-        read_buffer = self.decrypt(adv.raw[: self._header_start_pos] + adv.raw[self._header_start_pos + len(self._header) : last_pos])
+        read_buffer = self.decrypt(bytearray(adv.raw[: self._header_start_pos] + adv.raw[self._header_start_pos + len(self._header) : last_pos]))
         if read_buffer is None or not self.is_eq_buf(self._prefix, read_buffer, "Prefix"):
             return None, None
         read_buffer = read_buffer[len(self._prefix) :]
@@ -588,10 +588,10 @@ class BleAdvCodec(ABC):
         advs: list[BleAdvAdvertisement] = []
         for read_buffer in self.convert_multi_from_enc(enc_cmd, conf):
             self.log_buffer(read_buffer, "Encode/Decrypted")
-            encrypted = self.encrypt(self._prefix + read_buffer)
+            encrypted = self.encrypt(bytearray(self._prefix) + read_buffer)
             encrypted = encrypted[: self._header_start_pos] + self._header + encrypted[self._header_start_pos :] + self._footer
             self.log_buffer(encrypted, "Encode/Full")
-            advs.append(BleAdvAdvertisement(self._ble_type, encrypted, self._ad_flag, self.second_type, self.second_raw))
+            advs.append(BleAdvAdvertisement(self._ble_type, bytes(encrypted), self._ad_flag, self.second_type, self.second_raw))
         return advs
 
     def is_eq(self, ref: int, comp: int, msg: str) -> bool:
@@ -602,7 +602,7 @@ class BleAdvCodec(ABC):
             return False
         return True
 
-    def is_eq_buf(self, ref_buf: bytes, comp_buf: bytes, msg: str) -> bool:
+    def is_eq_buf(self, ref_buf: bytes | bytearray, comp_buf: bytes | bytearray, msg: str) -> bool:
         """Check buffer equal and log if not."""
         trunc_comp_buf = comp_buf[: len(ref_buf)]
         if trunc_comp_buf != ref_buf:
@@ -611,7 +611,7 @@ class BleAdvCodec(ABC):
             return False
         return True
 
-    def log_buffer(self, buf: bytes, msg: str) -> None:
+    def log_buffer(self, buf: bytes | bytearray, msg: str) -> None:
         """Log buffer."""
         if self.debug_mode:
             _LOGGER.debug(f"[{self.codec_id}] {msg} - {as_hex(buf)}")

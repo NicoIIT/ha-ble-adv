@@ -46,16 +46,16 @@ class ZhijiaEncoder(BleAdvCodec):
     _pivot_index: frozenset[int] = frozenset()
     _pivot_xor = False
 
-    def _crc16(self, buffer: bytes, seed: int) -> int:
+    def _crc16(self, buffer: bytearray, seed: int) -> int:
         """CRC16 ISO14443AB computing."""
         return crc16_le(buffer, seed, 0x8408, True, True)
 
-    def pivot(self, buffer: bytes | list[int]) -> bytes:
+    def pivot(self, buffer: bytearray | list[int]) -> bytearray:
         """Compute and apply a XOR pivot."""
         pivot = reduce(lambda x, y: x ^ y, [x for i, x in enumerate(buffer) if i in self._pivot_index])
         if self._pivot_xor:
             pivot ^= ((pivot & 1) - 1) & 0xFF
-        return bytes([x ^ pivot for x in buffer])
+        return bytearray([x ^ pivot for x in buffer])
 
 
 class ZhijiaEncoderV0(ZhijiaEncoder):
@@ -64,20 +64,19 @@ class ZhijiaEncoderV0(ZhijiaEncoder):
     _pivot_index: frozenset[int] = frozenset({0, 1, 6, 7})
     _len = 13
 
-    def decrypt(self, buffer: bytes) -> bytes | None:
+    def decrypt(self, buffer: bytearray) -> bytearray | None:
         """Decrypt / unwhiten an incoming raw buffer into a readable buffer."""
         decoded_base = whiten(whiten(buffer, 0x37), 0x7F)
         if not self.is_eq(int.from_bytes(decoded_base[-2:], "little"), self._crc16(decoded_base[:-2], 0), "CRC"):
             return None
         return decoded_base[:-2]
 
-    def encrypt(self, buffer: bytes) -> bytes:
+    def encrypt(self, buffer: bytearray) -> bytearray:
         """Encrypt / whiten a readable buffer."""
-        decoded_base = bytearray(buffer)
-        decoded_base += self._crc16(decoded_base, 0).to_bytes(2, "little")
-        return whiten(whiten(decoded_base, 0x7F), 0x37)
+        buffer += self._crc16(buffer, 0).to_bytes(2, "little")
+        return whiten(whiten(buffer, 0x7F), 0x37)
 
-    def convert_to_enc(self, decoded: bytes) -> tuple[BleAdvEncCmd | None, BleAdvConfig | None]:
+    def convert_to_enc(self, decoded: bytearray) -> tuple[BleAdvEncCmd | None, BleAdvConfig | None]:
         """Convert a readable buffer into an encoder command and a config."""
         decoded = self.pivot(decoded)
 
@@ -92,7 +91,7 @@ class ZhijiaEncoderV0(ZhijiaEncoder):
         conf.tx_count = decoded[0] ^ decoded[6]
         return enc_cmd, conf
 
-    def convert_from_enc(self, enc_cmd: BleAdvEncCmd, conf: BleAdvConfig) -> bytes:
+    def convert_from_enc(self, enc_cmd: BleAdvEncCmd, conf: BleAdvConfig) -> bytearray:
         """Convert an encoder command and a config into a readable buffer."""
         uuid = int.to_bytes(conf.id, 2, "little")
         oarray = [
@@ -118,22 +117,21 @@ class ZhijiaEncoderV1(ZhijiaEncoder):
 
     def __init__(self, mac: list[int]) -> None:
         super().__init__()
-        self._mac: bytes = bytearray(mac)
+        self._mac: bytes = bytes(mac)
 
-    def decrypt(self, buffer: bytes) -> bytes | None:
+    def decrypt(self, buffer: bytearray) -> bytearray | None:
         """Decrypt / unwhiten an incoming raw buffer into a readable buffer."""
         decoded_base = whiten(buffer, 0x37)
         if not self.is_eq(int.from_bytes(decoded_base[-2:], "little"), self._crc16(decoded_base[:-2], 0), "CRC"):
             return None
         return decoded_base[:-2]
 
-    def encrypt(self, buffer: bytes) -> bytes:
+    def encrypt(self, buffer: bytearray) -> bytearray:
         """Encrypt / whiten a readable buffer."""
-        decoded_base = bytearray(buffer)
-        decoded_base += self._crc16(decoded_base, 0).to_bytes(2, "little")
-        return whiten(decoded_base, 0x37)
+        buffer += self._crc16(buffer, 0).to_bytes(2, "little")
+        return whiten(buffer, 0x37)
 
-    def common_convert_to_enc(self, decoded: bytes) -> tuple[BleAdvEncCmd | None, BleAdvConfig | None]:
+    def common_convert_to_enc(self, decoded: bytearray) -> tuple[BleAdvEncCmd | None, BleAdvConfig | None]:
         """Convert common part to encoder command and config."""
         addr = bytes([decoded[7], decoded[10], decoded[13] ^ decoded[4]])
         if not self.is_eq_buf(self._mac, addr, "Mac"):
@@ -178,7 +176,7 @@ class ZhijiaEncoderV1(ZhijiaEncoder):
             0x00,
         ]
 
-    def convert_to_enc(self, decoded: bytes) -> tuple[BleAdvEncCmd | None, BleAdvConfig | None]:
+    def convert_to_enc(self, decoded: bytearray) -> tuple[BleAdvEncCmd | None, BleAdvConfig | None]:
         """Convert a readable buffer into an encoder command and a config."""
         decoded = self.pivot(decoded)
         enc_cmd, conf = self.common_convert_to_enc(decoded)
@@ -192,7 +190,7 @@ class ZhijiaEncoderV1(ZhijiaEncoder):
             return None, None
         return enc_cmd, conf
 
-    def convert_from_enc(self, enc_cmd: BleAdvEncCmd, conf: BleAdvConfig) -> bytes:
+    def convert_from_enc(self, enc_cmd: BleAdvEncCmd, conf: BleAdvConfig) -> bytearray:
         """Convert an encoder command and a config into a readable buffer."""
         oarray = self.common_convert_from_enc(enc_cmd, conf)
         oarray[14] = oarray[7]
@@ -206,7 +204,7 @@ class ZhijiaEncoderV2(ZhijiaEncoderV1):
     _len = 24
     _pivot_xor = True
 
-    def decrypt(self, buffer: bytes) -> bytes | None:
+    def decrypt(self, buffer: bytearray) -> bytearray | None:
         """Decrypt / unwhiten an incoming raw buffer into a readable buffer."""
         buf1 = whiten(buffer, 0x6F)
         buf2 = whiten(buf1[:-2], 0xD3) + buf1[-2:]
@@ -214,12 +212,12 @@ class ZhijiaEncoderV2(ZhijiaEncoderV1):
             return None
         return buf2[:-7]
 
-    def encrypt(self, buffer: bytes) -> bytes:
+    def encrypt(self, buffer: bytearray) -> bytearray:
         """Encrypt / whiten a readable buffer."""
-        buf1 = buffer + bytes([0x00] * 7)
+        buf1 = buffer + bytearray([0x00] * 7)
         return whiten(whiten(buf1[:-2], 0xD3) + buf1[-2:], 0x6F)
 
-    def convert_to_enc(self, decoded: bytes) -> tuple[BleAdvEncCmd | None, BleAdvConfig | None]:
+    def convert_to_enc(self, decoded: bytearray) -> tuple[BleAdvEncCmd | None, BleAdvConfig | None]:
         """Convert a readable buffer into an encoder command and a config."""
         decoded = self.pivot(decoded)
         enc_cmd, conf = self.common_convert_to_enc(decoded)
@@ -233,7 +231,7 @@ class ZhijiaEncoderV2(ZhijiaEncoderV1):
             return None, None
         return enc_cmd, conf
 
-    def convert_from_enc(self, enc_cmd: BleAdvEncCmd, conf: BleAdvConfig) -> bytes:
+    def convert_from_enc(self, enc_cmd: BleAdvEncCmd, conf: BleAdvConfig) -> bytearray:
         """Convert an encoder command and a config into a readable buffer."""
         oarray = self.common_convert_from_enc(enc_cmd, conf)
         oarray[1] ^= oarray[9]
@@ -247,17 +245,17 @@ class ZhijiaEncoderRemote(ZhijiaEncoderV1):
 
     _len = 17
 
-    def decrypt(self, buffer: bytes) -> bytes | None:
+    def decrypt(self, buffer: bytearray) -> bytearray | None:
         """Decrypt / unwhiten an incoming raw buffer into a readable buffer."""
         return buffer
 
-    def encrypt(self, buffer: bytes) -> bytes:
+    def encrypt(self, buffer: bytearray) -> bytearray:
         """Encrypt / whiten a readable buffer."""
         return buffer
 
-    def convert_to_enc(self, decoded: bytes) -> tuple[BleAdvEncCmd | None, BleAdvConfig | None]:
+    def convert_to_enc(self, decoded: bytearray) -> tuple[BleAdvEncCmd | None, BleAdvConfig | None]:
         """Convert a readable buffer into an encoder command and a config."""
-        decoded = bytes([x ^ decoded[5] for x in decoded])
+        decoded = bytearray([x ^ decoded[5] for x in decoded])
         enc_cmd, conf = self.common_convert_to_enc(decoded)
         if (
             enc_cmd is None
@@ -270,7 +268,7 @@ class ZhijiaEncoderRemote(ZhijiaEncoderV1):
 
         return enc_cmd, conf
 
-    def convert_from_enc(self, enc_cmd: BleAdvEncCmd, conf: BleAdvConfig) -> bytes:
+    def convert_from_enc(self, enc_cmd: BleAdvEncCmd, conf: BleAdvConfig) -> bytearray:
         """Convert an encoder command and a config into a readable buffer."""
         oarray = self.common_convert_from_enc(enc_cmd, conf)
         oarray[1] ^= 0x04

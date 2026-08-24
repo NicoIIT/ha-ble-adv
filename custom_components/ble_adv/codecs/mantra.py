@@ -49,7 +49,7 @@ class MantraEncoder(BleAdvCodec):
     _tx_max: int = 0xFFFF
     _family = bytes([0x12, 0x34, 0x56, 0x78])
 
-    def _whiten16(self, buffer: bytes, seed: int, param: int = 4777, xorer: int = 73) -> bytearray:
+    def _whiten16(self, buffer: bytearray, seed: int, param: int = 4777, xorer: int = 73) -> bytearray:
         obuf = bytearray()
         r = seed
         for val in buffer:
@@ -65,19 +65,19 @@ class MantraEncoder(BleAdvCodec):
             obuf.append(val ^ xorer ^ b)
         return obuf
 
-    def decrypt(self, buffer: bytes) -> bytes | None:
+    def decrypt(self, buffer: bytearray) -> bytearray | None:
         """Decrypt / unwhiten an incoming raw buffer into a readable buffer."""
         obuf = bytearray(buffer[:5])
         obuf += self._whiten16(buffer[5:], int.from_bytes(buffer[2:4]))
         return obuf
 
-    def encrypt(self, buffer: bytes) -> bytes:
+    def encrypt(self, buffer: bytearray) -> bytearray:
         """Encrypt / whiten a readable buffer."""
         obuf = bytearray(buffer[:5])
         obuf += self._whiten16(buffer[5:], int.from_bytes(buffer[2:4]))
         return obuf
 
-    def convert_to_enc(self, decoded: bytes) -> tuple[BleAdvEncCmd | None, BleAdvConfig | None]:
+    def convert_to_enc(self, decoded: bytearray) -> tuple[BleAdvEncCmd | None, BleAdvConfig | None]:
         """Convert a readable buffer into an encoder command and a config."""
         if not self.is_eq(0x06, decoded[2], "2 as 0x06") or not self.is_eq_buf(self._family, decoded[4:8], "Family"):
             return None, None
@@ -97,11 +97,11 @@ class MantraEncoder(BleAdvCodec):
 
         return enc_cmd, conf
 
-    def convert_from_enc(self, enc_cmd: BleAdvEncCmd, conf: BleAdvConfig) -> bytes:
+    def convert_from_enc(self, enc_cmd: BleAdvEncCmd, conf: BleAdvConfig) -> bytearray:
         """Convert an encoder command and a config into a readable buffer."""
         count = conf.tx_count.to_bytes(2)
         uid = conf.id.to_bytes(2)
-        return bytes(
+        return bytearray(
             [*count, 0x06, enc_cmd.cmd, *self._family, *uid, enc_cmd.param, enc_cmd.arg0, enc_cmd.arg1, enc_cmd.arg2, enc_cmd.arg3, enc_cmd.arg4]
         )
 

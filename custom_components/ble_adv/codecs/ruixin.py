@@ -38,23 +38,23 @@ class RuiXinEncoder(BleAdvCodec):
     _seed_max = 0xF5
     PADDING: ClassVar[bytes] = bytes([0x00] * 6)
 
-    def _checksum(self, buffer: bytes) -> int:
+    def _checksum(self, buffer: bytearray) -> int:
         return sum(buffer) & 0xFF
 
-    def decrypt(self, buffer: bytes) -> bytes | None:
+    def decrypt(self, buffer: bytearray) -> bytearray | None:
         """Decrypt / unwhiten an incoming raw buffer into a readable buffer."""
         buffer = buffer[:2] + bytes([((x - buffer[0] - i) + 256) % 256 for i, x in enumerate(buffer[2:16])])
         if not self.is_eq(self._checksum(buffer[2:15]), buffer[15], "Checksum"):
             return None
         return buffer[:10]
 
-    def encrypt(self, buffer: bytes) -> bytes:
+    def encrypt(self, buffer: bytearray) -> bytearray:
         """Encrypt / whiten a readable buffer."""
-        buffer = bytearray(buffer + self.PADDING)
+        buffer += self.PADDING
         buffer[15] = self._checksum(buffer[2:15])
-        return buffer[:2] + bytes([((x + buffer[0] + i) + 256) % 256 for i, x in enumerate(buffer[2:16])]) + buffer[16:]
+        return buffer[:2] + bytearray([((x + buffer[0] + i) + 256) % 256 for i, x in enumerate(buffer[2:16])]) + buffer[16:]
 
-    def convert_to_enc(self, decoded: bytes) -> tuple[BleAdvEncCmd | None, BleAdvConfig | None]:
+    def convert_to_enc(self, decoded: bytearray) -> tuple[BleAdvEncCmd | None, BleAdvConfig | None]:
         """Convert a readable buffer into an encoder command and a config."""
         conf = BleAdvConfig()
         conf.seed = decoded[0]
@@ -68,10 +68,10 @@ class RuiXinEncoder(BleAdvCodec):
 
         return enc_cmd, conf
 
-    def convert_from_enc(self, enc_cmd: BleAdvEncCmd, conf: BleAdvConfig) -> bytes:
+    def convert_from_enc(self, enc_cmd: BleAdvEncCmd, conf: BleAdvConfig) -> bytearray:
         """Convert an encoder command and a config into a readable buffer."""
         uid = conf.id.to_bytes(4, "little")
-        return bytes([conf.seed, conf.tx_count, *uid, enc_cmd.cmd, enc_cmd.arg0, enc_cmd.arg1, enc_cmd.arg2])
+        return bytearray([conf.seed, conf.tx_count, *uid, enc_cmd.cmd, enc_cmd.arg0, enc_cmd.arg1, enc_cmd.arg2])
 
 
 class RuiXinRemoteEncoder(RuiXinEncoder):

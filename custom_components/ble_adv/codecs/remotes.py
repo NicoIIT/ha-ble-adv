@@ -28,20 +28,20 @@ class RemoteEncoder(BleAdvCodec):
 
     _len = 8
 
-    def _checksum(self, buffer: bytes) -> int:
+    def _checksum(self, buffer: bytearray) -> int:
         return sum(buffer) & 0xFF
 
-    def decrypt(self, buffer: bytes) -> bytes | None:
+    def decrypt(self, buffer: bytearray) -> bytearray | None:
         """Decrypt / unwhiten an incoming raw buffer into a readable buffer."""
         if not self.is_eq(self._checksum(buffer[:-1]), buffer[-1], "Checksum"):
             return None
         return buffer
 
-    def encrypt(self, buffer: bytes) -> bytes:
+    def encrypt(self, buffer: bytearray) -> bytearray:
         """Encrypt / whiten a readable buffer."""
-        return buffer + bytes([self._checksum(buffer)])
+        return buffer + bytearray([self._checksum(buffer)])
 
-    def convert_to_enc(self, decoded: bytes) -> tuple[BleAdvEncCmd | None, BleAdvConfig | None]:
+    def convert_to_enc(self, decoded: bytearray) -> tuple[BleAdvEncCmd | None, BleAdvConfig | None]:
         """Convert a readable buffer into an encoder command and a config."""
         conf = BleAdvConfig()
         conf.tx_count = decoded[6]
@@ -53,10 +53,10 @@ class RemoteEncoder(BleAdvCodec):
 
         return enc_cmd, conf
 
-    def convert_from_enc(self, enc_cmd: BleAdvEncCmd, conf: BleAdvConfig) -> bytes:
+    def convert_from_enc(self, enc_cmd: BleAdvEncCmd, conf: BleAdvConfig) -> bytearray:
         """Convert an encoder command and a config into a readable buffer."""
         uid = conf.id.to_bytes(4, "little")
-        return bytes([enc_cmd.arg0, *uid, enc_cmd.cmd | enc_cmd.arg1, conf.tx_count])
+        return bytearray([enc_cmd.arg0, *uid, enc_cmd.cmd | enc_cmd.arg1, conf.tx_count])
 
 
 TRANS = [

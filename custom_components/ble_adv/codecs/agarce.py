@@ -66,18 +66,18 @@ class AgarceEncoderBase(BleAdvCodec):
             return None
         return bytearray(buffer[: 1 + self._seed_len]) + decoded
 
-    def encrypt_base(self, buffer: bytearray, added_sum: int = 0) -> bytes:
+    def encrypt_base(self, buffer: bytearray, added_sum: int = 0) -> bytearray:
         """Encrypt / whiten a readable buffer."""
         decoded = buffer[1 + self._seed_len :]
         decoded.append(sum(decoded) & 0xFF)
         decoded = bytearray(buffer[: 1 + self._seed_len]) + self._crypt(decoded, buffer[1 : 1 + self._seed_len])
-        return bytes([*decoded, (sum(decoded) + added_sum) & 0xFF])
+        return bytearray([*decoded, (sum(decoded) + added_sum) & 0xFF])
 
 
 class AgarceEncoder(AgarceEncoderBase):
     """Agarce encoder."""
 
-    def decrypt(self, buffer: bytes) -> bytes | None:
+    def decrypt(self, buffer: bytearray) -> bytearray | None:
         """Decrypt / unwhiten an incoming raw buffer into a readable buffer."""
         if (decoded := self.decrypt_base(buffer)) is None:
             return None
@@ -92,11 +92,10 @@ class AgarceEncoder(AgarceEncoderBase):
             decoded[13] = 0
         else:
             decoded[15] = ((decoded[15] & 0x0F) << 4) + (decoded[11] & 0x0F)
-        return bytes(decoded[:-1])
+        return decoded[:-1]
 
-    def encrypt(self, buffer: bytes) -> bytes:
+    def encrypt(self, decoded: bytearray) -> bytearray:
         """Encrypt / whiten a readable buffer."""
-        decoded = bytearray(buffer)
         is_pair = decoded[11] == 0x00
         if is_pair:
             decoded[13] = (decoded[0] & 0xF0) >> 4  # arg1
@@ -108,7 +107,7 @@ class AgarceEncoder(AgarceEncoderBase):
             decoded[15] = (decoded[15] >> 4) & 0x0F
         return self.encrypt_base(decoded)
 
-    def convert_to_enc(self, decoded: bytes) -> tuple[BleAdvEncCmd | None, BleAdvConfig | None]:
+    def convert_to_enc(self, decoded: bytearray) -> tuple[BleAdvEncCmd | None, BleAdvConfig | None]:
         """Convert a readable buffer into an encoder command and a config."""
         enc_cmd = BleAdvEncCmd(decoded[10] & 0xF0)
         enc_cmd.arg0 = decoded[11]
@@ -124,10 +123,10 @@ class AgarceEncoder(AgarceEncoderBase):
         conf.seed = int.from_bytes(decoded[0:2], "little")
         return enc_cmd, conf
 
-    def convert_from_enc(self, enc_cmd: BleAdvEncCmd, conf: BleAdvConfig) -> bytes:
+    def convert_from_enc(self, enc_cmd: BleAdvEncCmd, conf: BleAdvConfig) -> bytearray:
         """Convert an encoder command and a config into a readable buffer."""
         buf_start = [*conf.seed.to_bytes(2, "little"), conf.tx_count, conf.app_restart_count, 0x00, 0x10, *conf.id.to_bytes(4, "little")]
-        return bytes([*buf_start, enc_cmd.cmd, enc_cmd.arg0, enc_cmd.arg1, enc_cmd.arg2, conf.index])
+        return bytearray([*buf_start, enc_cmd.cmd, enc_cmd.arg0, enc_cmd.arg1, enc_cmd.arg2, conf.index])
 
 
 class AgarceFanTrans(Trans):
@@ -191,15 +190,15 @@ class AgarceRemoteEncoder(AgarceEncoderBase):
     _seed_max = 0xFFFFFFFF
     _seed_len = 4
 
-    def decrypt(self, buffer: bytes) -> bytes | None:
+    def decrypt(self, buffer: bytearray) -> bytearray | None:
         """Decrypt / unwhiten an incoming raw buffer into a readable buffer."""
         return self.decrypt_base(buffer, 0x1A)
 
-    def encrypt(self, buffer: bytes) -> bytes:
+    def encrypt(self, buffer: bytearray) -> bytearray:
         """Encrypt / whiten a readable buffer."""
         return self.encrypt_base(buffer, 0x1A)
 
-    def convert_to_enc(self, decoded: bytes) -> tuple[BleAdvEncCmd | None, BleAdvConfig | None]:
+    def convert_to_enc(self, decoded: bytearray) -> tuple[BleAdvEncCmd | None, BleAdvConfig | None]:
         """Convert a readable buffer into an encoder command and a config."""
         conf = BleAdvConfig()
         conf.tx_count = decoded[4]
@@ -214,13 +213,13 @@ class AgarceRemoteEncoder(AgarceEncoderBase):
 
         return enc_cmd, conf
 
-    def convert_from_enc(self, enc_cmd: BleAdvEncCmd, conf: BleAdvConfig) -> bytes:
+    def convert_from_enc(self, enc_cmd: BleAdvEncCmd, conf: BleAdvConfig) -> bytearray:
         """Convert an encoder command and a config into a readable buffer."""
         # The rolling code uses a combination of tx_count and command code and other parameters unknown
         # this is NOT a working implementation but it seems it is not a problem to use this
         rolling_code = (conf.tx_count ^ enc_cmd.cmd) & 0xFF
 
-        return bytes(
+        return bytearray(
             [
                 *conf.seed.to_bytes(4, "little"),
                 conf.tx_count,

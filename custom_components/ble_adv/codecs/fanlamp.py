@@ -56,7 +56,7 @@ class FanLampEncoder(BleAdvCodec):
 
     _len = 24
 
-    def _crc16(self, buffer: bytes, seed: int) -> int:
+    def _crc16(self, buffer: bytearray, seed: int) -> int:
         """CRC16 CCITT computing."""
         return crc_hqx(buffer, seed)
 
@@ -98,23 +98,23 @@ class FanLampEncoderV1Base(FanLampEncoder):
 
     def header(self, header: list[int]) -> Self:
         """Set header with included fixed PREFIX."""
-        self._header = bytearray([*header, *whiten(reverse_all(bytes(self.PREFIX)), 0x6F)])
+        self._header = bytes([*header, *whiten(reverse_all(bytes(self.PREFIX)), 0x6F)])
         self._len -= len(self.PREFIX)
         return self
 
-    def _crc2(self, buffer: bytes) -> int:
+    def _crc2(self, buffer: bytearray) -> int:
         """Compute CRC 2 as ccitt crc16."""
         # // 0xA5BE = self._crc16([0x98, 0x43, 0xAF, 0x0B, 0x46], 0xFFFF)
         return self._forced_crc2 if self._forced_crc2 is not None else self._crc16(buffer, 0xA5BE)
 
-    def decrypt(self, buffer: bytes) -> bytes | None:
+    def decrypt(self, buffer: bytearray) -> bytearray | None:
         """Decrypt / unwhiten an incoming raw buffer into a readable buffer."""
         decoded = reverse_all(whiten(buffer, 0x0C))
         if not self.is_eq(self._crc2(decoded[:-2]), int.from_bytes(decoded[-2:]), "CRC2"):
             return None
         return decoded[:-2]
 
-    def encrypt(self, buffer: bytes) -> bytes:
+    def encrypt(self, buffer: bytearray) -> bytearray:
         """Encrypt / whiten a readable buffer."""
         return whiten(reverse_all(buffer + self._crc2(buffer).to_bytes(2)), 0x0C)
 
@@ -125,7 +125,7 @@ class FanLampEncoderV1R0(FanLampEncoderV1Base):
     ign_duration = 300
     _null_trailers: bool = False
 
-    def convert_to_enc(self, decoded: bytes) -> tuple[BleAdvEncCmd | None, BleAdvConfig | None]:
+    def convert_to_enc(self, decoded: bytearray) -> tuple[BleAdvEncCmd | None, BleAdvConfig | None]:
         """Convert a readable buffer into an encoder command and a config."""
         if self._null_trailers and not self.is_eq_buf(bytes([0x00] * 6), decoded[8:], "NULL TRAILERS"):
             return None, None
@@ -154,7 +154,7 @@ class FanLampEncoderV1R0(FanLampEncoderV1Base):
             return enc_cmd
         return None if enc_cmd.arg3 == prev_cmd.arg3 else enc_cmd
 
-    def convert_from_enc(self, enc_cmd: BleAdvEncCmd, conf: BleAdvConfig) -> bytes:
+    def convert_from_enc(self, enc_cmd: BleAdvEncCmd, conf: BleAdvConfig) -> bytearray:
         """Convert an encoder command and a config into a readable buffer."""
         uid = (conf.id | (conf.index << 8)).to_bytes(2, "little")
         if self._null_trailers:
@@ -164,7 +164,7 @@ class FanLampEncoderV1R0(FanLampEncoderV1Base):
         else:
             rev_uid = conf.id.to_bytes(2, "big")
             trailers = [*rev_uid, 0x00, 0x00, enc_cmd.arg3, 0x01 if enc_cmd.arg3 == 0x01 else 0x00]
-        return bytes([enc_cmd.cmd, *uid, enc_cmd.arg0, enc_cmd.arg1, enc_cmd.arg2, enc_cmd.arg3, enc_cmd.param, *trailers])
+        return bytearray([enc_cmd.cmd, *uid, enc_cmd.arg0, enc_cmd.arg1, enc_cmd.arg2, enc_cmd.arg3, enc_cmd.param, *trailers])
 
 
 class FanLampEncoderV1R1(FanLampEncoderV1R0):
@@ -188,7 +188,7 @@ class FanLampEncoderV1(FanLampEncoderV1Base):
     def _get_arg2(self, cmd: int, arg2: int) -> int:
         return arg2 if cmd == 0x22 else self._arg2 if (cmd == 0x28 or (not self._arg2_only_on_pair and cmd not in [0x12, 0x13, 0x1E, 0x1F])) else 0
 
-    def convert_to_enc(self, decoded: bytes) -> tuple[BleAdvEncCmd | None, BleAdvConfig | None]:
+    def convert_to_enc(self, decoded: bytearray) -> tuple[BleAdvEncCmd | None, BleAdvConfig | None]:
         """Convert a readable buffer into an encoder command and a config."""
         seed = int.from_bytes(decoded[10:12])
         seed8 = seed & 0xFF
@@ -219,7 +219,7 @@ class FanLampEncoderV1(FanLampEncoderV1Base):
                 return None, None
         return enc_cmd, conf
 
-    def convert_from_enc(self, enc_cmd: BleAdvEncCmd, conf: BleAdvConfig) -> bytes:
+    def convert_from_enc(self, enc_cmd: BleAdvEncCmd, conf: BleAdvConfig) -> bytearray:
         """Convert an encoder command and a config into a readable buffer."""
         is_pair_cmd: bool = enc_cmd.cmd == 0x28
         obuf = bytearray()
@@ -243,14 +243,14 @@ class FanLampEncoderV1aa(FanLampEncoderV1):
 
     PREFIX: ClassVar[bytes] = bytes([0x55]) + FanLampEncoderV1.PREFIX
 
-    def decrypt(self, buffer: bytes) -> bytes | None:
+    def decrypt(self, buffer: bytearray) -> bytearray | None:
         """Decrypt / unwhiten an incoming raw buffer into a readable buffer."""
         decoded = reverse_all(whiten(buffer, 0x2B))
         if not self.is_eq(0xAA, decoded[-1], "AA"):
             return None
         return decoded[:-1]
 
-    def encrypt(self, buffer: bytes) -> bytes:
+    def encrypt(self, buffer: bytearray) -> bytearray:
         """Encrypt / whiten a readable buffer."""
         return whiten(reverse_all(buffer + bytes([0xAA])), 0x2B)
 
@@ -277,11 +277,11 @@ class FanLampEncoderV2(FanLampEncoder):
         self._device_type = device_type
         self.header([0xF0, 0x08])
 
-    def _whiten(self, buffer: bytes, seed: int, salt: int) -> bytes:
+    def _whiten(self, buffer: bytearray, seed: int, salt: int) -> bytearray:
         """Whiten / Unwhiten buffer with seed."""
-        return bytes([(self.XBOXES[((seed + i + 9) & 0x1F) + salt]) ^ seed ^ val for i, val in enumerate(buffer)])
+        return bytearray([(self.XBOXES[((seed + i + 9) & 0x1F) + salt]) ^ seed ^ val for i, val in enumerate(buffer)])
 
-    def _sign(self, buffer: bytes, tx_count: int, seed: int) -> int:
+    def _sign(self, buffer: bytearray, tx_count: int, seed: int) -> int:
         """Compute uint16 AES ECB sign."""
         key = bytes([seed & 0xFF, (seed >> 8) & 0xFF, tx_count, 0x0D, 0xBF, 0xE6, 0x42, 0x68, 0x41, 0x99, 0x2D, 0x0F, 0xB0, 0x54, 0xBB, 0x16])
         cipher = AES.new(key, AES.MODE_ECB)
@@ -289,20 +289,20 @@ class FanLampEncoderV2(FanLampEncoder):
         sign = int.from_bytes(ciphertext[0:2], "little")
         return sign if sign != 0 else 0xFFFF
 
-    def decrypt(self, buffer: bytes) -> bytes | None:
+    def decrypt(self, buffer: bytearray) -> bytearray | None:
         """Decrypt / unwhiten an incoming raw buffer into a readable buffer."""
         seed = int.from_bytes(buffer[-4:-2], "little")
         if not self.is_eq(self._crc16(buffer[:-2], seed ^ 0xFFFF), int.from_bytes(buffer[-2:], "little"), "CRC"):
             return None
         return buffer[0:2] + self._whiten(buffer[2:-4], seed & 0xFF, (buffer[1] & 0x3) << 5) + buffer[-4:-2]
 
-    def encrypt(self, decoded: bytes) -> bytes:
+    def encrypt(self, decoded: bytearray) -> bytearray:
         """Encrypt / whiten a readable buffer."""
         seed = int.from_bytes(decoded[-2:], "little")
         obuf = decoded[:2] + self._whiten(decoded[2:-2], seed & 0xFF, (decoded[1] & 0x3) << 5) + decoded[-2:]
-        return bytes([*obuf, *self._crc16(obuf, seed ^ 0xFFFF).to_bytes(2, "little")])
+        return bytearray([*obuf, *self._crc16(obuf, seed ^ 0xFFFF).to_bytes(2, "little")])
 
-    def convert_to_enc(self, decoded: bytes) -> tuple[BleAdvEncCmd | None, BleAdvConfig | None]:
+    def convert_to_enc(self, decoded: bytearray) -> tuple[BleAdvEncCmd | None, BleAdvConfig | None]:
         """Convert a readable buffer into an encoder command and a config."""
         conf = BleAdvConfig()
         conf.seed = int.from_bytes(decoded[-2:], "little")
@@ -324,15 +324,15 @@ class FanLampEncoderV2(FanLampEncoder):
         enc_cmd.arg2 = decoded[16]
         return enc_cmd, conf
 
-    def convert_from_enc(self, enc_cmd: BleAdvEncCmd, conf: BleAdvConfig) -> bytes:
+    def convert_from_enc(self, enc_cmd: BleAdvEncCmd, conf: BleAdvConfig) -> bytearray:
         """Convert an encoder command and a config into a readable buffer."""
         dt = self._device_type.to_bytes(2, "little")
         with_sign = conf.codec_params[0]
         pfx = conf.codec_params[1]
         uid = conf.id.to_bytes(4, "little")
         base_buf = [*pfx, conf.tx_count, *dt, *uid, conf.index, enc_cmd.cmd, 0, enc_cmd.param, enc_cmd.arg0, enc_cmd.arg1, enc_cmd.arg2]
-        sign = self._sign(bytes(base_buf[1:17]), base_buf[3], conf.seed) if with_sign else 0
-        return bytes([*base_buf, *sign.to_bytes(2, "little"), 0x00, *conf.seed.to_bytes(2, "little")])
+        sign = self._sign(bytearray(base_buf[1:17]), base_buf[3], conf.seed) if with_sign else 0
+        return bytearray([*base_buf, *sign.to_bytes(2, "little"), 0x00, *conf.seed.to_bytes(2, "little")])
 
 
 def _get_fan_translators() -> list[Trans]:

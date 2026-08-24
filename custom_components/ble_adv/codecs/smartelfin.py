@@ -48,15 +48,15 @@ class SmartElfinEncoder(BleAdvCodec):
     second_type: int = 0x16
     second_raw: bytes = bytes([0x00] * 8)
 
-    def decrypt(self, buffer: bytes) -> bytes | None:
+    def decrypt(self, buffer: bytearray) -> bytearray | None:
         """Decrypt / unwhiten an incoming raw buffer into a readable buffer."""
         return buffer
 
-    def encrypt(self, buffer: bytes) -> bytes:
+    def encrypt(self, buffer: bytearray) -> bytearray:
         """Encrypt / whiten a readable buffer."""
         return buffer
 
-    def convert_to_enc(self, decoded: bytes) -> tuple[BleAdvEncCmd | None, BleAdvConfig | None]:
+    def convert_to_enc(self, decoded: bytearray) -> tuple[BleAdvEncCmd | None, BleAdvConfig | None]:
         """Convert a readable buffer into an encoder command and a config."""
         conf = BleAdvConfig()
         conf.id = int.from_bytes(decoded[0:3], "little")
@@ -70,10 +70,10 @@ class SmartElfinEncoder(BleAdvCodec):
 
         return enc_cmd, conf
 
-    def convert_from_enc(self, enc_cmd: BleAdvEncCmd, conf: BleAdvConfig) -> bytes:
+    def convert_from_enc(self, enc_cmd: BleAdvEncCmd, conf: BleAdvConfig) -> bytearray:
         """Convert an encoder command and a config into a readable buffer."""
         uid = conf.id.to_bytes(3, "little")
-        return bytes([*uid, conf.tx_count, *(conf.codec_params[0]), enc_cmd.param, enc_cmd.cmd, enc_cmd.arg0, enc_cmd.arg1])
+        return bytearray([*uid, conf.tx_count, *(conf.codec_params[0]), enc_cmd.param, enc_cmd.cmd, enc_cmd.arg0, enc_cmd.arg1])
 
 
 TRANS = [
