@@ -96,7 +96,10 @@
           "open_issue": "Open Issue"
         }
       },
-      "blink": {
+      "test_light": {
+        "title": "Configuration Test"
+      },
+      "test_fan": {
         "title": "Configuration Test"
       },
       "pair": {
@@ -125,9 +128,22 @@
           "adapter_id": "BLE ADV Adapter"
         }
       },
-      "confirm": {
+      "confirm_light": {
         "title": "Validation",
         "description": "Testing configuration {nb}/{tot}:\n\n    Codec: {codec}\n    Id: {id}\n    Index: {index}\n\nDid the light blink?",
+        "menu_options": {
+          "confirm_yes": "Yes!",
+          "confirm_no_another": "No, try Next.",
+          "confirm_no_abort": "No, Abort.",
+          "open_issue": "No, Open Issue",
+          "confirm_retry_last": "Retry the same.",
+          "confirm_retry_all": "Retry from first.",
+          "confirm_test_fan": "Device without Light, test with Fan."
+        }
+      },
+      "confirm_fan": {
+        "title": "Validation",
+        "description": "Testing configuration {nb}/{tot}:\n\n    Codec: {codec}\n    Id: {id}\n    Index: {index}\n\nDid the fan start / stop?",
         "menu_options": {
           "confirm_yes": "Yes!",
           "confirm_no_another": "No, try Next.",
@@ -274,7 +290,8 @@
       "wait_pair": "Pairing in progress...",
       "wait_config": "Please press any button (preferably Pair) on the phone app controlling your device within {max_seconds}s.",
       "agg_config": "Aggregating configuration data.",
-      "blink": "Making the light blink with configuration {nb}/{tot}:\n\n    Codec: {codec}\n    Id: {id}\n    Index: {index}",
+      "test_light": "Making the light blink with configuration {nb}/{tot}:\n\n    Codec: {codec}\n    Id: {id}\n    Index: {index}",
+      "test_fan": "Starting / Stopping the Fan with configuration {nb}/{tot}:\n\n    Codec: {codec}\n    Id: {id}\n    Index: {index}",
       "wait_config_remote": "Please press any button (preferably Pair) on the controller within {max_seconds}s."
     },
     "abort": {

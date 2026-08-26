@@ -96,7 +96,10 @@
           "open_issue": "Abrir incidencia"
         }
       },
-      "blink": {
+      "test_light": {
+        "title": "Prueba de configuración"
+      },
+      "test_fan": {
         "title": "Prueba de configuración"
       },
       "pair": {
@@ -125,9 +128,22 @@
           "adapter_id": "Adaptador BLE ADV"
         }
       },
-      "confirm": {
+      "confirm_light": {
         "title": "Validación",
         "description": "Probando configuración {nb}/{tot}:\n\n    Códec: {codec}\n    ID: {id}\n    Índice: {index}\n\n¿Ha parpadeado la luz?",
+        "menu_options": {
+          "confirm_yes": "¡Sí!",
+          "confirm_no_another": "No, probar siguiente.",
+          "confirm_no_abort": "No, cancelar.",
+          "open_issue": "No, abrir incidencia",
+          "confirm_retry_last": "Reintentar la misma.",
+          "confirm_retry_all": "Reintentar desde la primera.",
+          "confirm_test_fan": "Dispositivo sin luz; prueba con ventilador."
+        }
+      },
+      "confirm_fan": {
+        "title": "Validación",
+        "description": "Probando configuración {nb}/{tot}:\n\n    Códec: {codec}\n    ID: {id}\n    Índice: {index}\n\n¿El ventilador se puso en marcha o se detuvo?",
         "menu_options": {
           "confirm_yes": "¡Sí!",
           "confirm_no_another": "No, probar siguiente.",
@@ -274,7 +290,8 @@
       "wait_pair": "Emparejamiento en curso...",
       "wait_config": "Pulsa cualquier botón (preferiblemente Emparejar) en la app del móvil antes de {max_seconds}s.",
       "agg_config": "Agregando datos de configuración.",
-      "blink": "Haciendo parpadear la luz con la configuración {nb}/{tot}:\n\n    Códec: {codec}\n    ID: {id}\n    Índice: {index}",
+      "test_light": "Haciendo parpadear la luz con la configuración {nb}/{tot}:\n\n    Códec: {codec}\n    ID: {id}\n    Índice: {index}",
+      "test_fan": "Arranque / parada del ventilador con configuración {nb}/{tot}:\n\n    Códec: {codec}\n    ID: {id}\n    Índice: {index}",
       "wait_config_remote": "Pulsa cualquier botón (preferiblemente Emparejar) en el mando antes de {max_seconds}s."
     },
     "abort": {
@@ -326,9 +343,27 @@
         "breeze": "Modo Brisa",
         "sleep": "Modo dormir"
       }
+    },
+    "tr_set": {
+      "options": {
+        "fl": "Flickering",
+        "no_nm": "No Night Mode",
+        "nm_as_effect": "Night Mode as Effect",
+        "nm_as_second_light": "Night Mode as Second Light"
+      }
     }
   },
   "entity": {
+    "event": {
+      "event": {
+        "name": "Encoded Command"
+      }
+    },
+    "switch": {
+      "silent": {
+        "name": "No Command Mode"
+      }
+    },
     "fan": {
       "fan_0": {
         "name": "Ventilador principal",

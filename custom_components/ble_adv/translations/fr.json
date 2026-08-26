@@ -96,7 +96,10 @@
           "open_issue": "Ouvrir une Issue"
         }
       },
-      "blink": {
+      "test_light": {
+        "title": "Test de Configuration"
+      },
+      "test_fan": {
         "title": "Test de Configuration"
       },
       "pair": {
@@ -125,9 +128,22 @@
           "adapter_id": "Adaptateur BLE ADV"
         }
       },
-      "confirm": {
+      "confirm_light": {
         "title": "Validation",
         "description": "Test de la configuration {nb}/{tot}:\n\n    Codec: {codec}\n    Id: {id}\n    Index: {index}\n\nEst-ce que la lampe a clignoté?",
+        "menu_options": {
+          "confirm_yes": "Oui!",
+          "confirm_no_another": "Non, Essayer la configuration suivante.",
+          "confirm_no_abort": "Non, Quitter.",
+          "open_issue": "Non, Ouvrir une Issue",
+          "confirm_retry_last": "Réessayer la même configuration.",
+          "confirm_retry_all": "Réessayer depuis le début.",
+          "confirm_test_fan": "Appareil sans Lampe, tester avec le ventilateur."
+        }
+      },
+      "confirm_fan": {
+        "title": "Validation",
+        "description": "Test de la configuration {nb}/{tot}:\n\n    Codec: {codec}\n    Id: {id}\n    Index: {index}\n\nEst-ce que le ventilateur a démarré / s'est arrêté?",
         "menu_options": {
           "confirm_yes": "Oui!",
           "confirm_no_another": "Non, Essayer la configuration suivante.",
@@ -274,7 +290,8 @@
       "wait_pair": "Apparaige en cours...",
       "wait_config": "Veuillez appuyer sur un bouton de l'Application controllant votre appareil (Appairrage de préférence) dans les {max_seconds}s.",
       "agg_config": "Préparation des configurations...",
-      "blink": "Tentative de contrôle de la lampe avec la configuration {nb}/{tot}:\n\n    Codec: {codec}\n    Id: {id}\n    Index: {index}",
+      "test_light": "Tentative de contrôle de la lampe avec la configuration {nb}/{tot}:\n\n    Codec: {codec}\n    Id: {id}\n    Index: {index}",
+      "test_fan": "Tentative de contrôle du ventilateur avec la configuration {nb}/{tot}:\n\n    Codec: {codec}\n    Id: {id}\n    Index: {index}",
       "wait_config_remote": "Veuillez appuyer sur un bouton de la Télécommande (Appairrage de préférence) dans les {max_seconds}s."
     },
     "abort": {

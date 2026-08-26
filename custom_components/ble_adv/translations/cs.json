@@ -96,7 +96,10 @@
           "open_issue": "Otevřít problém"
         }
       },
-      "blink": {
+      "test_light": {
+        "title": "Test konfigurace"
+      },
+      "test_fan": {
         "title": "Test konfigurace"
       },
       "pair": {
@@ -125,9 +128,22 @@
           "adapter_id": "BLE ADV adaptér"
         }
       },
-      "confirm": {
+      "confirm_light": {
         "title": "Ověření",
         "description": "Testování konfigurace {nb}/{tot}:\n\n    Kodek: {codec}\n    ID: {id}\n    Index: {index}\n\nZablikalo světlo?",
+        "menu_options": {
+          "confirm_yes": "Ano!",
+          "confirm_no_another": "Ne, zkusit jinou.",
+          "confirm_no_abort": "Ne, přerušit.",
+          "open_issue": "No, Open Issue",
+          "confirm_retry_last": "Zkusit stejnou.",
+          "confirm_retry_all": "Začít od začátku.",
+          "confirm_test_fan": "Zařízení bez světla, test s ventilátorem."
+        }
+      },
+      "confirm_fan": {
+        "title": "Ověření",
+        "description": "Testování konfigurace {nb}/{tot}:\n\n    Kodek: {codec}\n    ID: {id}\n    Index: {index}\n\nRozběhl se / zastavil se ventilátor?",
         "menu_options": {
           "confirm_yes": "Ano!",
           "confirm_no_another": "Ne, zkusit jinou.",
@@ -274,7 +290,8 @@
       "wait_pair": "Probíhá párování...",
       "wait_config": "Stiskněte libovolné tlačítko (ideálně Párovat) v aplikaci ovládající zařízení do {max_seconds} sekund.",
       "agg_config": "Shromažďování konfiguračních údajů.",
-      "blink": "Blikání světla pomocí konfigurace {nb}/{tot}:\n\n    Kodek: {codec}\n    ID: {id}\n    Index: {index}",
+      "test_light": "Blikání světla pomocí konfigurace {nb}/{tot}:\n\n    Kodek: {codec}\n    ID: {id}\n    Index: {index}",
+      "test_fan": "Spuštění / zastavení ventilátoru pomocí konfigurace {nb}/{tot}:\n\n    Kodek: {codec}\n    ID: {id}\n    Index: {index}",
       "wait_config_remote": "Stiskněte libovolné tlačítko (ideálně Párovat) na ovladači do {max_seconds} sekund."
     },
     "abort": {

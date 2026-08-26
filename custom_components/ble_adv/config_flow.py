@@ -32,6 +32,7 @@ from .codecs.const import (
     ATTR_ON,
     ATTR_OSC,
     ATTR_PRESET,
+    ATTR_SPEED,
     ATTR_SPEED_COUNT,
     ATTR_SUB_TYPE,
     DEVICE_TYPE,
@@ -179,11 +180,19 @@ class BleAdvProgressFlowBase:
         )
 
 
-class BleAdvBlinkProgressFlow(BleAdvProgressFlowBase):
+class BleAdvTestLightProgressFlow(BleAdvProgressFlowBase):
     """Progress flow for blink task."""
 
     async def _action_task(self) -> None:
-        await self._flow.async_blink_light()
+        await self._flow.async_test_light()
+        self._exit = True
+
+
+class BleAdvTestFanProgressFlow(BleAdvProgressFlowBase):
+    """Progress flow for Fan test task."""
+
+    async def _action_task(self) -> None:
+        await self._flow.async_test_fan()
         self._exit = True
 
 
@@ -346,11 +355,14 @@ class BleAdvConfigFlow(ConfigFlow, domain=DOMAIN):
     """Handle a config flow for BLE ADV."""
 
     VERSION = CONF_LAST_VERSION
+    WAIT_TEST_LIGHT: float = 1.0
+    WAIT_TEST_FAN: float = 3.0
 
     def __init__(self) -> None:
         """Initialize the config flow."""
         self._confs: BleAdvConfigHandler = BleAdvConfigHandler()
         self._progress: BleAdvProgressFlowBase | None = None
+        self._test_with_fan = False
 
         self._data: dict[str, Any] = {}
         self._finalize_requested: bool = False
@@ -377,7 +389,7 @@ class BleAdvConfigFlow(ConfigFlow, domain=DOMAIN):
         duration = duration if duration is not None else codec.duration
         return BleAdvBaseDevice(self.coordinator, name, config.codec_id, [adapter_id], codec.repeat, codec.interval, duration, config)
 
-    async def async_blink_light(self) -> None:
+    async def async_test_light(self) -> None:
         """Blink."""
         self._add_diag(f"Start blink - {self._confs.selected_adapter()} / {self._confs.selected()}.")
         tmp_device: BleAdvBaseDevice = self._get_device("cf", self._confs.selected_adapter(), self._confs.selected())
@@ -385,18 +397,33 @@ class BleAdvConfigFlow(ConfigFlow, domain=DOMAIN):
         off_cmd = BleAdvEntAttr([ATTR_ON], {ATTR_ON: False}, LIGHT_TYPE, 0)
         self.async_update_progress(0)
         await tmp_device.advertise(on_cmd)
-        await asyncio.sleep(1)
+        await asyncio.sleep(self.WAIT_TEST_LIGHT)
         self.async_update_progress(0.25)
         await tmp_device.advertise(off_cmd)
-        await asyncio.sleep(1)
+        await asyncio.sleep(self.WAIT_TEST_LIGHT)
         self.async_update_progress(0.50)
         await tmp_device.advertise(on_cmd)
-        await asyncio.sleep(1)
+        await asyncio.sleep(self.WAIT_TEST_LIGHT)
         self.async_update_progress(0.75)
         await tmp_device.advertise(off_cmd)
-        await asyncio.sleep(1)
+        await asyncio.sleep(self.WAIT_TEST_LIGHT)
         self.async_update_progress(1)
         self._add_diag("Stop blink.")
+
+    async def async_test_fan(self) -> None:
+        """Blink."""
+        self._add_diag(f"Start FAN blink - {self._confs.selected_adapter()} / {self._confs.selected()}.")
+        tmp_device: BleAdvBaseDevice = self._get_device("cf", self._confs.selected_adapter(), self._confs.selected())
+        on_cmd = BleAdvEntAttr([ATTR_ON, ATTR_SPEED], {ATTR_ON: True, ATTR_SPEED: 1, ATTR_SPEED_COUNT: 6}, FAN_TYPE, 0)
+        off_cmd = BleAdvEntAttr([ATTR_ON, ATTR_SPEED], {ATTR_ON: False, ATTR_SPEED: 1, ATTR_SPEED_COUNT: 6}, FAN_TYPE, 0)
+        self.async_update_progress(0)
+        await tmp_device.advertise(on_cmd)
+        await asyncio.sleep(self.WAIT_TEST_FAN)
+        self.async_update_progress(0.50)
+        await tmp_device.advertise(off_cmd)
+        await asyncio.sleep(self.WAIT_TEST_FAN)
+        self.async_update_progress(1)
+        self._add_diag("Stop FAN blink.")
 
     async def async_pair_all(self) -> None:
         """Pair."""
@@ -606,18 +633,37 @@ class BleAdvConfigFlow(ConfigFlow, domain=DOMAIN):
 
     async def async_step_blink(self, _: dict[str, Any] | None = None) -> ConfigFlowResult:
         """Blink Step."""
+        return await (self.async_step_test_fan() if self._test_with_fan else self.async_step_test_light())
+
+    async def async_step_test_light(self, _: dict[str, Any] | None = None) -> ConfigFlowResult:
+        """Test Light Step."""
         if self._progress is None:
-            self._progress = BleAdvBlinkProgressFlow(self, "blink", self._confs.placeholders())
+            self._progress = BleAdvTestLightProgressFlow(self, "test_light", self._confs.placeholders())
         if (flow_res := self._progress.next()) is not None:
             return flow_res
         self._progress = None
-        return self.async_show_progress_done(next_step_id="confirm")
+        return self.async_show_progress_done(next_step_id="confirm_light")
 
-    async def async_step_confirm(self, _: dict[str, Any] | None = None) -> ConfigFlowResult:
-        """Confirm choice Step."""
+    async def async_step_confirm_light(self, _: dict[str, Any] | None = None) -> ConfigFlowResult:
+        """Confirm choice after Light test Step."""
+        varying_choices = ["confirm_no_another"] if self._confs.has_next() else ["confirm_no_abort", "open_issue"]
+        opts = ["confirm_yes", *varying_choices, "confirm_retry_last", "confirm_retry_all", "confirm_test_fan"]
+        return self.async_show_menu(step_id="confirm_light", menu_options=opts, description_placeholders=self._confs.placeholders())
+
+    async def async_step_test_fan(self, _: dict[str, Any] | None = None) -> ConfigFlowResult:
+        """Test Fan Step."""
+        if self._progress is None:
+            self._progress = BleAdvTestFanProgressFlow(self, "test_fan", self._confs.placeholders())
+        if (flow_res := self._progress.next()) is not None:
+            return flow_res
+        self._progress = None
+        return self.async_show_progress_done(next_step_id="confirm_fan")
+
+    async def async_step_confirm_fan(self, _: dict[str, Any] | None = None) -> ConfigFlowResult:
+        """Confirm choice after Fan test Step."""
         varying_choices = ["confirm_no_another"] if self._confs.has_next() else ["confirm_no_abort", "open_issue"]
         opts = ["confirm_yes", *varying_choices, "confirm_retry_last", "confirm_retry_all"]
-        return self.async_show_menu(step_id="confirm", menu_options=opts, description_placeholders=self._confs.placeholders())
+        return self.async_show_menu(step_id="confirm_fan", menu_options=opts, description_placeholders=self._confs.placeholders())
 
     async def async_step_open_issue(self, _: dict[str, Any] | None = None) -> ConfigFlowResult:
         """Open issue Step."""
@@ -659,6 +705,12 @@ class BleAdvConfigFlow(ConfigFlow, domain=DOMAIN):
 
     async def async_step_confirm_retry_all(self, _: dict[str, Any] | None = None) -> ConfigFlowResult:
         """Confirm Retry ALL Step."""
+        self._confs.reset_selected()
+        return await self.async_step_choose_adapter()
+
+    async def async_step_confirm_test_fan(self, _: dict[str, Any] | None = None) -> ConfigFlowResult:
+        """Confirm Test with Fan Step."""
+        self._test_with_fan = True
         self._confs.reset_selected()
         return await self.async_step_choose_adapter()
 
@@ -709,7 +761,7 @@ class BleAdvConfigFlow(ConfigFlow, domain=DOMAIN):
                     effects = feats[ATTR_EFFECT]
                     def_effects = [eff for eff in opts.get(CONF_EFFECTS, effects) if eff in effects]
                     schema_opts[vol.Required(CONF_EFFECTS, default=def_effects)] = self._get_multi_selector(CONF_EFFECTS, list(effects))
-                sections[f"{LIGHT_TYPE}_{i}"] = (schema_opts, (i == 0) or CONF_TYPE in opts)
+                sections[f"{LIGHT_TYPE}_{i}"] = (schema_opts, CONF_TYPE in opts or (not self._test_with_fan and i == 0))
 
         # Build one section for each Fan supported by the codec
         for i, feats in enumerate(codec.get_supported_features(FAN_TYPE, tr_set)):
@@ -734,7 +786,7 @@ class BleAdvConfigFlow(ConfigFlow, domain=DOMAIN):
                     presets = feats[ATTR_PRESET]
                     def_presets = [preset for preset in opts.get(CONF_PRESETS, presets) if preset in presets]
                     schema_opts[vol.Required(CONF_PRESETS, default=def_presets)] = self._get_multi_selector(CONF_PRESETS, list(presets))
-                sections[f"{FAN_TYPE}_{i}"] = (schema_opts, CONF_TYPE in opts)
+                sections[f"{FAN_TYPE}_{i}"] = (schema_opts, CONF_TYPE in opts or (self._test_with_fan and i == 0))
 
         # Finalize schema with all sections
         data_schema = vol.Schema(

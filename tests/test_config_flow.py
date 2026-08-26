@@ -8,15 +8,17 @@ import pytest
 from aiohttp import web
 from ble_adv.codecs.models import BleAdvConfig
 from ble_adv.config_flow import (
-    BleAdvBlinkProgressFlow,
     BleAdvConfigFlow,
     BleAdvConfigHandler,
     BleAdvConfigView,
     BleAdvPairProgressFlow,
+    BleAdvTestFanProgressFlow,
+    BleAdvTestLightProgressFlow,
     BleAdvWaitConfigProgress,
     BleAdvWaitRawAdvProgress,
     _CodecConfig,
 )
+from ble_adv.const import CONF_ADAPTER_ID, CONF_PHONE_APP
 from ble_adv.coordinator import BleAdvCoordinator
 from homeassistant.core import HomeAssistant
 
@@ -44,14 +46,25 @@ async def test_api_view() -> None:
     assert await av.get(None, "flow") == av.NOT_FOUND_RESP  # type: ignore[none]
 
 
-async def test_blink_progress(hass: HomeAssistant) -> None:
-    """Test BleAdvBlinkProgressFlow."""
+async def test_light_progress(hass: HomeAssistant) -> None:
+    """Test BleAdvTestLightProgressFlow."""
     flow = BleAdvConfigFlow()
-    flow.async_blink_light = mock.AsyncMock()
+    flow.async_test_light = mock.AsyncMock()
     flow.hass = hass
-    mtp = BleAdvBlinkProgressFlow(flow, "step", {})
+    mtp = BleAdvTestLightProgressFlow(flow, "step", {})
     mtp.next()
-    flow.async_blink_light.assert_called_once()
+    flow.async_test_light.assert_called_once()
+    assert mtp.next() is None
+
+
+async def test_fan_progress(hass: HomeAssistant) -> None:
+    """Test BleAdvTestFanProgressFlow."""
+    flow = BleAdvConfigFlow()
+    flow.async_test_fan = mock.AsyncMock()
+    flow.hass = hass
+    mtp = BleAdvTestFanProgressFlow(flow, "step", {})
+    mtp.next()
+    flow.async_test_fan.assert_called_once()
     assert mtp.next() is None
 
 
@@ -151,3 +164,16 @@ async def test_config_handler() -> None:
     assert ch.selected_confs() == [cf3]
     assert ch.selected() == cf3
     assert ch.placeholders() == {"nb": "1", "tot": "1", "codec": "b", "id": "0xCC", "index": "1"}
+
+
+async def test_config_flow(hass: HomeAssistant, coord: BleAdvCoordinator) -> None:
+    """Test main config flow."""
+    flow = BleAdvConfigFlow()
+    flow.hass = hass
+    flow.coordinator = coord
+    flow.WAIT_TEST_LIGHT = 0.1
+    flow.WAIT_TEST_FAN = 0.1
+    await flow.async_step_user()
+    await flow.async_step_pair({CONF_PHONE_APP: "Fan Lamp Pro", CONF_ADAPTER_ID: "test"})
+    await flow.async_test_light()
+    await flow.async_test_fan()
