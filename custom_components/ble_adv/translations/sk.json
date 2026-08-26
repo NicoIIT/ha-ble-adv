@@ -96,7 +96,10 @@
           "open_issue": "Otvoriť problém"
         }
       },
-      "blink": {
+      "test_light": {
+        "title": "Test konfigurácie"
+      },
+      "test_fan": {
         "title": "Test konfigurácie"
       },
       "pair": {
@@ -125,9 +128,22 @@
           "adapter_id": "BLE ADV adaptér"
         }
       },
-      "confirm": {
+      "confirm_light": {
         "title": "Overenie",
         "description": "Testovanie konfigurácie {nb}/{tot}:\n\n    Kodek: {codec}\n    ID: {id}\n    Index: {index}\n\nZablikalo svetlo?",
+        "menu_options": {
+          "confirm_yes": "Áno!",
+          "confirm_no_another": "Nie, skúsiť inú.",
+          "confirm_no_abort": "Nie, prerušiť.",
+          "open_issue": "Nie, otvoriť problém",
+          "confirm_retry_last": "Skúsiť rovnakú.",
+          "confirm_retry_all": "Začať od začiatku.",
+          "confirm_test_fan": "Zariadenie bez svetla, test s ventilátorom."
+        }
+      },
+      "confirm_fan": {
+        "title": "Overenie",
+        "description": "Testovanie konfigurácie {nb}/{tot}:\n\n    Kodek: {codec}\n    ID: {id}\n    Index: {index}\n\nZapol sa / vypol sa ventilátor?",
         "menu_options": {
           "confirm_yes": "Áno!",
           "confirm_no_another": "Nie, skúsiť inú.",
@@ -274,7 +290,8 @@
       "wait_pair": "Prebieha párovanie...",
       "wait_config": "Stlačte ľubovoľné tlačidlo (ideálne Párovať) v aplikácii ovládajúcej zariadenie do {max_seconds} sekúnd.",
       "agg_config": "Zhromažďovanie konfiguračných údajov.",
-      "blink": "Blikanie svetla pomocou konfigurácie {nb}/{tot}:\n\n    Kodek: {codec}\n    ID: {id}\n    Index: {index}",
+      "test_light": "Blikanie svetla pomocou konfigurácie {nb}/{tot}:\n\n    Kodek: {codec}\n    ID: {id}\n    Index: {index}",
+      "test_fan": "Spustenie / zastavenie ventilátora s konfiguráciou {nb}/{tot}:\n\n    Kodek: {codec}\n    ID: {id}\n    Index: {index}",
       "wait_config_remote": "Stlačte ľubovoľné tlačidlo (ideálne Párovať) na ovládači do {max_seconds} sekúnd."
     },
     "abort": {

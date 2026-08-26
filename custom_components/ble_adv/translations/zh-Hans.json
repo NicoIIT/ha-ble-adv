@@ -96,7 +96,10 @@
           "open_issue": "打开 Issue"
         }
       },
-      "blink": {
+      "test_light": {
+        "title": "配置测试"
+      },
+      "test_fan": {
         "title": "配置测试"
       },
       "pair": {
@@ -125,9 +128,22 @@
           "adapter_id": "BLE ADV 适配器"
         }
       },
-      "confirm": {
+      "confirm_light": {
         "title": "验证",
         "description": "正在测试配置 {nb}/{tot}：\n\n    编解码器：{codec}\n    ID：{id}\n    索引：{index}\n\n灯是否闪烁？",
+        "menu_options": {
+          "confirm_yes": "是！",
+          "confirm_no_another": "否，尝试下一个。",
+          "confirm_no_abort": "否，中止。",
+          "open_issue": "否，打开 Issue",
+          "confirm_retry_last": "重试当前配置。",
+          "confirm_retry_all": "从第一个配置重新尝试。",
+          "confirm_test_fan": "无指示灯设备，使用风扇进行测试."
+        }
+      },
+      "confirm_fan": {
+        "title": "验证",
+        "description": "正在测试配置 {nb}/{tot}：\n\n    编解码器：{codec}\n    ID：{id}\n    索引：{index}\n\n风扇启动/停止了吗？",
         "menu_options": {
           "confirm_yes": "是！",
           "confirm_no_another": "否，尝试下一个。",
@@ -274,7 +290,8 @@
       "wait_pair": "正在配对……",
       "wait_config": "请在 {max_seconds} 秒内，在控制该设备的手机 App 上按下任意按钮（最好是配对按钮）。",
       "agg_config": "正在聚合配置数据。",
-      "blink": "正在使用配置 {nb}/{tot} 让灯闪烁：\n\n    编解码器：{codec}\n    ID：{id}\n    索引：{index}",
+      "test_light": "正在使用配置 {nb}/{tot} 让灯闪烁：\n\n    编解码器：{codec}\n    ID：{id}\n    索引：{index}",
+      "test_fan": "正在使用配置 {nb}/{tot} 让灯闪烁：\n\n    编解码器：{codec}\n    ID：{id}\n    索引：{index}",
       "wait_config_remote": "请在 {max_seconds} 秒内，在控制器上按下任意按钮（最好是配对按钮）。"
     },
     "abort": {

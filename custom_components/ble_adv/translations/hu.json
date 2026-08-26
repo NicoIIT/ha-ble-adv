@@ -96,7 +96,10 @@
           "open_issue": "Probléma jelentése"
         }
       },
-      "blink": {
+      "test_light": {
+        "title": "Konfiguráció teszt"
+      },
+      "test_fan": {
         "title": "Konfiguráció teszt"
       },
       "pair": {
@@ -125,9 +128,22 @@
           "adapter_id": "BLE ADV adapter"
         }
       },
-      "confirm": {
+      "confirm_light": {
         "title": "Ellenőrzés",
         "description": "Konfiguráció tesztelése {nb}/{tot}:\n\n    Kodek: {codec}\n    Azonosító: {id}\n    Index: {index}\n\nVillogott a lámpa?",
+        "menu_options": {
+          "confirm_yes": "Igen!",
+          "confirm_no_another": "Nem, következő próbálása.",
+          "confirm_no_abort": "Nem, megszakítás.",
+          "open_issue": "Nem, probléma jelentése",
+          "confirm_retry_last": "Ugyanaz újra.",
+          "confirm_retry_all": "Újrakezdés az elsőtől.",
+          "confirm_test_fan": "Fény nélküli eszköz, teszt ventilátorral."
+        }
+      },
+      "confirm_fan": {
+        "title": "Ellenőrzés",
+        "description": "Konfiguráció tesztelése {nb}/{tot}:\n\n    Kodek: {codec}\n    Azonosító: {id}\n    Index: {index}\n\nElindult / leállt a ventilátor?",
         "menu_options": {
           "confirm_yes": "Igen!",
           "confirm_no_another": "Nem, következő próbálása.",
@@ -274,7 +290,8 @@
       "wait_pair": "Párosítás folyamatban...",
       "wait_config": "Kérjük, nyomjon meg bármilyen gombot (lehetőleg Párosítás) az eszközt vezérlő telefon alkalmazásban {max_seconds} másodpercen belül.",
       "agg_config": "Konfigurációs adatok összesítése.",
-      "blink": "A lámpa villogtatása a {nb}/{tot} konfigurációval:\n\n    Kodek: {codec}\n    Azonosító: {id}\n    Index: {index}",
+      "test_light": "A lámpa villogtatása a {nb}/{tot} konfigurációval:\n\n    Kodek: {codec}\n    Azonosító: {id}\n    Index: {index}",
+      "test_fan": "A ventilátor indítása/leállítása a {nb}/{tot} konfigurációval:\n\n    Kodek: {codec}\n    Azonosító: {id}\n    Index: {index}",
       "wait_config_remote": "Kérjük, nyomjon meg bármilyen gombot (lehetőleg Párosítás) a vezérlőn {max_seconds} másodpercen belül."
     },
     "abort": {
