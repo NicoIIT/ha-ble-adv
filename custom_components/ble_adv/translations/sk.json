@@ -262,15 +262,15 @@
         "title": "Nastavenie možností pripojeného ovládača",
         "description": "Pripojený ovládač:\n\n    Kodek: {codec}\n    ID: {id}\n    Index: {index}",
         "data": {
-          "paired": "Controlling the Device",
-          "tr_set": "Translator Set"
+          "paired": "Ovláda zariadenie",
+          "tr_set": "Sada prekladu"
         }
       },
       "config_technical": {
         "title": "Konfigurácia technických možností",
-        "description": "Každý príkaz sa odošle do vybraných adaptérov 'Opakovania' s daným 'Intervalom' (ms) a s minimálnym časovým odstupom medzi dvoma príkazmi ('Minimálne trvanie').\n\nUpravujte len ak viete, čo robíte!\n\nPoužitie viacerých adaptérov sa DÔRAZNE NEODPORÚČA, nebude poskytovaná žiadna podpora.",
+        "description": "Každý príkaz sa odošle do vybraných adaptérov 'Opakovania' s daným 'Intervalom' (ms) a s minimálnym časovým odstupem medzi dvoma príkazmi ('Minimálne trvanie').\n\nUpravujte len ak viete, čo robíte!\n\nPoužitie viacerých adaptérov sa DÔRAZNE NEODPORÚČA, nebude poskytovaná žiadna podpora.",
         "data": {
-          "tr_set": "Translator Set",
+          "tr_set": "Sada prekladu",
           "adapter_ids": "BLE ADV adaptér(y)",
           "interval": "Interval",
           "repeats": "Opakovania",
@@ -333,7 +333,7 @@
     },
     "effects": {
       "options": {
-        "nm": "Night Mode",
+        "nm": "Nočný režim",
         "rgb": "RGB cyklus",
         "rgbk": "RGBK cyklus"
       }
@@ -346,22 +346,22 @@
     },
     "tr_set": {
       "options": {
-        "fl": "Flickering",
-        "no_nm": "No Night Mode",
-        "nm_as_effect": "Night Mode as Effect",
-        "nm_as_second_light": "Night Mode as Second Light"
+        "fl": "Blikanie",
+        "no_nm": "Bez nočného režimu",
+        "nm_as_effect": "Nočný režim ako efekt",
+        "nm_as_second_light": "Nočný režim ako druhé svetlo"
       }
     }
   },
   "entity": {
     "event": {
       "event": {
-        "name": "Encoded Command"
+        "name": "Zakódovaný príkaz"
       }
     },
     "switch": {
       "silent": {
-        "name": "No Command Mode"
+        "name": "Tichý režim"
       }
     },
     "fan": {
@@ -405,7 +405,7 @@
         "state_attributes": {
           "effect": {
             "state": {
-              "nm": "Night Mode",
+              "nm": "Nočný režim",
               "rgb": "RGB cyklus",
               "rgbk": "RGBK cyklus"
             }
@@ -417,7 +417,7 @@
         "state_attributes": {
           "effect": {
             "state": {
-              "nm": "Night Mode",
+              "nm": "Nočný režim",
               "rgb": "RGB cyklus",
               "rgbk": "RGBK cyklus"
             }
@@ -425,11 +425,11 @@
         }
       },
       "light_2": {
-        "name": "Tretie svetlo",
+        "name": "Třetí svetlo",
         "state_attributes": {
           "effect": {
             "state": {
-              "nm": "Night Mode",
+              "nm": "Nočný režim",
               "rgb": "RGB cyklus",
               "rgbk": "RGBK cyklus"
             }
