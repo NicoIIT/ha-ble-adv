@@ -259,18 +259,18 @@
         "title": "Configurar nuevo controlador vinculado"
       },
       "config_remote_update": {
-        "title": "Configurar opciones del controlador vinculado",
+        "title": "Configure options del controlador vinculado",
         "description": "Controlador vinculado:\n\n    Códec: {codec}\n    ID: {id}\n    Índice: {index}",
         "data": {
-          "paired": "Controlling the Device",
-          "tr_set": "Translator Set"
+          "paired": "Controlando el dispositivo",
+          "tr_set": "Conjunto de traductores"
         }
       },
       "config_technical": {
         "title": "Configurar opciones técnicas",
         "description": "Cada comando se emite al adaptador seleccionado 'Repeticiones' veces, en un 'Intervalo' determinado (ms), respetando un retardo de 'Duración mínima' entre 2 comandos distintos.\n\n¡Modifícalo solo si sabes lo que haces!\n\nSe DESACONSEJA SERIAMENTE usar múltiples adaptadores; no se prestará soporte técnico si lo haces.",
         "data": {
-          "tr_set": "Translator Set",
+          "tr_set": "Conjunto de traductores",
           "adapter_ids": "Adaptador(es) BLE ADV",
           "interval": "Intervalo",
           "repeats": "Repeticiones",
@@ -333,7 +333,7 @@
     },
     "effects": {
       "options": {
-        "nm": "Night Mode",
+        "nm": "Modo noche",
         "rgb": "Ciclo RGB",
         "rgbk": "Ciclo RGBK"
       }
@@ -346,22 +346,22 @@
     },
     "tr_set": {
       "options": {
-        "fl": "Flickering",
-        "no_nm": "No Night Mode",
-        "nm_as_effect": "Night Mode as Effect",
-        "nm_as_second_light": "Night Mode as Second Light"
+        "fl": "Parpadeante",
+        "no_nm": "Sin modo noche",
+        "nm_as_effect": "Modo noche como efecto",
+        "nm_as_second_light": "Modo noche como segunda luz"
       }
     }
   },
   "entity": {
     "event": {
       "event": {
-        "name": "Encoded Command"
+        "name": "Comando codificado"
       }
     },
     "switch": {
       "silent": {
-        "name": "No Command Mode"
+        "name": "Modo sin comandos"
       }
     },
     "fan": {
@@ -405,7 +405,7 @@
         "state_attributes": {
           "effect": {
             "state": {
-              "nm": "Night Mode",
+              "nm": "Modo noche",
               "rgb": "Ciclo RGB",
               "rgbk": "Ciclo RGBK"
             }
@@ -417,7 +417,7 @@
         "state_attributes": {
           "effect": {
             "state": {
-              "nm": "Night Mode",
+              "nm": "Modo noche",
               "rgb": "Ciclo RGB",
               "rgbk": "Ciclo RGBK"
             }
@@ -429,7 +429,7 @@
         "state_attributes": {
           "effect": {
             "state": {
-              "nm": "Night Mode",
+              "nm": "Modo noche",
               "rgb": "Ciclo RGB",
               "rgbk": "Ciclo RGBK"
             }

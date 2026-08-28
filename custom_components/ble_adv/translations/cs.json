@@ -135,7 +135,7 @@
           "confirm_yes": "Ano!",
           "confirm_no_another": "Ne, zkusit jinou.",
           "confirm_no_abort": "Ne, přerušit.",
-          "open_issue": "No, Open Issue",
+          "open_issue": "Ne, nahlásit problém",
           "confirm_retry_last": "Zkusit stejnou.",
           "confirm_retry_all": "Začít od začátku.",
           "confirm_test_fan": "Zařízení bez světla, test s ventilátorem."
@@ -148,7 +148,7 @@
           "confirm_yes": "Ano!",
           "confirm_no_another": "Ne, zkusit jinou.",
           "confirm_no_abort": "Ne, přerušit.",
-          "open_issue": "No, Open Issue",
+          "open_issue": "Ne, nahlásit problém",
           "confirm_retry_last": "Zkusit stejnou.",
           "confirm_retry_all": "Začít od začátku."
         }
@@ -262,15 +262,15 @@
         "title": "Nastavení možností připojeného ovladače",
         "description": "Připojený ovladač:\n\n    Kodek: {codec}\n    ID: {id}\n    Index: {index}",
         "data": {
-          "paired": "Controlling the Device",
-          "tr_set": "Translator Set"
+          "paired": "Ovládá zařízení",
+          "tr_set": "Sada překladu"
         }
       },
       "config_technical": {
         "title": "Konfigurace technických možností",
         "description": "Každý příkaz se odešle do vybraných adaptérů 'Opakování' s daným 'Intervalem' (ms) a s minimálním časovým odstupem mezi dvěma příkazy ('Minimální trvání').\n\nUpravujte jen pokud víte, co děláte!\n\nPoužití více adaptérů se DŮRAZNĚ NEDOPORUČUJE, nebude poskytována žádná podpora.",
         "data": {
-          "tr_set": "Translator Set",
+          "tr_set": "Sada překladu",
           "adapter_ids": "BLE ADV adaptér(y)",
           "interval": "Interval",
           "repeats": "Opakování",
@@ -333,7 +333,7 @@
     },
     "effects": {
       "options": {
-        "nm": "Night Mode",
+        "nm": "Noční režim",
         "rgb": "RGB cyklus",
         "rgbk": "RGBK cyklus"
       }
@@ -346,22 +346,22 @@
     },
     "tr_set": {
       "options": {
-        "fl": "Flickering",
-        "no_nm": "No Night Mode",
-        "nm_as_effect": "Night Mode as Effect",
-        "nm_as_second_light": "Night Mode as Second Light"
+        "fl": "Blikání",
+        "no_nm": "Bez nočního režimu",
+        "nm_as_effect": "Noční režim jako efekt",
+        "nm_as_second_light": "Noční režim jako druhé světlo"
       }
     }
   },
   "entity": {
     "event": {
       "event": {
-        "name": "Encoded Command"
+        "name": "Zakódovaný příkaz"
       }
     },
     "switch": {
       "silent": {
-        "name": "No Command Mode"
+        "name": "Tichý režim"
       }
     },
     "fan": {
@@ -405,7 +405,7 @@
         "state_attributes": {
           "effect": {
             "state": {
-              "nm": "Night Mode",
+              "nm": "Noční režim",
               "rgb": "RGB cyklus",
               "rgbk": "RGBK cyklus"
             }
@@ -417,7 +417,7 @@
         "state_attributes": {
           "effect": {
             "state": {
-              "nm": "Night Mode",
+              "nm": "Noční režim",
               "rgb": "RGB cyklus",
               "rgbk": "RGBK cyklus"
             }
@@ -429,7 +429,7 @@
         "state_attributes": {
           "effect": {
             "state": {
-              "nm": "Night Mode",
+              "nm": "Noční režim",
               "rgb": "RGB cyklus",
               "rgbk": "RGBK cyklus"
             }

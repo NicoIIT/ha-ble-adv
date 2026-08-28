@@ -262,15 +262,15 @@
         "title": "配置已关联控制器选项",
         "description": "已关联控制器：\n\n    编解码器：{codec}\n    ID：{id}\n    索引：{index}",
         "data": {
-          "paired": "Controlling the Device",
-          "tr_set": "Translator Set"
+          "paired": "控制设备",
+          "tr_set": "转换器设置"
         }
       },
       "config_technical": {
         "title": "配置技术选项",
         "description": "每条命令会以指定的“间隔”（毫秒），向给定适配器广播“重复次数”次，并在两条不同命令之间遵守“最小时长”的延迟。\n\n只有在你清楚自己在做什么时才修改！\n\n强烈不建议使用多个适配器，也不会对此提供支持。",
         "data": {
-          "tr_set": "Translator Set",
+          "tr_set": "转换器设置",
           "adapter_ids": "BLE ADV 适配器",
           "interval": "间隔",
           "repeats": "重复次数",
@@ -291,7 +291,7 @@
       "wait_config": "请在 {max_seconds} 秒内，在控制该设备的手机 App 上按下任意按钮（最好是配对按钮）。",
       "agg_config": "正在聚合配置数据。",
       "test_light": "正在使用配置 {nb}/{tot} 让灯闪烁：\n\n    编解码器：{codec}\n    ID：{id}\n    索引：{index}",
-      "test_fan": "正在使用配置 {nb}/{tot} 让灯闪烁：\n\n    编解码器：{codec}\n    ID：{id}\n    索引：{index}",
+      "test_fan": "正在使用配置 {nb}/{tot} 启动 / 停止风扇：\n\n    编解码器：{codec}\n    ID：{id}\n    索引：{index}",
       "wait_config_remote": "请在 {max_seconds} 秒内，在控制器上按下任意按钮（最好是配对按钮）。"
     },
     "abort": {
@@ -333,7 +333,7 @@
     },
     "effects": {
       "options": {
-        "nm": "Night Mode",
+        "nm": "夜间模式",
         "rgb": "RGB 循环",
         "rgbk": "RGBK 循环"
       }
@@ -346,22 +346,22 @@
     },
     "tr_set": {
       "options": {
-        "fl": "Flickering",
-        "no_nm": "No Night Mode",
-        "nm_as_effect": "Night Mode as Effect",
-        "nm_as_second_light": "Night Mode as Second Light"
+        "fl": "闪烁",
+        "no_nm": "无夜间模式",
+        "nm_as_effect": "夜间模式作为效果",
+        "nm_as_second_light": "夜间模式作为第二盏灯"
       }
     }
   },
   "entity": {
     "event": {
       "event": {
-        "name": "Encoded Command"
+        "name": "已编码命令"
       }
     },
     "switch": {
       "silent": {
-        "name": "No Command Mode"
+        "name": "无命令模式"
       }
     },
     "fan": {
@@ -405,7 +405,7 @@
         "state_attributes": {
           "effect": {
             "state": {
-              "nm": "Night Mode",
+              "nm": "夜间模式",
               "rgb": "RGB 循环",
               "rgbk": "RGBK 循环"
             }
@@ -417,7 +417,7 @@
         "state_attributes": {
           "effect": {
             "state": {
-              "nm": "Night Mode",
+              "nm": "夜间模式",
               "rgb": "RGB 循环",
               "rgbk": "RGBK 循环"
             }
@@ -429,7 +429,7 @@
         "state_attributes": {
           "effect": {
             "state": {
-              "nm": "Night Mode",
+              "nm": "夜间模式",
               "rgb": "RGB 循环",
               "rgbk": "RGBK 循环"
             }
