@@ -2,7 +2,7 @@
 
 import pytest
 
-from . import _TestEncoderBase, _TestEncoderFull
+from . import _TestEncoderBase, _TestEncoderFull, _TestEncoderFullAll
 
 
 @pytest.mark.parametrize(
@@ -883,3 +883,50 @@ class TestEncoderZhimeiFanRemoteNoDirect(_TestEncoderFull):
 )
 class TestEncoderZhimeiFanRemote(_TestEncoderFull):
     """Zhi Mei Fan Encoder / Decoder Fan Remote tests."""
+
+
+@pytest.mark.parametrize(
+    _TestEncoderFullAll.PARAM_NAMES,
+    [
+        # MAIN LIGHT ON
+        (
+            "zhimei_fan_v1",
+            [],
+            "rev_on_off",
+            "02.01.19.1B.03.48.46.4B.4A.9E.27.A7.3A.8C.35.5F.ED.14.B1.CD.EA.F0.C8.01.7B.10.11.12.13.14.15",
+            "cmd: 0xA6, param: 0x00, args: [1,0,0]",
+            "id: 0x0000C002, index: 2, tx: 21, seed: 0x0068",
+            "light_0: ['on'] / {'on': True}",
+        ),
+        (
+            "zhimei_fan_v0",
+            [],
+            "rev_on_off",
+            "02.01.19.0B.03.55.02.15.02.C0.A6.01.00.00.D5",
+            "cmd: 0xA6, param: 0x00, args: [1,0,0]",
+            "id: 0x0000C002, index: 2, tx: 21, seed: 0x0000",
+            "light_0: ['on'] / {'on': True}",
+        ),
+        # MAIN LIGHT OFF
+        (
+            "zhimei_fan_v1",
+            [],
+            "rev_on_off",
+            "02.01.19.1B.03.48.46.4B.4A.7B.8F.C5.5D.AF.58.82.C8.37.DE.6D.BA.B9.83.38.6B.10.11.12.13.14.15",
+            "cmd: 0xA6, param: 0x00, args: [2,0,0]",
+            "id: 0x0000C002, index: 2, tx: 22, seed: 0x00E5",
+            "light_0: ['on'] / {'on': False}",
+        ),
+        (
+            "zhimei_fan_v0",
+            [],
+            "rev_on_off",
+            "02.01.19.0B.03.55.02.16.02.C0.A6.02.00.00.D7",
+            "cmd: 0xA6, param: 0x00, args: [2,0,0]",
+            "id: 0x0000C002, index: 2, tx: 22, seed: 0x0000",
+            "light_0: ['on'] / {'on': False}",
+        ),
+    ],
+)
+class TestEncoderZhimeiSets(_TestEncoderFullAll):
+    """Zhimei Encoder / Decoder Full ALL tests."""

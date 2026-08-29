@@ -358,6 +358,7 @@
     "tr_set": {
       "options": {
         "default": "Predvolené",
+        "rev_on_off": "Obrátiť ZAP/VYP",
         "fl": "Blikanie",
         "no_nm": "Bez nočného režimu",
         "nm_as_effect": "Nočný režim ako efekt",

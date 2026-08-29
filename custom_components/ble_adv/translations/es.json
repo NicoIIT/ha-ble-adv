@@ -358,6 +358,7 @@
     "tr_set": {
       "options": {
         "default": "Por defecto",
+        "rev_on_off": "Invertir ENCENDIDO/APAGADO",
         "fl": "Parpadeante",
         "no_nm": "Sin modo noche",
         "nm_as_effect": "Modo noche como efecto",

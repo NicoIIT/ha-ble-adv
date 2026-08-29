@@ -417,6 +417,17 @@ class TranslatorSet(list[Trans]):
         self.extend([copy.copy(trans).no_direct() for trans in translators if trans.reverse])
         return self
 
+    def replace(self, trans: Trans) -> Self:
+        """Replace any translator with a matching enc command by the given one."""
+        self.delete(trans.enc.create())
+        self.append(trans)
+        return self
+
+    def delete(self, enc_cmd: BleAdvEncCmd) -> Self:
+        """Delete any translator with a matching enc command."""
+        self[:] = [tr for tr in self if not tr.enc.matches(enc_cmd)]
+        return self
+
 
 class BleAdvCodec(ABC):
     """Class representing a base encoder / decoder."""

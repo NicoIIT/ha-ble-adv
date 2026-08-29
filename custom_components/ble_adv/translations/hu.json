@@ -358,6 +358,7 @@
     "tr_set": {
       "options": {
         "default": "Alapértelmezett",
+        "rev_on_off": "BE/KI fordítása",
         "fl": "Villogás",
         "no_nm": "Nincs éjszakai mód",
         "nm_as_effect": "Éjszakai mód effektként",
