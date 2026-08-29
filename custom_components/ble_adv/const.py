@@ -10,7 +10,7 @@ SILENT_SWITCH_TYPE = "silent"
 
 CONF_COORDINATOR_ID = "coordinator_unique_id"
 
-CONF_LAST_VERSION = 8
+CONF_LAST_VERSION = 9
 
 CONF_IGN_ADAPTERS = "ignored_adapters"
 CONF_IGN_DURATION = "ignored_duration"
@@ -50,6 +50,7 @@ CONF_REVERSED = "reversed"
 CONF_LIGHTS = "lights"
 CONF_FANS = "fans"
 CONF_REMOTE = "remote"
+CONF_REMOTES = "remotes"
 CONF_PAIRED = "paired"
 CONF_MAX_ENTITY_NB = 3  # The max nb of entity that the config can handle in translations json files
 

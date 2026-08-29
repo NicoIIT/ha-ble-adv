@@ -165,7 +165,7 @@
         "description": "Konfigurace zařízení, fyzického ovladače a technických parametrů.\nTyto parametry je možné později změnit přes možnost 'Rekonfigurovat'.",
         "menu_options": {
           "config_entities": "Konfigurovat světla / ventilátory",
-          "config_remote": "Přidat další ovladač (fyzický ovladač, ..)",
+          "config_remotes": "Přidat další ovladač (fyzický ovladač, ..)",
           "config_technical": "Technické parametry",
           "finalize": "Dokončit"
         }
@@ -245,13 +245,19 @@
           }
         }
       },
+      "config_remotes": {
+        "title": "Vyberte propojený ovladač",
+        "description": "Vyberte propojený ovladač",
+        "data": {
+          "remote": "Propojený ovladač"
+        }
+      },
       "config_remote": {
-        "title": "Nastavit fyzický ovladač",
+        "title": "Konfigurovat propojený ovladač",
         "description": "Připojený ovladač:\n\n    Kodek: {codec}\n    ID: {id}\n    Index: {index}",
         "menu_options": {
           "config_remote_delete": "Odstranit připojený ovladač",
           "config_remote_update": "Upravit možnosti ovladače",
-          "wait_config_remote": "Nahradit připojený ovladač",
           "configure": "Zpět"
         }
       },
@@ -325,6 +331,11 @@
         "none": "Žádné"
       }
     },
+    "remote": {
+      "options": {
+        "new": "Nový propojený ovladač"
+      }
+    },
     "forced_cmds": {
       "options": {
         "turn_on": "Zapnout",
@@ -346,6 +357,7 @@
     },
     "tr_set": {
       "options": {
+        "default": "Výchozí",
         "fl": "Blikání",
         "no_nm": "Bez nočního režimu",
         "nm_as_effect": "Noční režim jako efekt",

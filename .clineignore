@@ -1,0 +1,42 @@
+# Version control
+.git/
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Python caching and compiler output
+**/__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Coverage and testing reports
+.coverage
+coverage.xml
+htmlcov/
+
+# Build and packaging
+build/
+dist/
+*.egg-info/
+
+# VS Code / IDE settings
+.vscode/
+.idea/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Home Assistant configuration secrets and runtime state
+config/.storage/
+config/*.db
+config/*.db-shm
+config/*.db-wal
+config/*.log
+config/secrets.yaml

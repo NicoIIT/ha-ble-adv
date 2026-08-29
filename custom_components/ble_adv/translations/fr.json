@@ -165,7 +165,7 @@
         "description": "Configuration des Entités, Télécommandes et paramètres techniques.\nCes informations peuvent être modifiées a posteriori en utilisant la 'Reconfiguration'.",
         "menu_options": {
           "config_entities": "Configurer les lampes / ventilateurs",
-          "config_remote": "Configurer une autre controlleur (Télécommande, ..)",
+          "config_remotes": "Configurer un autre controlleur (Télécommande, ..)",
           "config_technical": "Paramètres Technique",
           "finalize": "Finaliser"
         }
@@ -245,13 +245,19 @@
           }
         }
       },
+      "config_remotes": {
+        "title": "Sélectionner la télécommande liée",
+        "description": "Sélectionner la télécommande liée",
+        "data": {
+          "remote": "Télécommande liée"
+        }
+      },
       "config_remote": {
-        "title": "Configurer une Télécommande",
+        "title": "Configurer la télécommande liée",
         "description": "Télécommande associée:\n\n    Codec: {codec}\n    Id: {id}\n    Index: {index}",
         "menu_options": {
           "config_remote_delete": "Dissocier la Télécommande",
           "config_remote_update": "Modifier les Options",
-          "wait_config_remote": "Changer la Télécommande",
           "configure": "Retour"
         }
       },
@@ -325,6 +331,11 @@
         "none": "Aucun"
       }
     },
+    "remote": {
+      "options": {
+        "new": "Nouvelle télécommande liée"
+      }
+    },
     "forced_cmds": {
       "options": {
         "turn_on": "Allumer",
@@ -346,6 +357,7 @@
     },
     "tr_set": {
       "options": {
+        "default": "Par défaut",
         "fl": "Clignotement",
         "no_nm": "Pas de mode Nuit",
         "nm_as_effect": "Mode Nuit comme Effet",
