@@ -165,7 +165,7 @@
         "description": "Configuring Entities, Physical Remote and Technical Parameters.\nThose parameters can be modified afterwards using the 'Reconfigure' path.",
         "menu_options": {
           "config_entities": "Configure Lights / Fans",
-          "config_remote": "Configure another controller (Physical Remote, ..)",
+          "config_remotes": "Configure another controller (Physical Remote, ..)",
           "config_technical": "Technical Parameters",
           "finalize": "Finalize"
         }
@@ -245,13 +245,19 @@
           }
         }
       },
+      "config_remotes": {
+        "title": "Select Linked Controller",
+        "description": "Select the linked controller",
+        "data": {
+          "remote": "Linked Controller"
+        }
+      },
       "config_remote": {
-        "title": "Configure Physical Remote",
+        "title": "Configure Linked Controller",
         "description": "Linked Controller:\n\n    Codec: {codec}\n    Id: {id}\n    Index: {index}",
         "menu_options": {
           "config_remote_delete": "Delete the linked controller",
           "config_remote_update": "Modify the linked controller Options",
-          "wait_config_remote": "Replace the linked controller",
           "configure": "Back"
         }
       },
@@ -325,6 +331,11 @@
         "none": "None"
       }
     },
+    "remote": {
+      "options": {
+        "new": "New Linked Controller"
+      }
+    },
     "forced_cmds": {
       "options": {
         "turn_on": "Turn ON",
@@ -346,6 +357,7 @@
     },
     "tr_set": {
       "options": {
+        "default": "Default",
         "fl": "Flickering",
         "no_nm": "No Night Mode",
         "nm_as_effect": "Night Mode as Effect",

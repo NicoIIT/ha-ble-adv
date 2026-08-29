@@ -22,6 +22,7 @@ from ble_adv.const import (
     CONF_REFRESH_ON_START,
     CONF_REFRESH_OSC_ON_START,
     CONF_REMOTE,
+    CONF_REMOTES,
     CONF_REPEAT,
     CONF_REPEATS,
     CONF_TECHNICAL,
@@ -75,6 +76,7 @@ BASE_CONF = {
     CONF_TECHNICAL: {CONF_REPEATS: 3, CONF_ADAPTER_IDS: ["adapter_id"], **BASE_TECH_CONF},
     CONF_FANS: [{}, {}, {}],
     CONF_LIGHTS: [{}, {}, {}],
+    CONF_REMOTES: [],
 }
 
 BASE_CONF_W_REMOTE = {**BASE_CONF, CONF_REMOTE: BASE_REMOTE_CONF}

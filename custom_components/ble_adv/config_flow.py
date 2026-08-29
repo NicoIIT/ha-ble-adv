@@ -70,6 +70,7 @@ from .const import (
     CONF_REFRESH_ON_START,
     CONF_REFRESH_OSC_ON_START,
     CONF_REMOTE,
+    CONF_REMOTES,
     CONF_REPEAT,
     CONF_REPEATS,
     CONF_REVERSED,
@@ -361,6 +362,7 @@ class BleAdvConfigFlow(ConfigFlow, domain=DOMAIN):
     def __init__(self) -> None:
         """Initialize the config flow."""
         self._confs: BleAdvConfigHandler = BleAdvConfigHandler()
+        self._remote_index: int = 0
         self._progress: BleAdvProgressFlowBase | None = None
         self._test_with_fan = False
 
@@ -380,7 +382,7 @@ class BleAdvConfigFlow(ConfigFlow, domain=DOMAIN):
         return {**await self.coordinator.full_diagnostic_dump(), "flow": self._diags}
 
     def _remote_conf_placeholders(self) -> dict[str, str]:
-        conf = self._data[CONF_REMOTE]
+        conf = self._data[CONF_REMOTES][self._remote_index]
         codec_name = codec_from_dyn(conf[CONF_CODEC_ID], conf.get(CONF_PARAMS, []))
         return {"codec": codec_name, "id": f"0x{conf[CONF_FORCED_ID]:X}", "index": str(conf[CONF_INDEX])}
 
@@ -681,6 +683,7 @@ class BleAdvConfigFlow(ConfigFlow, domain=DOMAIN):
             CONF_DEVICE: {CONF_CODEC_ID: conf.codec_id, CONF_FORCED_ID: conf.id, CONF_INDEX: conf.index, CONF_PARAMS: conf.codec_params},
             CONF_LIGHTS: [{}] * CONF_MAX_ENTITY_NB,
             CONF_FANS: [{}] * CONF_MAX_ENTITY_NB,
+            CONF_REMOTES: [],
             CONF_TECHNICAL: {
                 CONF_ADAPTER_IDS: [self._confs.selected_adapter()],
                 CONF_DURATION: codec.duration,
@@ -716,7 +719,7 @@ class BleAdvConfigFlow(ConfigFlow, domain=DOMAIN):
 
     async def async_step_configure(self, _: dict[str, Any] | None = None) -> ConfigFlowResult:
         """Configure choice Step."""
-        opts = ["config_entities", "config_remote", "config_technical", "finalize"]
+        opts = ["config_entities", "config_remotes", "config_technical", "finalize"]
         return self.async_show_menu(step_id="configure", menu_options=opts)
 
     def _has_one_entity(self) -> bool:
@@ -795,20 +798,36 @@ class BleAdvConfigFlow(ConfigFlow, domain=DOMAIN):
 
         return self.async_show_form(step_id="config_entities", data_schema=data_schema, errors=errors)
 
-    async def async_step_config_remote(self, _: dict[str, Any] | None = None) -> ConfigFlowResult:
-        """Configure Remote."""
+    async def async_step_config_remotes(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
+        """Configure Remotes: launch add of new remote if no one existing, else select existing / new remote."""
         self._progress = None
-        if CONF_REMOTE in self._data and CONF_CODEC_ID in self._data[CONF_REMOTE]:
-            return self.async_show_menu(
-                step_id="config_remote",
-                menu_options=["config_remote_delete", "config_remote_update", "wait_config_remote", "configure"],
-                description_placeholders=self._remote_conf_placeholders(),
-            )
-        return await self.async_step_wait_config_remote()
+        self._remote_index = 0
+        if not self._data[CONF_REMOTES]:
+            return await self.async_step_wait_config_remote()
+
+        avail_remotes = {rc.get(CONF_NAME): i for i, rc in enumerate(self._data[CONF_REMOTES])}
+        rems = [*avail_remotes.keys(), "new"]
+
+        if user_input is not None:
+            if user_input[CONF_REMOTE] == "new":
+                return await self.async_step_wait_config_remote()
+            self._remote_index = avail_remotes[user_input[CONF_REMOTE]]
+            return await self.async_step_config_remote()
+
+        data_schema = vol.Schema({vol.Required(CONF_REMOTE, default=rems[0]): self._get_selector(CONF_REMOTE, rems)})
+        return self.async_show_form(step_id="config_remotes", data_schema=data_schema)
+
+    async def async_step_config_remote(self, _: dict[str, Any] | None = None) -> ConfigFlowResult:
+        """Configure existing Remote."""
+        return self.async_show_menu(
+            step_id="config_remote",
+            menu_options=["config_remote_delete", "config_remote_update", "configure"],
+            description_placeholders=self._remote_conf_placeholders(),
+        )
 
     async def async_step_config_remote_delete(self, _: dict[str, Any] | None = None) -> ConfigFlowResult:
         """Remove Remote."""
-        self._data[CONF_REMOTE] = {}
+        del self._data[CONF_REMOTES][self._remote_index]
         return await self.async_step_configure()
 
     async def async_step_wait_config_remote(self, _: dict[str, Any] | None = None) -> ConfigFlowResult:
@@ -822,26 +841,39 @@ class BleAdvConfigFlow(ConfigFlow, domain=DOMAIN):
         if self._confs.is_empty():
             return self.async_show_progress_done(next_step_id="configure")
         config = self._confs.selected()  # get the first found adapter/config
-        self._data[CONF_REMOTE] = {CONF_CODEC_ID: config.codec_id, CONF_FORCED_ID: config.id, CONF_INDEX: config.index}
+        self._data[CONF_REMOTES].append(
+            {
+                CONF_CODEC_ID: config.codec_id,
+                CONF_FORCED_ID: config.id,
+                CONF_INDEX: config.index,
+                CONF_PARAMS: config.codec_params,
+                CONF_PAIRED: True,
+                CONF_TRANS_SET: BleAdvCodec.DEF_TRANS_NAME,
+                CONF_NAME: f"{config.codec_id}##0x{config.id:X}##{config.index:d}",
+            }
+        )
         return self.async_show_progress_done(next_step_id="config_remote_update")
 
     async def async_step_config_remote_update(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         """Update Remote Options."""
+        data_rem = self._data[CONF_REMOTES][self._remote_index]
         if user_input is not None:
-            self._data[CONF_REMOTE][CONF_TRANS_SET] = user_input[CONF_TRANS_SET]
+            data_rem[CONF_TRANS_SET] = user_input[CONF_TRANS_SET]
+            data_rem[CONF_PAIRED] = user_input[CONF_PAIRED]
+            data_rem[CONF_NAME] = user_input[CONF_NAME]
             return await self.async_step_configure()
 
-        codec: BleAdvCodec = self.coordinator.codecs[self._data[CONF_REMOTE][CONF_CODEC_ID]]
+        codec: BleAdvCodec = self.coordinator.codecs[data_rem[CONF_CODEC_ID]]
         avail_tr_set = list(codec.get_translator_sets().keys())
-        def_tr_set = self._data[CONF_REMOTE].get(CONF_TRANS_SET, BleAdvCodec.DEF_TRANS_NAME)
-        def_paired = self._data[CONF_REMOTE].get(CONF_PAIRED, True)
+        def_tr_set = data_rem[CONF_TRANS_SET] if data_rem[CONF_TRANS_SET] in avail_tr_set else BleAdvCodec.DEF_TRANS_NAME
 
         return self.async_show_form(
             step_id="config_remote_update",
             data_schema=vol.Schema(
                 {
-                    vol.Required(CONF_TRANS_SET, default=def_tr_set): self._get_selector("", avail_tr_set),
-                    vol.Required(CONF_PAIRED, default=def_paired): bool,
+                    vol.Required(CONF_NAME, default=data_rem[CONF_NAME]): str,
+                    vol.Required(CONF_TRANS_SET, default=def_tr_set): self._get_selector(CONF_TRANS_SET, avail_tr_set),
+                    vol.Required(CONF_PAIRED, default=data_rem[CONF_PAIRED]): bool,
                 }
             ),
             description_placeholders=self._remote_conf_placeholders(),
@@ -868,7 +900,7 @@ class BleAdvConfigFlow(ConfigFlow, domain=DOMAIN):
         data_schema = vol.Schema(
             {
                 vol.Required(CONF_ADAPTER_IDS, default=def_adapters): self._get_multi_selector(CONF_ADAPTER_IDS, avail_adapters),
-                vol.Required(CONF_TRANS_SET, default=def_tr_set): self._get_selector("", avail_tr_set),
+                vol.Required(CONF_TRANS_SET, default=def_tr_set): self._get_selector(CONF_TRANS_SET, avail_tr_set),
                 vol.Optional(CONF_DURATION, default=def_tech[CONF_DURATION]): selector.NumberSelector(
                     selector.NumberSelectorConfig(step=50, min=100, max=2000, mode=selector.NumberSelectorMode.SLIDER)
                 ),

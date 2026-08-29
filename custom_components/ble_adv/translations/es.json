@@ -165,7 +165,7 @@
         "description": "Configurando entidades, mando físico y parámetros técnicos.\nEstos parámetros se pueden modificar más adelante mediante la opción 'Reconfigurar'.",
         "menu_options": {
           "config_entities": "Configurar Luces / Ventiladores",
-          "config_remote": "Configurar otro controlador (Mando físico, ...)",
+          "config_remotes": "Configurar otro controlador (Mando físico, ...)",
           "config_technical": "Parámetros técnicos",
           "finalize": "Finalizar"
         }
@@ -245,13 +245,19 @@
           }
         }
       },
+      "config_remotes": {
+        "title": "Seleccionar controlador vinculado",
+        "description": "Selecciona el controlador vinculado",
+        "data": {
+          "remote": "Controlador vinculado"
+        }
+      },
       "config_remote": {
-        "title": "Configurar mando físico",
+        "title": "Configurar controlador vinculado",
         "description": "Controlador vinculado:\n\n    Códec: {codec}\n    ID: {id}\n    Índice: {index}",
         "menu_options": {
           "config_remote_delete": "Eliminar el controlador vinculado",
           "config_remote_update": "Modificar las opciones del controlador vinculado",
-          "wait_config_remote": "Reemplazar el controlador vinculado",
           "configure": "Volver"
         }
       },
@@ -325,6 +331,11 @@
         "none": "Ninguno"
       }
     },
+    "remote": {
+      "options": {
+        "new": "Nuevo controlador vinculado"
+      }
+    },
     "forced_cmds": {
       "options": {
         "turn_on": "Encender",
@@ -346,6 +357,7 @@
     },
     "tr_set": {
       "options": {
+        "default": "Por defecto",
         "fl": "Parpadeante",
         "no_nm": "Sin modo noche",
         "nm_as_effect": "Modo noche como efecto",

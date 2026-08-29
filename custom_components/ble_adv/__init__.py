@@ -12,7 +12,7 @@ from homeassistant.helpers.singleton import singleton
 from homeassistant.helpers.typing import ConfigType
 
 from .codecs import dyn_codec_params, get_codecs
-from .codecs.models import BleAdvConfig
+from .codecs.models import BleAdvCodec, BleAdvConfig
 from .const import (
     CONF_ADAPTER_ID,
     CONF_ADAPTER_IDS,
@@ -42,6 +42,7 @@ from .const import (
     CONF_REFRESH_ON_START,
     CONF_REFRESH_OSC_ON_START,
     CONF_REMOTE,
+    CONF_REMOTES,
     CONF_REPEAT,
     CONF_REPEATS,
     CONF_TECHNICAL,
@@ -166,6 +167,17 @@ async def async_migrate_entry(hass: HomeAssistant, config_entry: ConfigEntry) ->
         new_data[CONF_DEVICE][CONF_CODEC_ID] = "zhijia_v2"
         new_data[CONF_TECHNICAL][CONF_TRANS_SET] = "fl"
         update_needed = True
+    if CONF_REMOTES not in new_data:
+        new_data[CONF_REMOTES] = []
+        if exist_rem := new_data.get(CONF_REMOTE):
+            if CONF_NAME not in exist_rem:
+                exist_rem[CONF_NAME] = f"{exist_rem.get(CONF_CODEC_ID)}##0x{exist_rem.get(CONF_FORCED_ID):X}##{exist_rem.get(CONF_INDEX):d}"
+            if CONF_PAIRED not in exist_rem:
+                exist_rem[CONF_PAIRED] = True
+            if CONF_TRANS_SET not in exist_rem:
+                exist_rem[CONF_TRANS_SET] = BleAdvCodec.DEF_TRANS_NAME
+            new_data[CONF_REMOTES] = [exist_rem]
+        update_needed = True
 
     if config_entry.version < 2:
         coordinator = await get_coordinator(hass)
@@ -209,8 +221,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         BleAdvConfig(device_conf[CONF_FORCED_ID], device_conf[CONF_INDEX], device_conf.get(CONF_PARAMS), tech_conf.get(CONF_TRANS_SET)),
         coordinator,
     )
-    if CONF_REMOTE in entry.data and CONF_CODEC_ID in entry.data[CONF_REMOTE]:
-        rconf = entry.data[CONF_REMOTE]
+    for rconf in entry.data[CONF_REMOTES]:
         device.add_listener(
             rconf[CONF_CODEC_ID],
             BleAdvConfig(rconf[CONF_FORCED_ID], rconf[CONF_INDEX], rconf.get(CONF_PARAMS), rconf.get(CONF_TRANS_SET)),

@@ -165,7 +165,7 @@
         "description": "Entitások, fizikai távirányító és technikai paraméterek konfigurálása.\nEzeket a paramétereket később módosíthatja az 'Újrakonfigurálás' útvonalon.",
         "menu_options": {
           "config_entities": "Lámpák / ventilátorok konfigurálása",
-          "config_remote": "További vezérlő konfigurálása (fizikai távirányító, ..)",
+          "config_remotes": "További vezérlő konfigurálása (fizikai távirányító, ..)",
           "config_technical": "Technikai paraméterek",
           "finalize": "Befejezés"
         }
@@ -245,13 +245,19 @@
           }
         }
       },
+      "config_remotes": {
+        "title": "Kapcsolt vezérlő kiválasztása",
+        "description": "Válassza ki a kapcsolt vezérlőt",
+        "data": {
+          "remote": "Kapcsolt vezérlő"
+        }
+      },
       "config_remote": {
-        "title": "Fizikai távirányító konfigurálása",
+        "title": "Kapcsolt vezérlő konfigurálása",
         "description": "Kapcsolt vezérlő:\n\n    Kodek: {codec}\n    Azonosító: {id}\n    Index: {index}",
         "menu_options": {
           "config_remote_delete": "Kapcsolt vezérlő törlése",
           "config_remote_update": "Kapcsolt vezérlő beállításainak módosítása",
-          "wait_config_remote": "Kapcsolt vezérlő cseréje",
           "configure": "Vissza"
         }
       },
@@ -325,6 +331,11 @@
         "none": "Nincs"
       }
     },
+    "remote": {
+      "options": {
+        "new": "Új kapcsolt vezérlő"
+      }
+    },
     "forced_cmds": {
       "options": {
         "turn_on": "Bekapcsolás",
@@ -346,6 +357,7 @@
     },
     "tr_set": {
       "options": {
+        "default": "Alapértelmezett",
         "fl": "Villogás",
         "no_nm": "Nincs éjszakai mód",
         "nm_as_effect": "Éjszakai mód effektként",
