@@ -254,7 +254,7 @@
       },
       "config_remote": {
         "title": "Konfigurovať prepojený ovládač",
-        "description": "Pripojený ovládač:\n\n    Kodek: {codec}\n    ID: {id}\n    Index: {index}",
+        "description": "Pripojený ovládač:\n\n    Názov: {name}\n\n    Kodek: {codec}\n    ID: {id}\n    Index: {index}",
         "menu_options": {
           "config_remote_delete": "Odstrániť pripojený ovládač",
           "config_remote_update": "Upraviť možnosti ovládača",
@@ -268,6 +268,7 @@
         "title": "Nastavenie možností pripojeného ovládača",
         "description": "Pripojený ovládač:\n\n    Kodek: {codec}\n    ID: {id}\n    Index: {index}",
         "data": {
+          "name": "Názov",
           "paired": "Ovláda zariadenie",
           "tr_set": "Sada prekladu"
         }

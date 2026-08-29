@@ -254,7 +254,7 @@
       },
       "config_remote": {
         "title": "Configure Linked Controller",
-        "description": "Linked Controller:\n\n    Codec: {codec}\n    Id: {id}\n    Index: {index}",
+        "description": "Linked Controller:\n\n    Name: {name}\n\n    Codec: {codec}\n    Id: {id}\n    Index: {index}",
         "menu_options": {
           "config_remote_delete": "Delete the linked controller",
           "config_remote_update": "Modify the linked controller Options",
@@ -268,6 +268,7 @@
         "title": "Configure Linked Controller Options",
         "description": "Linked Controller:\n\n    Codec: {codec}\n    Id: {id}\n    Index: {index}",
         "data": {
+          "name": "Name",
           "paired": "Controlling the Device",
           "tr_set": "Translator Set"
         }
