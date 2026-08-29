@@ -254,7 +254,7 @@
       },
       "config_remote": {
         "title": "Kapcsolt vezérlő konfigurálása",
-        "description": "Kapcsolt vezérlő:\n\n    Kodek: {codec}\n    Azonosító: {id}\n    Index: {index}",
+        "description": "Kapcsolt vezérlő:\n\n    Név: {name}\n\n    Kodek: {codec}\n    Azonosító: {id}\n    Index: {index}",
         "menu_options": {
           "config_remote_delete": "Kapcsolt vezérlő törlése",
           "config_remote_update": "Kapcsolt vezérlő beállításainak módosítása",
@@ -268,6 +268,7 @@
         "title": "Kapcsolt vezérlő beállításainak konfigurálása",
         "description": "Kapcsolt vezérlő:\n\n    Kodek: {codec}\n    Azonosító: {id}\n    Index: {index}",
         "data": {
+          "name": "Név",
           "paired": "Eszköz vezérlése",
           "tr_set": "Fordítókészlet"
         }

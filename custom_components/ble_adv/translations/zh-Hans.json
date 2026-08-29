@@ -254,7 +254,7 @@
       },
       "config_remote": {
         "title": "配置已连接的控制器",
-        "description": "已关联控制器：\n\n    编解码器：{codec}\n    ID：{id}\n    索引：{index}",
+        "description": "已关联控制器：\n\n    名称：{name}\n\n    编解码器：{codec}\n    ID：{id}\n    索引：{index}",
         "menu_options": {
           "config_remote_delete": "删除已关联的控制器",
           "config_remote_update": "修改已关联控制器的选项",
@@ -268,6 +268,7 @@
         "title": "配置已关联控制器选项",
         "description": "已关联控制器：\n\n    编解码器：{codec}\n    ID：{id}\n    索引：{index}",
         "data": {
+          "name": "名称",
           "paired": "控制设备",
           "tr_set": "转换器设置"
         }

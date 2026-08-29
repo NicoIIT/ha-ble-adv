@@ -254,7 +254,7 @@
       },
       "config_remote": {
         "title": "Configurer la télécommande liée",
-        "description": "Télécommande associée:\n\n    Codec: {codec}\n    Id: {id}\n    Index: {index}",
+        "description": "Télécommande associée:\n\n    Nom: {name}\n\n    Codec: {codec}\n    Id: {id}\n    Index: {index}",
         "menu_options": {
           "config_remote_delete": "Dissocier la Télécommande",
           "config_remote_update": "Modifier les Options",
@@ -268,6 +268,7 @@
         "title": "Configuration des Options de Télécommande",
         "description": "Télécommande associée:\n\n    Codec: {codec}\n    Id: {id}\n    Index: {index}",
         "data": {
+          "name": "Nom",
           "paired": "Contrôle l'appareil",
           "tr_set": "Jeu de traducteurs"
         }

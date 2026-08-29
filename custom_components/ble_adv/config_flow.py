@@ -384,7 +384,7 @@ class BleAdvConfigFlow(ConfigFlow, domain=DOMAIN):
     def _remote_conf_placeholders(self) -> dict[str, str]:
         conf = self._data[CONF_REMOTES][self._remote_index]
         codec_name = codec_from_dyn(conf[CONF_CODEC_ID], conf.get(CONF_PARAMS, []))
-        return {"codec": codec_name, "id": f"0x{conf[CONF_FORCED_ID]:X}", "index": str(conf[CONF_INDEX])}
+        return {"name": conf[CONF_NAME], "codec": codec_name, "id": f"0x{conf[CONF_FORCED_ID]:X}", "index": str(conf[CONF_INDEX])}
 
     def _get_device(self, name: str, adapter_id: str, config: _CodecConfig, duration: int | None = None) -> BleAdvBaseDevice:
         codec: BleAdvCodec = self.coordinator.codecs[config.codec_id]

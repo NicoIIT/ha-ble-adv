@@ -254,7 +254,7 @@
       },
       "config_remote": {
         "title": "Configurar controlador vinculado",
-        "description": "Controlador vinculado:\n\n    Códec: {codec}\n    ID: {id}\n    Índice: {index}",
+        "description": "Controlador vinculado:\n\n    Nombre: {name}\n\n    Códec: {codec}\n    ID: {id}\n    Índice: {index}",
         "menu_options": {
           "config_remote_delete": "Eliminar el controlador vinculado",
           "config_remote_update": "Modificar las opciones del controlador vinculado",
@@ -268,6 +268,7 @@
         "title": "Configure options del controlador vinculado",
         "description": "Controlador vinculado:\n\n    Códec: {codec}\n    ID: {id}\n    Índice: {index}",
         "data": {
+          "name": "Nombre",
           "paired": "Controlando el dispositivo",
           "tr_set": "Conjunto de traductores"
         }
