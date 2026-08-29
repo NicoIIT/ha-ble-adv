@@ -358,6 +358,7 @@
     "tr_set": {
       "options": {
         "default": "默认",
+        "rev_on_off": "反转开关",
         "fl": "闪烁",
         "no_nm": "无夜间模式",
         "nm_as_effect": "夜间模式作为效果",

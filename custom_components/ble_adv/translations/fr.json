@@ -358,6 +358,7 @@
     "tr_set": {
       "options": {
         "default": "Par défaut",
+        "rev_on_off": "Inverser ON/OFF",
         "fl": "Clignotement",
         "no_nm": "Pas de mode Nuit",
         "nm_as_effect": "Mode Nuit comme Effet",
