@@ -143,7 +143,11 @@ async def create_base_entry(hass: HomeAssistant, entry_id: str | None, data: dic
     )
     await hass.config_entries.async_add(entry=conf)
     if entry_id is not None:
-        hass.data.setdefault(DOMAIN, {})[conf.entry_id] = _Device()
+        device = _Device()
+        dev_entry = dr.async_get(hass).async_get_or_create(config_entry_id=conf.entry_id, identifiers={(DOMAIN, device.unique_id)})
+        device.device_id = dev_entry.id
+        hass.data.setdefault(DOMAIN, {})[conf.entry_id] = device
+
     return conf
 
 

@@ -483,5 +483,11 @@
         }
       }
     }
+  },
+  "device_automation": {
+    "trigger_type": {
+      "any_entity_state": "Состояние одной сущности изменилось",
+      "enc_cmd": "Команда получена"
+    }
   }
 }

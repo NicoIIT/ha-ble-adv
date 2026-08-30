@@ -483,5 +483,11 @@
         }
       }
     }
+  },
+  "device_automation": {
+    "trigger_type": {
+      "any_entity_state": "El estado de una entidad ha cambiado",
+      "enc_cmd": "Comando recibido"
+    }
   }
 }
