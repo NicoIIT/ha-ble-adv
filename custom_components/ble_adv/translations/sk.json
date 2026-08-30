@@ -483,5 +483,11 @@
         }
       }
     }
+  },
+  "device_automation": {
+    "trigger_type": {
+      "any_entity_state": "Stav jednej entity sa zmenil",
+      "enc_cmd": "Príkaz prijatý"
+    }
   }
 }

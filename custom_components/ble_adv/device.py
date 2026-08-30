@@ -30,7 +30,7 @@ from .codecs.const import (
     DEVICE_TYPE,
 )
 from .codecs.models import BleAdvConfig, BleAdvEncCmd, BleAdvEntAttr
-from .const import CONF_FORCED_OFF, CONF_FORCED_ON, DOMAIN, EVENT_TYPE
+from .const import CONF_FORCED_OFF, CONF_FORCED_ON, DOMAIN, EVENT_TYPE, TRIGGER_TYPE_EVENT_ENC_CMD
 from .coordinator import BleAdvBaseDevice, BleAdvCoordinator
 
 _LOGGER = logging.getLogger(__name__)
@@ -71,7 +71,7 @@ class BleAdvEvent(BleAdvDeviceEntity, EventEntity):
     """Base Event Entity."""
 
     _attr_device_class = EventDeviceClass.BUTTON
-    _attr_event_types = ["enc_cmd"]
+    _attr_event_types = [TRIGGER_TYPE_EVENT_ENC_CMD]
 
     def __init__(self, device: BleAdvDevice) -> None:
         super().__init__(EVENT_TYPE, device)
@@ -79,7 +79,7 @@ class BleAdvEvent(BleAdvDeviceEntity, EventEntity):
 
     async def trigger_enc_cmd(self, enc_cmd: BleAdvEncCmd) -> None:
         """Trigger Event when a BleAdvEncCmd is listened."""
-        self._trigger_event("enc_cmd", asdict(enc_cmd))
+        self._trigger_event(TRIGGER_TYPE_EVENT_ENC_CMD, asdict(enc_cmd))
         self.async_write_ha_state()
 
 
@@ -266,6 +266,16 @@ class BleAdvDevice(BleAdvBaseDevice):
             model=self.codec_name,
             model_id=f"0x{self.config.id:X} / {self.config.index}",
         )
+
+    @property
+    def entity_ids(self) -> list[str]:
+        """Get the entity ids."""
+        return [x.entity_id for x in self._entities]
+
+    @property
+    def event_entity_id(self) -> str:
+        """Get the event entity id."""
+        return self._event_entity.entity_id if self._event_entity is not None else ""
 
     def update_availability(self) -> None:
         """Update availability."""

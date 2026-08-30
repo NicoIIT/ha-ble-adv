@@ -483,5 +483,11 @@
         }
       }
     }
+  },
+  "device_automation": {
+    "trigger_type": {
+      "any_entity_state": "某个实体的状态已改变",
+      "enc_cmd": "收到命令"
+    }
   }
 }

@@ -483,5 +483,11 @@
         }
       }
     }
+  },
+  "device_automation": {
+    "trigger_type": {
+      "any_entity_state": "Egy entitás állapota megváltozott",
+      "enc_cmd": "Parancs érkezett"
+    }
   }
 }

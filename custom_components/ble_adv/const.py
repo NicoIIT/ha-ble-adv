@@ -104,3 +104,6 @@ CONF_APPLE_INC_UUIDS = [
     0xFE25,
     0xFD6F,
 ]
+
+TRIGGER_TYPE_EVENT_ENC_CMD = "enc_cmd"
+TRIGGER_TYPE_ANY_STATE = "any_entity_state"
