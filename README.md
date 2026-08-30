@@ -76,7 +76,10 @@ The main steps of the configuration flow are the following:
 Future developments are tracked in [github feature requests](https://github.com/NicoIIT/ha-ble-adv/issues?q=is%3Aissue%20state%3Aopen%20label%3Aenhancement), do not hesitate to vote for them if you need them giving it a :thumbsup:, or open new ones!
 
 ## More Info on Wiki
+* [How it is working](https://github.com/NicoIIT/ha-ble-adv/wiki/How-it-is-working)
 * [Configuration Guide](https://github.com/NicoIIT/ha-ble-adv/wiki/Configuration-Guide)
 * [Troubleshooting Guide](https://github.com/NicoIIT/ha-ble-adv/wiki/Troubleshooting-Guide)
+* [Advanced Customization Guide](https://github.com/NicoIIT/ha-ble-adv/wiki/Customization-Guide)
+* [Contributing Guide](CONTRIBUTING.md)
 
 

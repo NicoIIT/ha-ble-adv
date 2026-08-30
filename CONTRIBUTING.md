@@ -22,8 +22,9 @@ Github is using [Markdown](https://docs.github.com/github/writing-on-github/gett
 We need to communicate, so let's use a common vocabulary so that there is no misunderstanding:
 * DEVICE: the physical device that you fixed at your ceiling, usually composed of one or two Lights, and possibly a Fan
 * REMOTE: a physical remote, the same kind you use to control your TV. Do NEVER use this term talking about a Phone App.
-* PHONE APP: an Android Phone App recommended by the device manufacturer to control your device
-* CONTROLLER: a Remote or Phone App
+* (ANDROID) PHONE APP: an _Android_ Phone App recommended by the device manufacturer to control your device. Do NEVER use this term to talk about an IOS Phone App.
+* IOS PHONE APP: an IOS Phone App recommended by the device manufacturer to control your device
+* CONTROLLER: a Remote or (android / ios) Phone App
 * BLUETOOTH ADAPTER: the Bluetooth Adapter you are using to send commands to your device using this component. Could be
     * 'HCI'- the bluetooth adapter of your Home Assistant Server
     * 'BLE ADV Proxy' - A `ble_adv_proxy` component deployed on an ESP32 linked to your Home Assistant
