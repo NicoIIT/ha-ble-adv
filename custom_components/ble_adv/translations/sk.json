@@ -488,6 +488,9 @@
     "trigger_type": {
       "any_entity_state": "Stav jednej entity sa zmenil",
       "enc_cmd": "Príkaz prijatý"
+    },
+    "action_type": {
+      "enc_cmd": "Odoslať príkaz"
     }
   }
 }

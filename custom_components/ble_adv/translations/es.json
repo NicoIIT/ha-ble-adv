@@ -488,6 +488,9 @@
     "trigger_type": {
       "any_entity_state": "El estado de una entidad ha cambiado",
       "enc_cmd": "Comando recibido"
+    },
+    "action_type": {
+      "enc_cmd": "Enviar comando"
     }
   }
 }
