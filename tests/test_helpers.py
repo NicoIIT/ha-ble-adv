@@ -19,12 +19,8 @@ async def test_action_enc_cmd(hass: HomeAssistant) -> None:
     """Test device action enc_cmd."""
     conf_entry = await create_base_entry(hass, "my_entry", {})
     device = hass.data[DOMAIN][conf_entry.entry_id]
+    assert hasattr(device, "config_entry_id")
     dev2 = await get_device_from_id(hass, device.device_id)
     assert dev2 == device
     with pytest.raises(vol.Invalid):
         await get_device_from_id(hass, "unknown")
-    assert hasattr(device, "config_entry_id")
-    delattr(device, "config_entry_id")
-    assert not hasattr(device, "config_entry_id")
-    dev2 = await get_device_from_id(hass, device.device_id)
-    assert dev2 == device

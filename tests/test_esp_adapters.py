@@ -3,13 +3,14 @@
 # ruff: noqa: S101
 from unittest import mock
 
+from ble_adv.coordinator import BleAdvCoordinator
 from ble_adv.esp_adapters import BleAdvEspBtManager
 from homeassistant.core import HomeAssistant
 
 from tests.conftest import MockEspProxy
 
 
-async def test_esp_bt_manager(hass: HomeAssistant) -> None:
+async def test_esp_bt_manager(hass: HomeAssistant, coord: BleAdvCoordinator) -> None:  # noqa: ARG001
     """Test ESP BT Manager."""
     moc_recv = mock.AsyncMock()
     moc_adapt = mock.AsyncMock()
