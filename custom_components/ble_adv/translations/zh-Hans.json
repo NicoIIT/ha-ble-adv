@@ -488,6 +488,9 @@
     "trigger_type": {
       "any_entity_state": "某个实体的状态已改变",
       "enc_cmd": "收到命令"
+    },
+    "action_type": {
+      "enc_cmd": "发送命令"
     }
   }
 }

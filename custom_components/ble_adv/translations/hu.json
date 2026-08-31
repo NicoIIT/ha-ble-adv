@@ -488,6 +488,9 @@
     "trigger_type": {
       "any_entity_state": "Egy entitás állapota megváltozott",
       "enc_cmd": "Parancs érkezett"
+    },
+    "action_type": {
+      "enc_cmd": "Parancs küldése"
     }
   }
 }

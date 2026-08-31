@@ -83,16 +83,13 @@ class BleAdvAdvertisement:
 class BleAdvEncCmd:
     """Ble ADV Encoder command."""
 
-    cmd: int = 0
+    cmd: int
     param: int = 0
     arg0: int = 0
     arg1: int = 0
     arg2: int = 0
     arg3: int = 0
     arg4: int = 0
-
-    def __init__(self, cmd: int) -> None:
-        self.cmd = cmd
 
     def __repr__(self) -> str:
         args = f"{self.arg0},{self.arg1},{self.arg2}"

@@ -21,7 +21,6 @@ from homeassistant.const import (
     EVENT_STATE_CHANGED,
 )
 from homeassistant.core import CALLBACK_TYPE, Context, HomeAssistant
-from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers.singleton import singleton
 from homeassistant.helpers.trigger import TriggerActionType, TriggerInfo
 from homeassistant.helpers.trigger import async_validate_trigger_config as async_validate_trigger_config_helper
@@ -29,35 +28,14 @@ from homeassistant.helpers.typing import ConfigType
 
 from .const import DOMAIN, TRIGGER_TYPE_ANY_STATE, TRIGGER_TYPE_EVENT_ENC_CMD
 from .device import BleAdvDevice
-
-
-# TO BE REMOVED with HA > 2026.8, use device.config_entry_id only
-async def get_device_from_id(hass: HomeAssistant, device_id: str) -> BleAdvDevice:
-    """Get BleAdvDevice from its device_id."""
-    device = dr.async_get(hass).async_get(device_id)
-    if device is None:
-        msg = f"No device with ID '{device_id}'"
-        raise vol.Invalid(msg)
-    if hasattr(device, "config_entry_id"):
-        entry_id = device.config_entry_id  # type: ignore  # noqa: PGH003
-    else:
-        entry_id = next(iter(device.config_entries)) if device.config_entries else None
-    return hass.data[DOMAIN][entry_id]
+from .helpers import BYTE_SELECTOR, ENC_CMD_PARAMS, get_device_from_id
 
 
 class _SubTriggerBase:
-    def __init__(self, conf_type: str, params: dict[str, Any], schema: dict[Any, Any]) -> None:
+    def __init__(self, conf_type: str, schema: dict[Any, Any]) -> None:
         self.conf_type: str = conf_type
-        self._params = params
-        self._schema = DEVICE_TRIGGER_BASE_SCHEMA.extend({vol.Required(CONF_TYPE): conf_type, **schema})
-
-    async def validate(self, config: ConfigType) -> ConfigType:
-        """Validate the config with the relevant schema."""
-        return cast("ConfigType", self._schema(config))
-
-    def get_params(self) -> dict[str, Any]:
-        non_null_params = {x: val for x, val in self._params.items() if val is not None}
-        return {CONF_PLATFORM: CONF_DEVICE, CONF_DOMAIN: DOMAIN, CONF_TYPE: self.conf_type, **non_null_params}
+        self.base_schema = vol.Schema(schema)
+        self.full_schema = DEVICE_TRIGGER_BASE_SCHEMA.extend({vol.Required(CONF_TYPE): conf_type, **schema})
 
     @abstractmethod
     async def attach_trigger(self, hass: HomeAssistant, config: ConfigType, action: TriggerActionType, trigger_info: TriggerInfo) -> CALLBACK_TYPE:
@@ -66,14 +44,14 @@ class _SubTriggerBase:
 
 class _AnyStateTrigger(_SubTriggerBase):
     PARAMS = {state_trigger.CONF_FROM: None, state_trigger.CONF_TO: None}
-    SCHEMA = {vol.Optional(x): vol.Any(str, [str], None) for x in PARAMS}
+    SCHEMA = {(vol.Required(x) if v is not None else vol.Optional(x)): vol.Any(str, [str], None) for x, v in PARAMS.items()}
 
     def __init__(self) -> None:
-        super().__init__(TRIGGER_TYPE_ANY_STATE, _AnyStateTrigger.PARAMS, _AnyStateTrigger.SCHEMA)
+        super().__init__(TRIGGER_TYPE_ANY_STATE, _AnyStateTrigger.SCHEMA)
 
     async def attach_trigger(self, hass: HomeAssistant, config: ConfigType, action: TriggerActionType, trigger_info: TriggerInfo) -> CALLBACK_TYPE:
         """Attach a trigger."""
-        device = await get_device_from_id(hass, config[CONF_DEVICE_ID])
+        device: BleAdvDevice = await get_device_from_id(hass, config[CONF_DEVICE_ID])
         state_config = {
             CONF_PLATFORM: CONF_STATE,
             state_trigger.CONF_ENTITY_ID: device.entity_ids,
@@ -85,11 +63,8 @@ class _AnyStateTrigger(_SubTriggerBase):
 
 
 class _EventTrigger(_SubTriggerBase):
-    PARAMS = {"cmd": None, "param": None, "arg0": None, "arg1": None, "arg2": None, "arg3": None, "arg4": None}
-    SCHEMA = {vol.Optional(x): vol.All(int, vol.Range(min=0, max=255)) for x in PARAMS}
-
     def __init__(self, event_type: str) -> None:
-        super().__init__(event_type, _EventTrigger.PARAMS, _EventTrigger.SCHEMA)
+        super().__init__(event_type, {(vol.Required(x) if v is not None else vol.Optional(x)): BYTE_SELECTOR for x, v in ENC_CMD_PARAMS.items()})
 
     async def attach_trigger(self, hass: HomeAssistant, config: ConfigType, action: TriggerActionType, trigger_info: TriggerInfo) -> CALLBACK_TYPE:
         """Attach a trigger."""
@@ -104,7 +79,7 @@ class _EventTrigger(_SubTriggerBase):
             if (
                 (new_state := run_variables.get(CONF_TRIGGER, {}).get(CONF_EVENT).data.get("new_state")) is None
                 or new_state.attributes.get(event_trigger.CONF_EVENT_TYPE) != self.conf_type
-                or any(config.get(x) is not None and new_state.attributes.get(x) != config.get(x) for x in self._params)
+                or any(config.get(x) is not None and new_state.attributes.get(x) != config.get(x) for x in ENC_CMD_PARAMS)
             ):
                 return
 
@@ -130,7 +105,7 @@ def _get_trigger(hass: HomeAssistant, conf_type: str) -> _SubTriggerBase:
 
 async def async_validate_trigger_config(hass: HomeAssistant, config: ConfigType) -> ConfigType:
     """Validate trigger config dynamically based on CONF_TYPE."""
-    return await _get_trigger(hass, config[CONF_TYPE]).validate(config)
+    return cast("ConfigType", _get_trigger(hass, config[CONF_TYPE]).full_schema(config))
 
 
 async def async_attach_trigger(hass: HomeAssistant, config: ConfigType, action: TriggerActionType, trigger_info: TriggerInfo) -> CALLBACK_TYPE:
@@ -140,4 +115,9 @@ async def async_attach_trigger(hass: HomeAssistant, config: ConfigType, action: 
 
 async def async_get_triggers(hass: HomeAssistant, device_id: str) -> list[dict[str, str]]:
     """List device triggers."""
-    return [{CONF_DEVICE_ID: device_id, **x.get_params()} for x in _get_triggers(hass).values()]
+    return [{CONF_PLATFORM: CONF_DEVICE, CONF_DOMAIN: DOMAIN, CONF_DEVICE_ID: device_id, CONF_TYPE: x} for x in _get_triggers(hass)]
+
+
+async def async_get_trigger_capabilities(hass: HomeAssistant, config: ConfigType) -> dict[str, Any]:
+    """List trigger capabilities."""
+    return {"extra_fields": _get_trigger(hass, config[CONF_TYPE]).base_schema}
