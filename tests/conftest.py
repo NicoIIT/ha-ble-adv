@@ -156,5 +156,6 @@ async def coord(hass: HomeAssistant) -> AsyncGenerator[BleAdvCoordinator]:
     """Get Basic coordinator with no hci adapter."""
     await async_setup(hass, {DOMAIN: {"ignored_adapters": ["hci"]}})
     coord = await get_coordinator(hass)
-    yield coord
+    with mock.patch("socket.socket.connect", side_effect=mock.MagicMock):
+        yield coord
     await coord.async_final()
