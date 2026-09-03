@@ -21,6 +21,7 @@ from .codecs import codec_from_dyn_base
 from .codecs.models import BleAdvAdvertisement, BleAdvCodec, BleAdvConfig, BleAdvEncCmd, BleAdvEntAttr
 from .const import CONF_ADAPTER_ID, CONF_DEVICE_QUEUE, CONF_DURATION, CONF_INTERVAL, CONF_RAW, CONF_REPEAT, DOMAIN
 from .esp_adapters import BleAdvEspBtManager
+from .shelly_adapters import BleAdvShellyBtManager
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -125,6 +126,19 @@ class BleAdvRecvItem:
     enc_cmd: BleAdvEncCmd
 
 
+class _BleAdvHaBtHciManager(BleAdvBtHciManager):
+    async def async_init(self) -> None:
+        """Async Init."""
+        if not self.supported_by_host:
+            self._add_diag(f"Host BT Stack cannot be used as OS {sys.platform} does not support it", logging.INFO)
+            return
+        try:
+            await super().async_init()
+        except BaseException:
+            self._add_diag("Host BT Stack cannot be used", logging.INFO)
+            _LOGGER.exception("Host BT Stack cannot be used")
+
+
 class BleAdvCoordinator:
     """Class to manage fetching any BLE ADV data."""
 
@@ -153,10 +167,11 @@ class BleAdvCoordinator:
         self._in_use_codecs: set[str] = set()
         self._adapter_macs: set[str] = set()
 
-        self._hci_bt_manager: BleAdvBtHciManager = BleAdvBtHciManager(self.handle_raw_adv, self.on_adapter_change, ign_adapters)
-        self._esp_bt_manager: BleAdvEspBtManager = BleAdvEspBtManager(
-            self.hass, self.handle_raw_adv, self.on_adapter_change, ign_duration, ign_cids, ign_macs
-        )
+        self._bt_managers = {
+            "hci": _BleAdvHaBtHciManager(self.handle_raw_adv, self.on_adapter_change, ign_adapters),
+            "esp": BleAdvEspBtManager(self.hass, self.handle_raw_adv, self.on_adapter_change, ign_duration, ign_cids, ign_macs),
+            "shelly": BleAdvShellyBtManager(self.hass, self.handle_raw_adv, self.on_adapter_change),
+        }
 
         self._stop_listening_time: datetime | None = None
         self.listened_raw_advs: list[bytes] = []
@@ -171,30 +186,23 @@ class BleAdvCoordinator:
 
     async def async_init(self) -> None:
         """Async Init."""
-        await self._esp_bt_manager.async_init()
+        for bt_manager in self._bt_managers.values():
+            await bt_manager.async_init()
         self.hass.bus.async_listen_once(EVENT_HOMEASSISTANT_STOP, self.on_stop_event)
-        if not self._hci_bt_manager.supported_by_host:
-            self._add_diag(f"Host BT Stack cannot be used as OS {sys.platform} does not support it", logging.INFO)
-            return
-        try:
-            await self._hci_bt_manager.async_init()
-        except BaseException:
-            self._add_diag("Host BT Stack cannot be used", logging.INFO)
-            _LOGGER.exception("Host BT Stack cannot be used")
 
     async def async_final(self) -> None:
         """Async Final: Clean-up."""
         self._add_diag("Cleaning BT Connections.", logging.INFO)
-        await self._hci_bt_manager.async_final()
-        await self._esp_bt_manager.async_final()
+        for bt_manager in self._bt_managers.values():
+            await bt_manager.async_final()
 
     def get_adapter_ids(self) -> list[str]:
         """List bt adapters."""
-        return list(self._hci_bt_manager.adapters.keys()) + list(self._esp_bt_manager.adapters.keys())
+        return [adapter_id for bt_manager in self._bt_managers.values() for adapter_id in bt_manager.adapters]
 
     def has_available_adapters(self) -> bool:
         """Check if the coordinator has available adapters."""
-        return len(self._hci_bt_manager.adapters) > 0 or len(self._esp_bt_manager.adapters) > 0
+        return any(len(bt_manager.adapters) > 0 for bt_manager in self._bt_managers.values())
 
     async def on_adapter_change(self, adapter_id: str, _: bool) -> None:
         """Update device availability and adapter macs on Adapter added / removed."""
@@ -202,8 +210,8 @@ class BleAdvCoordinator:
             if adapter_id in device.adapter_ids:
                 device.update_availability()
         self._adapter_macs.clear()
-        self._adapter_macs.update(x.mac for x in self._hci_bt_manager.adapters.values())
-        self._adapter_macs.update(x.mac for x in self._esp_bt_manager.adapters.values())
+        for bt_manager in self._bt_managers.values():
+            self._adapter_macs.update(x.mac for x in bt_manager.adapters.values())
 
     async def on_stop_event(self, _: Event) -> None:
         """Act on stop event."""
@@ -241,12 +249,11 @@ class BleAdvCoordinator:
 
     async def advertise(self, adapter_id: str | None, queue_id: str, qi: BleAdvQueueItem) -> None:
         """Advertise."""
-        if adapter_id in self._hci_bt_manager.adapters:
-            await self._hci_bt_manager.adapters[adapter_id].enqueue(queue_id, qi)
-        elif adapter_id in self._esp_bt_manager.adapters:
-            await self._esp_bt_manager.adapters[adapter_id].enqueue(queue_id, qi)
-        else:
-            self._add_diag(f"Cannot process advertising: adapter '{adapter_id}' is not available.", logging.ERROR)
+        for bt_manager in self._bt_managers.values():
+            if adapter_id in bt_manager.adapters:
+                await bt_manager.adapters[adapter_id].enqueue(queue_id, qi)
+                return
+        self._add_diag(f"Cannot process advertising: adapter '{adapter_id}' is not available.", logging.ERROR)
 
     async def inject_raw(self, dt: dict[str, Any]) -> dict[str, str]:
         """Injects a raw advertisement."""
@@ -365,8 +372,7 @@ class BleAdvCoordinator:
     def diagnostic_dump(self) -> dict[str, Any]:
         """Dump diagnostc dict."""
         return {
-            "hci": self._hci_bt_manager.diagnostic_dump(),
-            "esp": self._esp_bt_manager.diagnostic_dump(),
+            "bt_managers": {n: bt_manager.diagnostic_dump() for n, bt_manager in self._bt_managers.items()},
             "ign_adapters": self.ign_adapters,
             "ign_duration": self.ign_duration,
             "ign_cids": list(self.ign_cids),

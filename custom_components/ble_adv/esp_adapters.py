@@ -30,8 +30,6 @@ CONF_ATTR_IGN_MACS = "ignored_macs"
 CONF_ATTR_IGN_DURATION = "ignored_duration"
 CONF_ATTR_ORIGIN = "orig"
 
-_LOGGER = logging.getLogger(__name__)
-
 
 class BleAdvEsphomeService:
     """ESPHome Dynamic Service.
@@ -133,18 +131,47 @@ class BleAdvEspBtManager(BleAdvBtManager):
         self.ign_duration: int = ign_duration
         self.ign_cids: list[int] = ign_cids
         self.ign_macs: list[str] = ign_macs
-        self._cnl_clbck: list[CALLBACK_TYPE] = []
+        self._cnl_clbck: dict[str, CALLBACK_TYPE] = {}
 
     async def async_init(self) -> None:
         """Async Init."""
+
+        async def _async_name_state_changed_listener(event: Event[EventStateChangedData]) -> None:
+            self._add_diag(f"Name State Event: {event.data}")
+            if (adapter_name := self._get_name_from_state(event.data["new_state"])) is not None:
+                await self._create_adapter(adapter_name, event.data["entity_id"])
+            elif (adapter_name := self._get_name_from_state(event.data["old_state"])) is not None:
+                await self._remove_adapter(adapter_name)
+
         proxy_name_ids = await self._discover_existing()
-        self._cnl_clbck.append(async_track_state_change_event(self.hass, proxy_name_ids, self._async_name_state_changed_listener))
-        self._cnl_clbck.append(self.hass.bus.async_listen(er.EVENT_ENTITY_REGISTRY_UPDATED, self._proxy_created, event_filter=self._proxy_filter))
-        self._cnl_clbck.append(self.hass.bus.async_listen(ESPHOME_BLE_ADV_RECV_EVENT, self._on_adv_recv_event))
+        for ent_id in proxy_name_ids:
+            if ent_id not in self._cnl_clbck:
+                self._cnl_clbck[ent_id] = async_track_state_change_event(self.hass, [ent_id], _async_name_state_changed_listener)
+
+        @callback
+        def _proxy_filter(event_data: er.EventEntityRegistryUpdatedData) -> bool:
+            return event_data["action"] == "create" and self.PROXY_NAME_PATTERN.match(event_data["entity_id"]) is not None
+
+        async def _proxy_created(event: Event[er.EventEntityRegistryUpdatedData]) -> None:
+            ent_id = event.data["entity_id"]
+            self._add_diag(f"Registry Event: {ent_id} {event.data['action']}")
+            if ent_id not in self._cnl_clbck:
+                self._cnl_clbck[ent_id] = async_track_state_change_event(self.hass, [ent_id], _async_name_state_changed_listener)
+
+        self._cnl_clbck["proxy_created"] = self.hass.bus.async_listen(er.EVENT_ENTITY_REGISTRY_UPDATED, _proxy_created, event_filter=_proxy_filter)
+
+        async def _on_adv_recv_event(event: Event) -> None:
+            await self.handle_raw_adv(
+                self._name_from_id(event.data.get(CONF_ATTR_DEVICE_ID, "")),
+                event.data.get(CONF_ATTR_ORIGIN, ""),
+                bytes.fromhex(event.data[CONF_ATTR_RAW]),
+            )
+
+        self._cnl_clbck["adv_recv"] = self.hass.bus.async_listen(ESPHOME_BLE_ADV_RECV_EVENT, _on_adv_recv_event)
 
     async def async_final(self) -> None:
         """Async Final: Clean-up."""
-        for cancel_callback in self._cnl_clbck:
+        for cancel_callback in self._cnl_clbck.values():
             cancel_callback()
         self._cnl_clbck.clear()
         await self._clean()
@@ -201,25 +228,3 @@ class BleAdvEspBtManager(BleAdvBtManager):
         await self._remove_adapter(adapter_name)
         await asyncio.sleep(self.WAIT_REDISCOVER)
         await self._discover_existing()
-
-    async def _async_name_state_changed_listener(self, event: Event[EventStateChangedData]) -> None:
-        self._add_diag(f"Name State Event: {event.data}")
-        if (adapter_name := self._get_name_from_state(event.data["new_state"])) is not None:
-            await self._create_adapter(adapter_name, event.data["entity_id"])
-        elif (adapter_name := self._get_name_from_state(event.data["old_state"])) is not None:
-            await self._remove_adapter(adapter_name)
-
-    @callback
-    def _proxy_filter(self, event_data: er.EventEntityRegistryUpdatedData) -> bool:
-        return event_data["action"] == "create" and self.PROXY_NAME_PATTERN.match(event_data["entity_id"]) is not None
-
-    async def _proxy_created(self, event: Event[er.EventEntityRegistryUpdatedData]) -> None:
-        self._add_diag(f"Registry Event: {event.data['entity_id']} {event.data['action']}")
-        self._cnl_clbck.append(async_track_state_change_event(self.hass, [event.data["entity_id"]], self._async_name_state_changed_listener))
-
-    async def _on_adv_recv_event(self, event: Event) -> None:
-        await self.handle_raw_adv(
-            self._name_from_id(event.data.get(CONF_ATTR_DEVICE_ID, "")),
-            event.data.get(CONF_ATTR_ORIGIN, ""),
-            bytes.fromhex(event.data[CONF_ATTR_RAW]),
-        )

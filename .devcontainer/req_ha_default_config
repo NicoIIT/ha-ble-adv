@@ -19,8 +19,6 @@ mutagen==1.48.1
 aiodhcpwatcher==1.2.7
 aiodiscover==3.3.2
 pyspeex-noise==1.0.2
-aiousbwatcher==1.1.2
-serialx==1.8.2
 bluetooth-data-tools==1.29.18
 habluetooth==6.26.5
 bleak-retry-connector==4.6.3
