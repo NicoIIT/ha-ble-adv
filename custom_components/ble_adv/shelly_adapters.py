@@ -41,8 +41,6 @@ INCOMPATIBLE_SHELLY_MODELS = (
     "SHUNI",  # Shelly Uni Gen1 (No Bluetooth hardware)
 )
 
-COMPATIBLE_SHELLY_VERSIONS = ("2.", "3.", "0.")
-
 
 class BleAdvShellyAdapter(BleAdvAdapter):
     """Shelly BT Adapter leveraging the native aioshelly RPC connection inside HA."""
@@ -132,10 +130,6 @@ class BleAdvShellyBtManager(BleAdvBtManager):
             self._add_diag(f"Discarded '{adapter_name}': incompatible hardware model: {device_entry.model}", logging.INFO)
             return
 
-        if device_entry.sw_version is not None and not device_entry.sw_version.startswith(COMPATIBLE_SHELLY_VERSIONS):
-            self._add_diag(f"Discarded '{adapter_name}': Firmware version too low ({device_entry.sw_version})", logging.INFO)
-            return
-
         if (conf_id := device_entry.config_entry_id) is None:
             self._add_diag(f"Discarded '{adapter_name}': no entry", logging.INFO)
             return
@@ -170,8 +164,7 @@ class BleAdvShellyBtManager(BleAdvBtManager):
                 adapter_instance = BleAdvShellyAdapter(self, adapter_name, bt_mac, rpc_device)
                 self.hass.async_create_task(self._add_adapter(adapter_name, device_entry.id, adapter_instance))
 
-        if device_entry.id not in self._cnl_callback:
-            rpc_device.subscribe_updates(_on_aioshelly_update)
+        rpc_device.subscribe_updates(_on_aioshelly_update)
 
         # create the adapter only if connected, otherwise wait for the status update event to trigger the creation
         if rpc_device.connected:
