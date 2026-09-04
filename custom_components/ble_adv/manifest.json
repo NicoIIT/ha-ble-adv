@@ -2,7 +2,8 @@
   "domain": "ble_adv",
   "name": "BLE ADV Ceiling Fan / Lamps",
   "after_dependencies": [
-    "esphome"
+    "esphome",
+    "shelly"
   ],
   "codeowners": [
     "@NicoIIT"
@@ -14,7 +15,8 @@
   "issue_tracker": "https://github.com/NicoIIT/ha-ble-adv/issues",
   "requirements": [
     "pycryptodome",
-    "btsocket"
+    "btsocket",
+    "aioshelly"
   ],
   "version": "0.0.0"
 }

@@ -16,8 +16,13 @@ homeassistant==2026.8.3
 # ble_adv requirements
 pycryptodome==3.23.0
 btsocket==0.3.0
+aioshelly==13.29.0
 
 # for unit tests
 pytest-homeassistant-custom-component==0.13.357
 colorlog==6.12.0
 ruff==0.16.5
+
+# needed for shelly component used by Unit Tests
+aiousbwatcher==1.1.2
+serialx==1.8.2

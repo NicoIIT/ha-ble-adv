@@ -16,14 +16,18 @@ async def test_diagnostics(hass: HomeAssistant) -> None:
     config_entry.data = {"conf_data": "data"}
     diag = await async_get_config_entry_diagnostics(hass, config_entry)
     # remove variable info
-    diag["coordinator"]["esp"]["logs"].clear()
-    diag["coordinator"]["hci"]["logs"].clear()
+    diag["coordinator"]["bt_managers"]["esp"]["logs"].clear()
+    diag["coordinator"]["bt_managers"]["hci"]["logs"].clear()
+    diag["coordinator"]["bt_managers"]["hci"]["supported_by_host"] = True
+    diag["coordinator"]["bt_managers"]["shelly"]["logs"].clear()
     diag["coordinator"]["logs"].clear()
-    diag["coordinator"]["hci"]["supported_by_host"] = True
     assert diag == {
         "coordinator": {
-            "esp": {"adapters": {}, "ids": {}, "logs": []},
-            "hci": {"adapters": {}, "ids": {}, "logs": [], "supported_by_host": True},
+            "bt_managers": {
+                "esp": {"adapters": {}, "ids": {}, "logs": []},
+                "hci": {"adapters": {}, "ids": {}, "logs": [], "supported_by_host": True},
+                "shelly": {"adapters": {}, "ids": {}, "logs": []},
+            },
             "ign_adapters": ["hci"],
             "ign_duration": 60000,
             "ign_cids": list({*CONF_GOOGLE_LCC_UUIDS, *CONF_APPLE_INC_UUIDS}),

@@ -55,7 +55,7 @@ async def test_coordinator(hass: HomeAssistant, coord: BleAdvCoordinator) -> Non
     qi = BleAdvQueueItem(0x10, 1, 100, 20, [adv.to_raw()], 2)
     await coord.advertise("not-exists", "q1", qi)
     await coord.advertise("esp-test", "q1", qi)
-    await coord._esp_bt_manager.adapters["esp-test"].drain()  # noqa: SLF001
+    await coord._bt_managers["esp"].adapters["esp-test"].drain()  # noqa: SLF001
     assert t1.get_adv_calls() == [{"raw": adv.to_raw().hex()}]
     await coord.handle_raw_adv("esp-test", "", adv.to_raw())
     await t1.recv(adv.to_raw().hex())
@@ -63,7 +63,7 @@ async def test_coordinator(hass: HomeAssistant, coord: BleAdvCoordinator) -> Non
     await coord.handle_raw_adv("esp-test", "", adv.to_raw())
     await coord.handle_raw_adv("esp-test", "", b"invalid_adv")
     await coord.advertise("esp-test", "q1", qi)
-    await coord._esp_bt_manager.adapters["esp-test"].drain()  # noqa: SLF001
+    await coord._bt_managers["esp"].adapters["esp-test"].drain()  # noqa: SLF001
     coord.remove_device(dev1)
 
     dev2 = _Device(coord, "dev1", "cod1", ["other"])

@@ -77,9 +77,9 @@ class BleAdvQueueItem:
         return (self.key == comp.key) and (self.data == comp.data)
 
 
-type AdvRecvCallback = Callable[[str, str, bytes], Awaitable[None]]
+type AdvRecvCallback = Callable[[str, str, bytes], Coroutine[Any, Any, None]]
 type AdapterErrorCallback = SocketErrorCallback
-type MgmtSendCallback = Callable[[int, int, bytes], Coroutine]
+type MgmtSendCallback = Callable[[int, int, bytes], Coroutine[Any, Any, Any]]
 
 
 class _AdapterLoggingAdapter(logging.LoggerAdapter):

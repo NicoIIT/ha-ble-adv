@@ -17,7 +17,8 @@ from ble_adv.esp_adapters import (
     CONF_ATTR_RAW,
     ESPHOME_BLE_ADV_RECV_EVENT,
 )
-from homeassistant.config_entries import ConfigEntry
+from ble_adv.shelly_adapters import SHELLY_DOMAIN, RpcUpdateType
+from homeassistant.config_entries import ConfigEntry, ConfigEntryState
 from homeassistant.const import STATE_UNAVAILABLE
 from homeassistant.core import HomeAssistant, ServiceCall
 from homeassistant.helpers import device_registry as dr
@@ -124,6 +125,63 @@ class MockEspProxy:
     async def recv(self, raw: str) -> None:
         """Receive an adv."""
         self.hass.bus.async_fire(ESPHOME_BLE_ADV_RECV_EVENT, {CONF_ATTR_DEVICE_ID: self._dev_id, CONF_ATTR_RAW: raw})
+
+
+class MockShellyDevice:
+    """Mock a Shelly Device."""
+
+    def __init__(self, hass: HomeAssistant, name: str, bt_first_id: str) -> None:
+        self.hass = hass
+        self._name = name
+        self._mac = f"{bt_first_id}0000000000"
+        self._cb = None
+
+    async def setup(self) -> None:
+        """Set the device as Shelly integration would do (mor or less...)."""
+        # Set the ble_adv_proxy by registering services and entities
+        shelly_conf = ConfigEntry(
+            domain=SHELLY_DOMAIN,
+            unique_id=self._mac,
+            data={},
+            version=1,
+            minor_version=0,
+            title=self._name.replace("-", "_"),
+            source="",
+            discovery_keys={},  # type: ignore [none]
+            options={},
+            subentries_data={},
+        )
+        await self.hass.config_entries.async_add(shelly_conf)
+        shelly_conf._async_set_state(self.hass, ConfigEntryState.LOADED, None)  # noqa: SLF001
+        shelly_conf.runtime_data = mock.MagicMock()
+        shelly_conf.runtime_data.rpc = mock.MagicMock()
+        shelly_conf.runtime_data.rpc.device = mock.MagicMock()
+        shelly_conf.runtime_data.rpc.device.call_rpc = mock.AsyncMock()
+        shelly_conf.runtime_data.rpc.device.subscribe_updates = mock.MagicMock(side_effect=lambda cb: setattr(self, "_cb", cb))
+        shelly_conf.runtime_data.rpc.device.connected = True
+        dr.async_get(self.hass).async_get_or_create(
+            config_entry_id=shelly_conf.entry_id,
+            identifiers={(SHELLY_DOMAIN, self._mac)},
+            disabled_by=None,
+            name=self._name,
+            model="SHBLB-1",
+            sw_version="3.1",
+        )
+        self.conf_id = shelly_conf.entry_id
+        self.rpc_device = shelly_conf.runtime_data.rpc.device
+
+    async def set_available(self, status: bool) -> None:
+        """Set the status."""
+        self.rpc_device.connected = status
+        if self._cb is not None:
+            self._cb(self.rpc_device, RpcUpdateType.INITIALIZED if status else RpcUpdateType.DISCONNECTED)
+        await self.hass.async_block_till_done(wait_background_tasks=True)
+
+    async def recv(self, data: list[Any]) -> None:
+        """Receive an adv."""
+        self.rpc_device.event = {"event": "ble.scan_result", "data": data}
+        if self._cb is not None:
+            self._cb(self.rpc_device, RpcUpdateType.EVENT)
 
 
 async def create_base_entry(hass: HomeAssistant, entry_id: str | None, data: dict[str, Any], version: int = CONF_LAST_VERSION) -> ConfigEntry:
