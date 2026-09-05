@@ -496,11 +496,15 @@ type AdapterEventCallback = Callable[[str, bool], Awaitable[None]]
 class BleAdvBtManager:
     """Base Bluetooth Manager."""
 
-    def __init__(self, adapter_event_callback: AdapterEventCallback) -> None:
+    def __init__(self, name: str, adv_recv_callback: AdvRecvCallback, adapter_event_callback: AdapterEventCallback, ign_adapters: list[str]) -> None:
+        self.name = name
         self._adapters: dict[str, BleAdvAdapter] = {}
         self._id_to_name: dict[str, str] = {}
         self._diags: deque[str] = deque(maxlen=30)
+        self._adv_recv: AdvRecvCallback = adv_recv_callback
         self._adapter_event_callback: AdapterEventCallback = adapter_event_callback
+        self._ign_adapters = ign_adapters
+        self.logger = _AdapterLoggingAdapter(_LOGGER, {"name": self.name})
 
     @property
     def adapters(self) -> dict[str, BleAdvAdapter]:
@@ -513,8 +517,11 @@ class BleAdvBtManager:
 
     def _add_diag(self, msg: str, log_level: int = logging.DEBUG) -> None:
         """Add a diagnostic log."""
-        _LOGGER.log(log_level, msg)
+        self.logger.log(log_level, msg)
         self._diags.append(f"{datetime.now()} - {msg}")
+
+    def _ignored_adapter(self, adapter_name: str) -> bool:
+        return any(adapter_name.startswith(ign_adp) for ign_adp in self._ign_adapters)
 
     def diagnostic_dump(self) -> dict[str, Any]:
         """Diagnostic dump."""
@@ -531,12 +538,16 @@ class BleAdvBtManager:
         self._adapters.clear()
         self._id_to_name.clear()
 
-    async def _add_adapter(self, adapter_name: str, adapter_id: str, adapter: BleAdvAdapter) -> None:
+    async def _add_adapter(self, adapter_name: str, adapter_id: str, adapter: BleAdvAdapter) -> bool:
+        if self._ignored_adapter(adapter_name):
+            self._add_diag(f"Ignored adapter '{adapter_name}' per configuration")
+            return False
         self._add_diag(f"Adding adapter '{adapter_name}'/'{adapter_id}' of type {type(adapter).__name__}")
         await adapter.async_init()
         self._id_to_name[adapter_id] = adapter_name
         self._adapters[adapter_name] = adapter
         await self._adapter_event_callback(adapter_name, True)
+        return True
 
     async def _remove_adapter(self, adapter_name: str) -> None:
         self._add_diag(f"Removing adapter '{adapter_name}'")
@@ -558,7 +569,7 @@ class BleAdvBtHciManager(BleAdvBtManager):
     CONF_HCI: str = "hci"
 
     def __init__(self, adv_recv_callback: AdvRecvCallback, adapter_event_callback: AdapterEventCallback, ign_adapters: list[str]) -> None:
-        super().__init__(adapter_event_callback)
+        super().__init__(self.CONF_HCI, adv_recv_callback, adapter_event_callback, ign_adapters)
         self._mgmt_sock: AsyncSocketBase | None = None
         self._mgmt_cmd_event = asyncio.Event()
         self._og_mgmt_cmd = None
@@ -566,9 +577,7 @@ class BleAdvBtHciManager(BleAdvBtManager):
         self._mgmt_cmd_lock = asyncio.Lock()
         self._adv_lock = asyncio.Lock()
         self._mgmt_opened = False
-        self._adv_recv: AdvRecvCallback = adv_recv_callback
         self._reconnecting: bool = False
-        self._ign_adapters = [ign_adapt for ign_adapt in ign_adapters if ign_adapt.startswith(self.CONF_HCI)]
         self._disabled = self.CONF_HCI in ign_adapters
 
     @property

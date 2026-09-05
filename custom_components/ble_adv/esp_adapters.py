@@ -114,20 +114,21 @@ class BleAdvEspBtManager(BleAdvBtManager):
 
     PROXY_NAME_PATTERN: re.Pattern = re.compile(r"sensor.(\w+)_ble_adv_proxy_name")
     WAIT_REDISCOVER: float = 1.0
+    CONF_ESP: str = "esp"
 
     def __init__(
         self,
         hass: HomeAssistant,
         adv_recv_callback: AdvRecvCallback,
         adapter_event_callback: AdapterEventCallback,
+        ign_adapters: list[str],
         ign_duration: int,
         ign_cids: list[int],
         ign_macs: list[str],
     ) -> None:
         """Init."""
-        super().__init__(adapter_event_callback)
+        super().__init__(self.CONF_ESP, adv_recv_callback, adapter_event_callback, ign_adapters)
         self.hass: HomeAssistant = hass
-        self.handle_raw_adv = adv_recv_callback
         self.ign_duration: int = ign_duration
         self.ign_cids: list[int] = ign_cids
         self.ign_macs: list[str] = ign_macs
@@ -161,7 +162,7 @@ class BleAdvEspBtManager(BleAdvBtManager):
         self._cnl_clbck["proxy_created"] = self.hass.bus.async_listen(er.EVENT_ENTITY_REGISTRY_UPDATED, _proxy_created, event_filter=_proxy_filter)
 
         async def _on_adv_recv_event(event: Event) -> None:
-            await self.handle_raw_adv(
+            await self._adv_recv(
                 self._name_from_id(event.data.get(CONF_ATTR_DEVICE_ID, "")),
                 event.data.get(CONF_ATTR_ORIGIN, ""),
                 bytes.fromhex(event.data[CONF_ATTR_RAW]),

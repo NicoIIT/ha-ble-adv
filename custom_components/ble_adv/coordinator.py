@@ -169,8 +169,8 @@ class BleAdvCoordinator:
 
         self._bt_managers = {
             "hci": _BleAdvHaBtHciManager(self.handle_raw_adv, self.on_adapter_change, ign_adapters),
-            "esp": BleAdvEspBtManager(self.hass, self.handle_raw_adv, self.on_adapter_change, ign_duration, ign_cids, ign_macs),
-            "shelly": BleAdvShellyBtManager(self.hass, self.handle_raw_adv, self.on_adapter_change),
+            "esp": BleAdvEspBtManager(self.hass, self.handle_raw_adv, self.on_adapter_change, ign_adapters, ign_duration, ign_cids, ign_macs),
+            "shelly": BleAdvShellyBtManager(self.hass, self.handle_raw_adv, self.on_adapter_change, ign_adapters),
         }
 
         self._stop_listening_time: datetime | None = None
