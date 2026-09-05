@@ -17,7 +17,7 @@ from ble_adv.esp_adapters import (
     CONF_ATTR_RAW,
     ESPHOME_BLE_ADV_RECV_EVENT,
 )
-from ble_adv.shelly_adapters import SHELLY_DOMAIN, RpcUpdateType
+from ble_adv.shelly_adapters import SHELLY_DOMAIN, RpcDevice, RpcUpdateType
 from homeassistant.config_entries import ConfigEntry, ConfigEntryState
 from homeassistant.const import STATE_UNAVAILABLE
 from homeassistant.core import HomeAssistant, ServiceCall
@@ -127,61 +127,78 @@ class MockEspProxy:
         self.hass.bus.async_fire(ESPHOME_BLE_ADV_RECV_EVENT, {CONF_ATTR_DEVICE_ID: self._dev_id, CONF_ATTR_RAW: raw})
 
 
-class MockShellyDevice:
+class MockShellyEntry:
     """Mock a Shelly Device."""
 
     def __init__(self, hass: HomeAssistant, name: str, bt_first_id: str) -> None:
         self.hass = hass
         self._name = name
         self._mac = f"{bt_first_id}0000000000"
-        self._cb = None
-
-    async def setup(self) -> None:
-        """Set the device as Shelly integration would do (mor or less...)."""
-        # Set the ble_adv_proxy by registering services and entities
-        shelly_conf = ConfigEntry(
+        self.prev_listener = mock.MagicMock()
+        self.shelly_conf = ConfigEntry(
             domain=SHELLY_DOMAIN,
             unique_id=self._mac,
             data={},
             version=1,
             minor_version=0,
-            title=self._name.replace("-", "_"),
+            title=self._name,
             source="",
             discovery_keys={},  # type: ignore [none]
             options={},
             subentries_data={},
         )
-        await self.hass.config_entries.async_add(shelly_conf)
-        shelly_conf._async_set_state(self.hass, ConfigEntryState.LOADED, None)  # noqa: SLF001
-        shelly_conf.runtime_data = mock.MagicMock()
-        shelly_conf.runtime_data.rpc = mock.MagicMock()
-        shelly_conf.runtime_data.rpc.device = mock.MagicMock()
-        shelly_conf.runtime_data.rpc.device.call_rpc = mock.AsyncMock()
-        shelly_conf.runtime_data.rpc.device.subscribe_updates = mock.MagicMock(side_effect=lambda cb: setattr(self, "_cb", cb))
-        shelly_conf.runtime_data.rpc.device.connected = True
+        self.rpc_device = mock.AsyncMock(spec=RpcDevice)
+        self.rpc_device._update_listener = self.prev_listener  # noqa: SLF001
+        self.rpc_device.call_rpc = mock.AsyncMock()
+        self.rpc_device.methods_list = mock.AsyncMock(return_value=["BLE.AdvertiseOnce"])
+        self.rpc_device.config = {"ble": {"enabled": True}}
+        self.rpc_device.shelly = {"mac": self._mac}
+        self.rpc_device.initialized = True
+
+    async def create(self) -> None:
+        """Create the entry, without loading it."""
+        await self.hass.config_entries.async_add(self.shelly_conf)
+        self.shelly_conf._async_set_state(self.hass, ConfigEntryState.NOT_LOADED, None)  # noqa: SLF001
         dr.async_get(self.hass).async_get_or_create(
-            config_entry_id=shelly_conf.entry_id,
+            config_entry_id=self.shelly_conf.entry_id,
             identifiers={(SHELLY_DOMAIN, self._mac)},
             disabled_by=None,
             name=self._name,
             model="SHBLB-1",
             sw_version="3.1",
         )
-        self.conf_id = shelly_conf.entry_id
-        self.rpc_device = shelly_conf.runtime_data.rpc.device
+
+    async def load(self) -> None:
+        """Load the Entry."""
+        await self.hass.config_entries.async_setup(self.shelly_conf.entry_id)
+        self.shelly_conf.runtime_data = mock.MagicMock()
+        self.shelly_conf.runtime_data.block = mock.MagicMock()
+        self.shelly_conf.runtime_data.block.shutdown = mock.AsyncMock()
+        self.shelly_conf.runtime_data.rpc = mock.MagicMock()
+        self.shelly_conf.runtime_data.rpc.shutdown = mock.AsyncMock()
+        self.shelly_conf.runtime_data.rpc.device = self.rpc_device
+        self.shelly_conf._async_set_state(self.hass, ConfigEntryState.LOADED, None)  # noqa: SLF001
+        await self.hass.async_block_till_done(wait_background_tasks=True)
 
     async def set_available(self, status: bool) -> None:
         """Set the status."""
-        self.rpc_device.connected = status
-        if self._cb is not None:
-            self._cb(self.rpc_device, RpcUpdateType.INITIALIZED if status else RpcUpdateType.DISCONNECTED)
-        await self.hass.async_block_till_done(wait_background_tasks=True)
+        if self.shelly_conf.runtime_data is not None:
+            self.rpc_device.initialized = status
+            self.rpc_device._update_listener(self.rpc_device, RpcUpdateType.INITIALIZED if status else RpcUpdateType.DISCONNECTED)  # noqa: SLF001
+            await self.hass.async_block_till_done(wait_background_tasks=True)
 
     async def recv(self, data: list[Any]) -> None:
         """Receive an adv."""
-        self.rpc_device.event = {"event": "ble.scan_result", "data": data}
-        if self._cb is not None:
-            self._cb(self.rpc_device, RpcUpdateType.EVENT)
+        if self.shelly_conf.runtime_data is not None:
+            self.rpc_device.event = {"event": "ble.scan_result", "data": data}
+            self.rpc_device._update_listener(self.rpc_device, RpcUpdateType.EVENT)  # noqa: SLF001
+
+    async def unload(self) -> None:
+        """Unload the entry."""
+        await self.hass.config_entries.async_unload(self.shelly_conf.entry_id)
+        await self.hass.async_block_till_done(wait_background_tasks=True)
+        self.rpc_device._update_listener = self.prev_listener  # noqa: SLF001
+        self.shelly_conf.runtime_data = None
 
 
 async def create_base_entry(hass: HomeAssistant, entry_id: str | None, data: dict[str, Any], version: int = CONF_LAST_VERSION) -> ConfigEntry:
@@ -210,10 +227,16 @@ async def create_base_entry(hass: HomeAssistant, entry_id: str | None, data: dic
 
 
 @pytest.fixture
+async def hass(hass: HomeAssistant) -> AsyncGenerator[HomeAssistant]:
+    """Overriden hass with mocked sockets."""
+    with mock.patch("socket.socket.connect", side_effect=mock.MagicMock):
+        yield hass
+
+
+@pytest.fixture
 async def coord(hass: HomeAssistant) -> AsyncGenerator[BleAdvCoordinator]:
     """Get Basic coordinator with no hci adapter."""
     await async_setup(hass, {DOMAIN: {"ignored_adapters": ["hci"]}})
     coord = await get_coordinator(hass)
-    with mock.patch("socket.socket.connect", side_effect=mock.MagicMock):
-        yield coord
+    yield coord
     await coord.async_final()

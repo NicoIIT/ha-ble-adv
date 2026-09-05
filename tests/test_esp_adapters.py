@@ -3,18 +3,17 @@
 # ruff: noqa: S101
 from unittest import mock
 
-from ble_adv.coordinator import BleAdvCoordinator
 from ble_adv.esp_adapters import BleAdvEspBtManager
 from homeassistant.core import HomeAssistant
 
 from tests.conftest import MockEspProxy
 
 
-async def test_esp_bt_manager(hass: HomeAssistant, coord: BleAdvCoordinator) -> None:  # noqa: ARG001
+async def test_esp_bt_manager(hass: HomeAssistant) -> None:
     """Test ESP BT Manager."""
     moc_recv = mock.AsyncMock()
     moc_adapt = mock.AsyncMock()
-    man = BleAdvEspBtManager(hass, moc_recv, moc_adapt, 10000, [], [])
+    man = BleAdvEspBtManager(hass, moc_recv, moc_adapt, [], 10000, [], [])
     man.WAIT_REDISCOVER = 0
     t1 = MockEspProxy(hass, "esp-test1")
     await t1.setup()  # Adding proxy before init

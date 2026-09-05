@@ -5,55 +5,76 @@ import binascii
 from unittest import mock
 
 from ble_adv.adapters import BleAdvQueueItem
-from ble_adv.coordinator import BleAdvCoordinator
 from ble_adv.shelly_adapters import BleAdvShellyBtManager
 from homeassistant.core import HomeAssistant
 
-from .conftest import MockShellyDevice
+from .conftest import MockShellyEntry
 
 
-async def test_shelly_bt_manager(hass: HomeAssistant, coord: BleAdvCoordinator) -> None:  # noqa: ARG001
+async def test_shelly_bt_manager(hass: HomeAssistant) -> None:
     """Test Shelly BT Manager."""
     moc_recv = mock.AsyncMock()
     moc_adapt = mock.AsyncMock()
-    man = BleAdvShellyBtManager(hass, moc_recv, moc_adapt)
+    man = BleAdvShellyBtManager(hass, moc_recv, moc_adapt, [])
     man.WAIT_REDISCOVER = 0
-    t1 = MockShellyDevice(hass, "shelly-test1", "01")
-    await t1.setup()  # Adding device before init
+    t1 = MockShellyEntry(hass, "shelly-test1", "01")
+    await t1.create()
+    await t1.load()  # Adding device before init
     assert list(man.adapters.keys()) == []
     await man.async_init()
     assert list(man.adapters.keys()) == ["shelly-test1"]
     moc_adapt.assert_awaited_once_with("shelly-test1", True)
     moc_adapt.reset_mock()
     await t1.set_available(False)
+    t1.prev_listener.assert_called_once()
+    t1.prev_listener.reset_mock()
     assert list(man.adapters.keys()) == []
     moc_adapt.assert_awaited_once_with("shelly-test1", False)
     moc_adapt.reset_mock()
     await t1.set_available(True)
+    t1.prev_listener.assert_called_once()
+    t1.prev_listener.reset_mock()
     assert list(man.adapters.keys()) == ["shelly-test1"]
     msg = b"msg01"
     await t1.recv([1, "AA:BB:CC:DD:EE:FF", -50, binascii.b2a_base64(msg).decode("ascii"), ""])
     moc_recv.assert_awaited_once_with("shelly-test1", "AA:BB:CC:DD:EE:FF", msg)
     moc_recv.reset_mock()
+    t1.prev_listener.assert_called_once()
+    t1.prev_listener.reset_mock()
     await t1.recv([2, [["AA:BB:CC:DD:EE:FF", -50, binascii.b2a_base64(msg).decode("ascii"), ""]]])
     moc_recv.assert_awaited_once_with("shelly-test1", "AA:BB:CC:DD:EE:FF", msg)
     moc_recv.reset_mock()
-    t2 = MockShellyDevice(hass, "shelly-test2", "02")
-    await t2.setup()  # Adding device after init
+    t1.prev_listener.assert_called_once()
+    t1.prev_listener.reset_mock()
+    t2 = MockShellyEntry(hass, "shelly-test2", "02")
+    await t2.create()
+    await t2.load()  # Adding device after init
     assert list(man.adapters.keys()) == ["shelly-test1", "shelly-test2"]
     await man.reset_adapter("shelly-test2", "test")
     assert list(man.adapters.keys()) == ["shelly-test1", "shelly-test2"]
     await man.async_final()
+    assert man.adapters == {}
+    await man.async_init()
+    assert list(man.adapters.keys()) == ["shelly-test1", "shelly-test2"]
+    await t1.unload()
+    assert list(man.adapters.keys()) == ["shelly-test2"]
+    moc_recv.reset_mock()
+    await t1.recv([1, "AA:BB:CC:DD:EE:FF", -50, binascii.b2a_base64(msg).decode("ascii"), ""])
+    moc_recv.assert_not_awaited()
+    await t1.load()
+    assert list(man.adapters.keys()) == ["shelly-test2", "shelly-test1"]
+    await man.async_final()
 
 
-async def test_shelly_adapter(hass: HomeAssistant, coord: BleAdvCoordinator) -> None:  # noqa: ARG001
+async def test_shelly_adapter(hass: HomeAssistant) -> None:
     """Test Shelly Adapter."""
     moc_recv = mock.AsyncMock()
     moc_adapt = mock.AsyncMock()
-    man = BleAdvShellyBtManager(hass, moc_recv, moc_adapt)
+    man = BleAdvShellyBtManager(hass, moc_recv, moc_adapt, [])
     man.WAIT_REDISCOVER = 0
-    t1 = MockShellyDevice(hass, "shelly-test1", "01")
-    await t1.setup()
+    t1 = MockShellyEntry(hass, "shelly-test1", "01")
+    await t1.create()
+    await t1.load()
     await man.async_init()
     man_adapter = man.adapters["shelly-test1"]
     assert man_adapter.mac == "01:00:00:00:00:02"
