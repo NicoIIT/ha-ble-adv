@@ -114,7 +114,7 @@ class BleAdvEspBtManager(BleAdvBtManager):
 
     PROXY_NAME_PATTERN: re.Pattern = re.compile(r"sensor.(\w+)_ble_adv_proxy_name")
     WAIT_REDISCOVER: float = 1.0
-    CONF_ESP: str = "esp"
+    NAME: str = "esp"
 
     def __init__(
         self,
@@ -127,7 +127,7 @@ class BleAdvEspBtManager(BleAdvBtManager):
         ign_macs: list[str],
     ) -> None:
         """Init."""
-        super().__init__(self.CONF_ESP, adv_recv_callback, adapter_event_callback, ign_adapters)
+        super().__init__(BleAdvEspBtManager.NAME, adv_recv_callback, adapter_event_callback, ign_adapters)
         self.hass: HomeAssistant = hass
         self.ign_duration: int = ign_duration
         self.ign_cids: list[int] = ign_cids
@@ -191,7 +191,7 @@ class BleAdvEspBtManager(BleAdvBtManager):
     def _get_name_from_state(self, name_state: State | None) -> str | None:
         if name_state is None or name_state.state in (STATE_UNAVAILABLE, STATE_UNKNOWN):
             return None
-        return name_state.state
+        return self._full_adapter_name(name_state.state)
 
     async def _create_adapter(self, adapter_name: str, entity_id: str) -> None:
         if adapter_name in self._adapters:

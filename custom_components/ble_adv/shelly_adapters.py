@@ -62,13 +62,12 @@ type RpcListenerCallback = Callable[[RpcDevice, RpcUpdateType], None]
 class BleAdvShellyBtManager(BleAdvBtManager):
     """Class to manage Shelly Adapters directly from raw HA events with filtering."""
 
-    WAIT_REDISCOVER: float = 1.0
-    CONF_SHELLY: str = "shelly"
+    NAME: str = "shl"
 
     def __init__(
         self, hass: HomeAssistant, adv_recv_callback: AdvRecvCallback, adapter_event_callback: AdapterEventCallback, ign_adapters: list[str]
     ) -> None:
-        super().__init__(self.CONF_SHELLY, adv_recv_callback, adapter_event_callback, ign_adapters)
+        super().__init__(BleAdvShellyBtManager.NAME, adv_recv_callback, adapter_event_callback, ign_adapters)
         self.hass: HomeAssistant = hass
         self._cnl_callback: dict[str, CALLBACK_TYPE] = {}
         self._rpc_prev_listeners: dict[str, RpcListenerCallback | None] = {}
@@ -118,7 +117,12 @@ class BleAdvShellyBtManager(BleAdvBtManager):
         if entry.entry_id in self._cnl_callback:
             return
 
-        adapter_name = entry.title
+        adapter_name = self._full_adapter_name(entry.title)
+
+        # check if the adapter is ignored per configuration
+        if self._ignored_adapter(adapter_name):
+            self._add_diag(f"Ignored '{adapter_name}' per configuration.", logging.INFO)
+            return
 
         # listen to any load / unload events on this config entry
         @callback
@@ -147,7 +151,7 @@ class BleAdvShellyBtManager(BleAdvBtManager):
 
     async def _handle_loaded_entry(self, entry: ConfigEntry) -> None:
         """Handle a LOADED Shelly entry."""
-        adapter_name = entry.title
+        adapter_name = self._full_adapter_name(entry.title)
 
         if not (
             hasattr(entry, "runtime_data")
@@ -188,7 +192,7 @@ class BleAdvShellyBtManager(BleAdvBtManager):
                     prev_listener(rpc_device_in, update_type)
 
             rpc_device._update_listener = _on_aioshelly_update  # noqa: SLF001
-            self._add_diag(f"callback added for entry {entry.entry_id} / {entry.title}")
+            self._add_diag(f"callback added for entry {entry.entry_id} / {adapter_name}")
 
         # if rpc_device not already initialized, wait for the INITIALIZED event to trigger the creation
         if not rpc_device.initialized:

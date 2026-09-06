@@ -38,7 +38,6 @@ from .const import (
     CONF_REFRESH_OSC_ON_START,
     CONF_USE_DIR,
     CONF_USE_OSC,
-    DOMAIN,
 )
 from .device import ATTR_IS_ON, BleAdvDevice, BleAdvEntAttr, BleAdvEntity, BleAdvStateAttribute
 
@@ -62,9 +61,9 @@ def create_entity(options: dict[str, Any], device: BleAdvDevice, index: int) -> 
     return fan
 
 
-async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback) -> None:
+async def async_setup_entry(_: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback) -> None:
     """Entry setup."""
-    device: BleAdvDevice = hass.data[DOMAIN][entry.entry_id]
+    device: BleAdvDevice = entry.runtime_data
     entities = [create_entity(options, device, i) for i, options in enumerate(entry.data[CONF_FANS]) if CONF_TYPE in options]
     async_add_entities(entities, True)
 

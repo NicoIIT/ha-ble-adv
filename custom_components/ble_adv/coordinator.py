@@ -167,11 +167,11 @@ class BleAdvCoordinator:
         self._in_use_codecs: set[str] = set()
         self._adapter_macs: set[str] = set()
 
-        self._bt_managers = {
-            "hci": _BleAdvHaBtHciManager(self.handle_raw_adv, self.on_adapter_change, ign_adapters),
-            "esp": BleAdvEspBtManager(self.hass, self.handle_raw_adv, self.on_adapter_change, ign_adapters, ign_duration, ign_cids, ign_macs),
-            "shelly": BleAdvShellyBtManager(self.hass, self.handle_raw_adv, self.on_adapter_change, ign_adapters),
-        }
+        self.bt_managers = [
+            _BleAdvHaBtHciManager(self.handle_raw_adv, self.on_adapter_change, ign_adapters),
+            BleAdvEspBtManager(self.hass, self.handle_raw_adv, self.on_adapter_change, ign_adapters, ign_duration, ign_cids, ign_macs),
+            BleAdvShellyBtManager(self.hass, self.handle_raw_adv, self.on_adapter_change, ign_adapters),
+        ]
 
         self._stop_listening_time: datetime | None = None
         self.listened_raw_advs: list[bytes] = []
@@ -186,23 +186,23 @@ class BleAdvCoordinator:
 
     async def async_init(self) -> None:
         """Async Init."""
-        for bt_manager in self._bt_managers.values():
+        for bt_manager in [bt_man for bt_man in self.bt_managers if not bt_man.disabled]:
             await bt_manager.async_init()
         self.hass.bus.async_listen_once(EVENT_HOMEASSISTANT_STOP, self.on_stop_event)
 
     async def async_final(self) -> None:
         """Async Final: Clean-up."""
         self._add_diag("Cleaning BT Connections.", logging.INFO)
-        for bt_manager in self._bt_managers.values():
+        for bt_manager in [bt_man for bt_man in self.bt_managers if not bt_man.disabled]:
             await bt_manager.async_final()
 
     def get_adapter_ids(self) -> list[str]:
         """List bt adapters."""
-        return [adapter_id for bt_manager in self._bt_managers.values() for adapter_id in bt_manager.adapters]
+        return [adapter_id for bt_manager in self.bt_managers for adapter_id in bt_manager.adapters]
 
     def has_available_adapters(self) -> bool:
         """Check if the coordinator has available adapters."""
-        return any(len(bt_manager.adapters) > 0 for bt_manager in self._bt_managers.values())
+        return any(len(bt_manager.adapters) > 0 for bt_manager in self.bt_managers)
 
     async def on_adapter_change(self, adapter_id: str, _: bool) -> None:
         """Update device availability and adapter macs on Adapter added / removed."""
@@ -210,7 +210,7 @@ class BleAdvCoordinator:
             if adapter_id in device.adapter_ids:
                 device.update_availability()
         self._adapter_macs.clear()
-        for bt_manager in self._bt_managers.values():
+        for bt_manager in self.bt_managers:
             self._adapter_macs.update(x.mac for x in bt_manager.adapters.values())
 
     async def on_stop_event(self, _: Event) -> None:
@@ -249,7 +249,7 @@ class BleAdvCoordinator:
 
     async def advertise(self, adapter_id: str | None, queue_id: str, qi: BleAdvQueueItem) -> None:
         """Advertise."""
-        for bt_manager in self._bt_managers.values():
+        for bt_manager in self.bt_managers:
             if adapter_id in bt_manager.adapters:
                 await bt_manager.adapters[adapter_id].enqueue(queue_id, qi)
                 return
@@ -372,7 +372,7 @@ class BleAdvCoordinator:
     def diagnostic_dump(self) -> dict[str, Any]:
         """Dump diagnostc dict."""
         return {
-            "bt_managers": {n: bt_manager.diagnostic_dump() for n, bt_manager in self._bt_managers.items()},
+            "bt_managers": {bt_manager.name: bt_manager.diagnostic_dump() for bt_manager in self.bt_managers},
             "ign_adapters": self.ign_adapters,
             "ign_duration": self.ign_duration,
             "ign_cids": list(self.ign_cids),

@@ -3,11 +3,10 @@
 # ruff: noqa: S101
 import pytest
 import voluptuous as vol
-from ble_adv.const import DOMAIN
 from ble_adv.helpers import ENC_CMD_PARAMS, get_device_from_id
 from homeassistant.core import HomeAssistant
 
-from .conftest import create_base_entry
+from .conftest import create_base_entry, get_device_entry_from_entry
 
 
 def test_enc_cmd_params() -> None:
@@ -18,9 +17,10 @@ def test_enc_cmd_params() -> None:
 async def test_action_enc_cmd(hass: HomeAssistant) -> None:
     """Test device action enc_cmd."""
     conf_entry = await create_base_entry(hass, "my_entry", {})
-    device = hass.data[DOMAIN][conf_entry.entry_id]
-    assert hasattr(device, "config_entry_id")
-    dev2 = await get_device_from_id(hass, device.device_id)
-    assert dev2 == device
+    device_entry = get_device_entry_from_entry(hass, conf_entry)
+    assert device_entry is not None
+    assert hasattr(device_entry, "config_entry_id")
+    dev2 = await get_device_from_id(hass, device_entry.id)
+    assert dev2 == conf_entry.runtime_data
     with pytest.raises(vol.Invalid):
         await get_device_from_id(hass, "unknown")

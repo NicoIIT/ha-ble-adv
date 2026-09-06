@@ -35,7 +35,7 @@ from .codecs.const import (
     LIGHT_TYPE_ONOFF,
     LIGHT_TYPE_RGB,
 )
-from .const import CONF_EFFECTS, CONF_FORCED_CMDS, CONF_LIGHTS, CONF_MIN_BRIGHTNESS, CONF_REFRESH_ON_START, CONF_REVERSED, DOMAIN
+from .const import CONF_EFFECTS, CONF_FORCED_CMDS, CONF_LIGHTS, CONF_MIN_BRIGHTNESS, CONF_REFRESH_ON_START, CONF_REVERSED
 from .device import ATTR_IS_ON, BleAdvDevice, BleAdvEntAttr, BleAdvEntity, BleAdvStateAttribute
 
 
@@ -63,9 +63,9 @@ def create_entity(options: dict[str, Any], device: BleAdvDevice, index: int) -> 
     return light
 
 
-async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback) -> None:
+async def async_setup_entry(_: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback) -> None:
     """Entr setup."""
-    device: BleAdvDevice = hass.data[DOMAIN][entry.entry_id]
+    device: BleAdvDevice = entry.runtime_data
     entities = [create_entity(options, device, i) for i, options in enumerate(entry.data[CONF_LIGHTS]) if CONF_TYPE in options]
     async_add_entities(entities, True)
 

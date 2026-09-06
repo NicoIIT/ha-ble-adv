@@ -19,14 +19,14 @@ async def test_diagnostics(hass: HomeAssistant) -> None:
     diag["coordinator"]["bt_managers"]["esp"]["logs"].clear()
     diag["coordinator"]["bt_managers"]["hci"]["logs"].clear()
     diag["coordinator"]["bt_managers"]["hci"]["supported_by_host"] = True
-    diag["coordinator"]["bt_managers"]["shelly"]["logs"].clear()
+    diag["coordinator"]["bt_managers"]["shl"]["logs"].clear()
     diag["coordinator"]["logs"].clear()
     assert diag == {
         "coordinator": {
             "bt_managers": {
-                "esp": {"adapters": {}, "ids": {}, "logs": []},
                 "hci": {"adapters": {}, "ids": {}, "logs": [], "supported_by_host": True},
-                "shelly": {"adapters": {}, "ids": {}, "logs": []},
+                "esp": {"adapters": {}, "ids": {}, "logs": []},
+                "shl": {"adapters": {}, "ids": {}, "logs": []},
             },
             "ign_adapters": ["hci"],
             "ign_duration": 60000,
