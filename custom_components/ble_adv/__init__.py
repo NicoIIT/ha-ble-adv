@@ -84,6 +84,8 @@ CONFIG_SCHEMA = vol.Schema(
     extra=vol.ALLOW_EXTRA,
 )
 
+type BleAdvConfigEntry = ConfigEntry[BleAdvDevice]
+
 
 @singleton(f"{DOMAIN}/{CONF_COORDINATOR_ID}")
 async def get_coordinator(hass: HomeAssistant) -> BleAdvCoordinator:
@@ -119,7 +121,7 @@ async def async_setup(hass: HomeAssistant, conf: ConfigType) -> bool:
     return True
 
 
-async def async_migrate_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> bool:
+async def async_migrate_entry(hass: HomeAssistant, config_entry: BleAdvConfigEntry) -> bool:
     """Migrate old entry."""
 
     new_data = {**config_entry.data}
@@ -197,7 +199,7 @@ async def async_migrate_entry(hass: HomeAssistant, config_entry: ConfigEntry) ->
     return True
 
 
-async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
+async def async_setup_entry(hass: HomeAssistant, entry: BleAdvConfigEntry) -> bool:
     """Set up BLE ADV from a config entry."""
     _LOGGER.debug(f"BLE ADV: Setting up entry {entry.unique_id} / {entry.data}")
 
@@ -205,16 +207,20 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         _LOGGER.warning("entry ignored as unique_id is None.")
         return False
 
-    hass.data.setdefault(DOMAIN, {})
     device_conf = entry.data[CONF_DEVICE]
     tech_conf = entry.data[CONF_TECHNICAL]
     coordinator = await get_coordinator(hass)
-    device = BleAdvDevice(
+
+    # Lazy migration to prefixed adapter names for legacy "esp" adapters, allowing seemless fallback
+    prefixes = tuple(f"{bt_manager.name}/" for bt_manager in coordinator.bt_managers)
+    adapter_ids = [a if a.startswith(prefixes) else f"esp/{a}" for a in tech_conf[CONF_ADAPTER_IDS]]
+
+    entry.runtime_data = BleAdvDevice(
         hass,
         entry.unique_id,
         entry.title,
         device_conf[CONF_CODEC_ID],
-        tech_conf[CONF_ADAPTER_IDS],
+        adapter_ids,
         tech_conf[CONF_REPEATS],
         tech_conf[CONF_INTERVAL],
         tech_conf[CONF_DURATION],
@@ -222,14 +228,13 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         coordinator,
     )
     for rconf in entry.data[CONF_REMOTES]:
-        device.add_listener(
+        entry.runtime_data.add_listener(
             rconf[CONF_CODEC_ID],
             BleAdvConfig(rconf[CONF_FORCED_ID], rconf[CONF_INDEX], rconf.get(CONF_PARAMS), rconf.get(CONF_TRANS_SET)),
             rconf.get(CONF_PAIRED, True),
         )
 
-    hass.data[DOMAIN][entry.entry_id] = device
-    coordinator.add_device(device)
+    coordinator.add_device(entry.runtime_data)
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
 
     return True
@@ -241,5 +246,5 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     unload_ok = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
     if unload_ok:
         coordinator = await get_coordinator(hass)
-        coordinator.remove_device(hass.data[DOMAIN].pop(entry.entry_id))
+        coordinator.remove_device(entry.runtime_data)
     return unload_ok

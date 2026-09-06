@@ -6,7 +6,7 @@ from unittest import mock
 
 import pytest
 import voluptuous as vol
-from ble_adv import async_setup, get_coordinator
+from ble_adv import BleAdvConfigEntry, async_setup, get_coordinator
 from ble_adv.codecs.models import BleAdvEntAttr
 from ble_adv.const import CONF_LAST_VERSION, DOMAIN
 from ble_adv.coordinator import BleAdvCoordinator
@@ -23,6 +23,7 @@ from homeassistant.const import STATE_UNAVAILABLE
 from homeassistant.core import HomeAssistant, ServiceCall
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import entity_registry as er
+from homeassistant.helpers.device_registry import DeviceEntry
 
 
 class _Device(mock.AsyncMock):
@@ -201,12 +202,12 @@ class MockShellyEntry:
         self.shelly_conf.runtime_data = None
 
 
-async def create_base_entry(hass: HomeAssistant, entry_id: str | None, data: dict[str, Any], version: int = CONF_LAST_VERSION) -> ConfigEntry:
+async def create_base_entry(hass: HomeAssistant, unique_id: str | None, data: dict[str, Any], version: int = CONF_LAST_VERSION) -> BleAdvConfigEntry:
     """Create a base Entry with default attributes."""
     # for higher HA versions, add parameter: subentries_data=[],
     conf = ConfigEntry(
         domain=DOMAIN,
-        unique_id=entry_id,
+        unique_id=unique_id,
         data=data,
         version=version,
         minor_version=0,
@@ -217,13 +218,23 @@ async def create_base_entry(hass: HomeAssistant, entry_id: str | None, data: dic
         subentries_data={},
     )
     await hass.config_entries.async_add(entry=conf)
-    if entry_id is not None:
-        device = _Device()
-        dev_entry = dr.async_get(hass).async_get_or_create(config_entry_id=conf.entry_id, identifiers={(DOMAIN, device.unique_id)})
-        device.device_id = dev_entry.id
-        hass.data.setdefault(DOMAIN, {})[conf.entry_id] = device
+    if unique_id is not None:
+        conf.runtime_data = _Device()
+        conf.runtime_data.unique_id = unique_id
+        dr.async_get(hass).async_get_or_create(config_entry_id=conf.entry_id, identifiers={(DOMAIN, conf.runtime_data.unique_id)})
 
     return conf
+
+
+def get_device_entry_from_entry(hass: HomeAssistant, entry: BleAdvConfigEntry) -> DeviceEntry | None:
+    """Get DeviceEntry from config entry."""
+    return dr.async_get(hass).async_get_device_by_identifier((DOMAIN, entry.runtime_data.unique_id), entry.entry_id)
+
+
+def get_device_entry_id_from_entry(hass: HomeAssistant, entry: BleAdvConfigEntry) -> str:
+    """Get device id."""
+    dev_entry = get_device_entry_from_entry(hass, entry)
+    return dev_entry.id if dev_entry is not None else ""
 
 
 @pytest.fixture

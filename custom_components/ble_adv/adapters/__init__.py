@@ -507,6 +507,11 @@ class BleAdvBtManager:
         self.logger = _AdapterLoggingAdapter(_LOGGER, {"name": self.name})
 
     @property
+    def disabled(self) -> bool:
+        """Is BT manager disabled."""
+        return any(nm in self._ign_adapters for nm in (self.name, f"{self.name}/"))
+
+    @property
     def adapters(self) -> dict[str, BleAdvAdapter]:
         """Get adapters dict."""
         return self._adapters
@@ -519,6 +524,9 @@ class BleAdvBtManager:
         """Add a diagnostic log."""
         self.logger.log(log_level, msg)
         self._diags.append(f"{datetime.now()} - {msg}")
+
+    def _full_adapter_name(self, min_adapter_name: str) -> str:
+        return f"{self.name}/{min_adapter_name}"
 
     def _ignored_adapter(self, adapter_name: str) -> bool:
         return any(adapter_name.startswith(ign_adp) for ign_adp in self._ign_adapters)
@@ -566,10 +574,10 @@ class BleAdvBtHciManager(BleAdvBtManager):
     MGMT_CMD_RTO: float = 3.0
     RECONNECT_RTO: float = 1.0
     NB_INIT_RETRY: int = 8
-    CONF_HCI: str = "hci"
+    NAME: str = "hci"
 
     def __init__(self, adv_recv_callback: AdvRecvCallback, adapter_event_callback: AdapterEventCallback, ign_adapters: list[str]) -> None:
-        super().__init__(self.CONF_HCI, adv_recv_callback, adapter_event_callback, ign_adapters)
+        super().__init__(BleAdvBtHciManager.NAME, adv_recv_callback, adapter_event_callback, ign_adapters)
         self._mgmt_sock: AsyncSocketBase | None = None
         self._mgmt_cmd_event = asyncio.Event()
         self._og_mgmt_cmd = None
@@ -578,7 +586,6 @@ class BleAdvBtHciManager(BleAdvBtManager):
         self._adv_lock = asyncio.Lock()
         self._mgmt_opened = False
         self._reconnecting: bool = False
-        self._disabled = self.CONF_HCI in ign_adapters
 
     @property
     def supported_by_host(self) -> bool:
@@ -614,10 +621,6 @@ class BleAdvBtHciManager(BleAdvBtManager):
 
     async def _async_init_retry(self, nb_retry: int = 1, wait_retry: float = 1.0) -> None:
         """Init the handler: init the MGMT Socket and the discovered adapters, with retry."""
-        if self._disabled:
-            self._add_diag("HCI Adapters disabled.", logging.INFO)
-            return
-
         # Acquire MGMT connection and get adapter infos, with retry
         nb_retry_mgmt = nb_retry
         adapt_info: list[tuple[int, str]] | None = None
@@ -643,10 +646,10 @@ class BleAdvBtHciManager(BleAdvBtManager):
             nb_retry_adapt -= 1
             rem_failed_adapt: list[tuple[int, str]] = []
             for dev_id, btaddr in failed_adapt:
-                name = f"{self.CONF_HCI}/{btaddr}"
-                adapter = BluetoothHCIAdapter(name, dev_id, btaddr, self.send_mgmt_cmd, self._adv_recv, self._hci_adapter_error)
+                adapter_name = self._full_adapter_name(btaddr)
+                adapter = BluetoothHCIAdapter(adapter_name, dev_id, btaddr, self.send_mgmt_cmd, self._adv_recv, self._hci_adapter_error)
                 try:
-                    await self._add_adapter(name, str(dev_id), adapter)
+                    await self._add_adapter(adapter_name, str(dev_id), adapter)
                 except BaseException as exc:
                     self._add_diag(f"Failed HCI Adapter init - {exc}. {nb_retry_adapt} remaining retries, waiting {wait_retry}s before next try.")
                     await adapter.async_final()

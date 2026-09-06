@@ -46,30 +46,30 @@ async def test_coordinator(hass: HomeAssistant, coord: BleAdvCoordinator) -> Non
     coord.codecs = _get_codecs()
     assert list(coord.codecs.keys()) == ["cod1", "cod2/a"]
     assert coord.get_adapter_ids() == []
-    dev1 = _Device(coord, "dev1", "cod1", ["esp-test"])
+    dev1 = _Device(coord, "dev1", "cod1", ["esp/test"])
     coord.add_device(dev1)
-    t1 = MockEspProxy(hass, "esp-test")
+    t1 = MockEspProxy(hass, "test")
     await t1.setup()
-    assert coord.get_adapter_ids() == ["esp-test"]
+    assert coord.get_adapter_ids() == ["esp/test"]
     adv = BleAdvAdvertisement(0xFF, b"dtwithminlen", 0x1A)
     qi = BleAdvQueueItem(0x10, 1, 100, 20, [adv.to_raw()], 2)
-    await coord.advertise("not-exists", "q1", qi)
-    await coord.advertise("esp-test", "q1", qi)
-    await coord._bt_managers["esp"].adapters["esp-test"].drain()  # noqa: SLF001
+    await coord.advertise("esp/not-exists", "q1", qi)
+    await coord.advertise("esp/test", "q1", qi)
+    await coord.bt_managers[1].adapters["esp/test"].drain()
     assert t1.get_adv_calls() == [{"raw": adv.to_raw().hex()}]
-    await coord.handle_raw_adv("esp-test", "", adv.to_raw())
+    await coord.handle_raw_adv("esp/test", "", adv.to_raw())
     await t1.recv(adv.to_raw().hex())
     adv.ad_flag = 0x1B
-    await coord.handle_raw_adv("esp-test", "", adv.to_raw())
-    await coord.handle_raw_adv("esp-test", "", b"invalid_adv")
-    await coord.advertise("esp-test", "q1", qi)
-    await coord._bt_managers["esp"].adapters["esp-test"].drain()  # noqa: SLF001
+    await coord.handle_raw_adv("esp/test", "", adv.to_raw())
+    await coord.handle_raw_adv("esp/test", "", b"invalid_adv")
+    await coord.advertise("esp/test", "q1", qi)
+    await coord.bt_managers[1].adapters["esp/test"].drain()
     coord.remove_device(dev1)
 
     dev2 = _Device(coord, "dev1", "cod1", ["other"])
     coord.add_device(dev2)
     adv2 = BleAdvAdvertisement(0xFF, b"2dt2", 0x1A)
-    await coord.handle_raw_adv("esp-test", "", adv2.to_raw())
+    await coord.handle_raw_adv("esp/test", "", adv2.to_raw())
     coord.remove_device(dev2)
     assert coord.has_available_adapters()
 
@@ -79,15 +79,15 @@ async def test_device_pub(hass: HomeAssistant, coord: BleAdvCoordinator) -> None
     codecs = _get_codecs()
     cod1: BleAdvCodec = codecs["cod1"]
     coord.codecs = _get_codecs()
-    dev1 = _Device(coord, "dev1", "cod1", ["esp-test"])
+    dev1 = _Device(coord, "dev1", "cod1", ["esp/test"])
     dev1.add_listener("cod1", BleAdvConfig(1, 0), True)
     assert dev1.prev_cmd is None
     coord.add_device(dev1)
-    t1 = MockEspProxy(hass, "esp-test")
+    t1 = MockEspProxy(hass, "test")
     await t1.setup()
     base_adv1 = b"base_adv_nb1"
     adv1 = BleAdvAdvertisement(0xFF, base_adv1, 0x1A)
-    await coord.handle_raw_adv("esp-test", "", bytes(adv1.to_raw()))
+    await coord.handle_raw_adv("esp/test", "", bytes(adv1.to_raw()))
     cod1.consolidate.assert_called_once_with(BleAdvEncCmd(0x10), None)  # type: ignore[mock]
     cod1.consolidate.reset_mock()  # type: ignore[mock]
     recv1 = coord._dec_last_advs.get(base_adv1)  # noqa: SLF001
@@ -98,7 +98,7 @@ async def test_device_pub(hass: HomeAssistant, coord: BleAdvCoordinator) -> None
     dev1.prev_cmd = BleAdvEncCmd(0x20)
     base_adv2 = b"base_adv_nb2"
     adv2 = BleAdvAdvertisement(0xFF, base_adv2, 0x1A)
-    await coord.handle_raw_adv("esp-test", "", bytes(adv2.to_raw()))
+    await coord.handle_raw_adv("esp/test", "", bytes(adv2.to_raw()))
     cod1.consolidate.assert_called_once_with(BleAdvEncCmd(0x10), BleAdvEncCmd(0x20))  # type: ignore[mock]
     recv2 = coord._dec_last_advs.get(base_adv2)  # noqa: SLF001
     assert recv2 is not None
@@ -110,7 +110,7 @@ async def test_deduplicate_tx_count_seed(coord: BleAdvCoordinator) -> None:
     codecs = _get_codecs()
     cod1: BleAdvCodec = codecs["cod1"]
     coord.codecs = _get_codecs()
-    dev1 = _Device(coord, "dev1", "cod1", ["esp-test"])
+    dev1 = _Device(coord, "dev1", "cod1", ["esp/test"])
     dev1.add_listener("cod1", BleAdvConfig(1, 0), True)
     dev1.async_on_command = mock.AsyncMock()
     assert dev1.prev_cmd is None
@@ -120,33 +120,33 @@ async def test_deduplicate_tx_count_seed(coord: BleAdvCoordinator) -> None:
     conf1 = BleAdvConfig(1, 0)
     conf1.tx_count = 1
     recv1 = BleAdvRecvItem(datetime.now(), cod1, set(), conf1, BleAdvEncCmd(0x10))
-    await coord._publish_to_devices("esp-test", recv1)  # noqa: SLF001
+    await coord._publish_to_devices("esp/test", recv1)  # noqa: SLF001
     dev1.async_on_command.assert_called_once_with([], False)
     dev1.async_on_command.reset_mock()
     # Recv command with different tx_count: OK
     conf2 = BleAdvConfig(1, 0)
     conf2.tx_count = 2
     recv2 = BleAdvRecvItem(datetime.now(), cod1, set(), conf2, BleAdvEncCmd(0x10))
-    await coord._publish_to_devices("esp-test", recv2)  # noqa: SLF001
+    await coord._publish_to_devices("esp/test", recv2)  # noqa: SLF001
     dev1.async_on_command.assert_called_once_with([], False)
     dev1.async_on_command.reset_mock()
     # RE recv same: command ignored
     conf2 = BleAdvConfig(1, 0)
     conf2.tx_count = 2
     recv2 = BleAdvRecvItem(datetime.now(), cod1, set(), conf2, BleAdvEncCmd(0x10))
-    await coord._publish_to_devices("esp-test", recv2)  # noqa: SLF001
+    await coord._publish_to_devices("esp/test", recv2)  # noqa: SLF001
     dev1.async_on_command.assert_not_called()
     dev1.async_on_command.reset_mock()
     # receive with tx_count = 0 and seed = 0 => always ok
     conf0 = BleAdvConfig(1, 0)
     recv0 = BleAdvRecvItem(datetime.now(), cod1, set(), conf0, BleAdvEncCmd(0x10))
-    await coord._publish_to_devices("esp-test", recv0)  # noqa: SLF001
+    await coord._publish_to_devices("esp/test", recv0)  # noqa: SLF001
     dev1.async_on_command.assert_called_once_with([], False)
     dev1.async_on_command.reset_mock()
     # RE receive with tx_count = 0 and seed = 0 => always ok
     conf0 = BleAdvConfig(1, 0)
     recv0 = BleAdvRecvItem(datetime.now(), cod1, set(), conf0, BleAdvEncCmd(0x10))
-    await coord._publish_to_devices("esp-test", recv0)  # noqa: SLF001
+    await coord._publish_to_devices("esp/test", recv0)  # noqa: SLF001
     dev1.async_on_command.assert_called_once_with([], False)
     dev1.async_on_command.reset_mock()
 
@@ -186,9 +186,9 @@ async def test_ign_mac(coord: BleAdvCoordinator) -> None:
 
 async def test_adapter_mac(hass: HomeAssistant, coord: BleAdvCoordinator) -> None:
     """Test Adapter Macs are ignored."""
-    t1 = MockEspProxy(hass, "esp-test")
+    t1 = MockEspProxy(hass, "test")
     await t1.setup()
-    assert coord.get_adapter_ids() == ["esp-test"]
+    assert coord.get_adapter_ids() == ["esp/test"]
     coord.start_listening(0.1)
     raw_adv = bytes([0x03, 0xFF, 0x12, 0x34, 0x12, 0x34, 0x12, 0x34])
     await coord.handle_raw_adv("aaa", "00:00:00:00:00:00", raw_adv)
@@ -198,17 +198,17 @@ async def test_adapter_mac(hass: HomeAssistant, coord: BleAdvCoordinator) -> Non
 async def test_inject_raw(hass: HomeAssistant, coord: BleAdvCoordinator) -> None:
     """Test Raw Injection."""
     coord.advertise = mock.AsyncMock()
-    t1 = MockEspProxy(hass, "esp-test")
+    t1 = MockEspProxy(hass, "test")
     await t1.setup()
-    assert coord.get_adapter_ids() == ["esp-test"]
+    assert coord.get_adapter_ids() == ["esp/test"]
     params = {CONF_DURATION: 100, CONF_REPEAT: 1, CONF_INTERVAL: 10, CONF_DEVICE_QUEUE: "test"}
-    errors = await coord.inject_raw({CONF_RAW: "1234", CONF_ADAPTER_ID: "esp-test", **params})
+    errors = await coord.inject_raw({CONF_RAW: "1234", CONF_ADAPTER_ID: "esp/test", **params})
     assert errors == {}
-    coord.advertise.assert_awaited_once_with("esp-test", "test", BleAdvQueueItem(None, 1, 100, 10, [bytes([0x12, 0x34])], 2))
-    errors = await coord.inject_raw({CONF_RAW: "123", CONF_ADAPTER_ID: "esp-test", **params})
+    coord.advertise.assert_awaited_once_with("esp/test", "test", BleAdvQueueItem(None, 1, 100, 10, [bytes([0x12, 0x34])], 2))
+    errors = await coord.inject_raw({CONF_RAW: "123", CONF_ADAPTER_ID: "esp/test", **params})
     assert errors == {CONF_RAW: "Cannot convert to bytes"}
     errors = await coord.inject_raw({CONF_RAW: "123a", CONF_ADAPTER_ID: "not exists", **params})
-    assert errors == {CONF_ADAPTER_ID: "Should be in ['esp-test']"}
+    assert errors == {CONF_ADAPTER_ID: "Should be in ['esp/test']"}
     await coord.async_final()
 
 

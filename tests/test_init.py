@@ -33,7 +33,7 @@ from ble_adv.coordinator import BleAdvCoordinator
 from homeassistant.const import CONF_DEVICE, CONF_NAME
 from homeassistant.core import HomeAssistant
 
-from .conftest import create_base_entry
+from .conftest import create_base_entry, get_device_entry_from_entry
 
 
 @pytest.mark.usefixtures("coord")
@@ -87,14 +87,14 @@ async def test_setup_entry(hass: HomeAssistant, coord: BleAdvCoordinator) -> Non
     entry = await create_base_entry(hass, "idlast", BASE_CONF_W_REMOTE)
     hass.config_entries.async_forward_entry_setups = mock.AsyncMock()
     await async_setup_entry(hass, entry)
-    assert entry.entry_id in hass.data[DOMAIN]
+    assert get_device_entry_from_entry(hass, entry) is not None
+    assert coord._devices[0].adapter_ids == {"esp/adapter_id"}  # noqa: SLF001
     coord.inject_raw = mock.AsyncMock(return_value={"test": "error"})
     await hass.services.async_call(DOMAIN, "inject_raw", {CONF_ADAPTER_ID: "a", CONF_RAW: "r"})
     coord.inject_raw.assert_awaited_once_with(
         {"adapter_id": "a", "raw": "r", "device_queue": "device", "interval": 20.0, "repeat": 3.0, "duration": 800.0}
     )
     await async_unload_entry(hass, entry)
-    assert entry.entry_id not in hass.data[DOMAIN]
 
 
 @pytest.mark.usefixtures("coord")

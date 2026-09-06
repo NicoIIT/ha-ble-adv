@@ -6,10 +6,9 @@ from unittest import mock
 import pytest
 import voluptuous as vol
 from ble_adv import device_action
-from ble_adv.const import DOMAIN
 from homeassistant.core import HomeAssistant
 
-from .conftest import create_base_entry
+from .conftest import create_base_entry, get_device_entry_id_from_entry
 
 
 async def test_list_action(hass: HomeAssistant) -> None:
@@ -21,7 +20,7 @@ async def test_list_action(hass: HomeAssistant) -> None:
 async def test_action_enc_cmd(hass: HomeAssistant) -> None:
     """Test device action enc_cmd."""
     conf_entry = await create_base_entry(hass, "my_entry", {})
-    device_id = hass.data[DOMAIN][conf_entry.entry_id].device_id
+    device_id = get_device_entry_id_from_entry(hass, conf_entry)
     conf = {"device_id": device_id, "domain": "ble_adv", "platform": "device", "type": "enc_cmd", "cmd": 0}
     await device_action.async_validate_action_config(hass, conf)
     await device_action.async_call_action_from_config(hass, conf, mock.MagicMock(), mock.MagicMock())

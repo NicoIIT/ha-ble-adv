@@ -232,5 +232,6 @@ async def test_btmanager_hci_error(bt_manager: BleAdvBtHciManager) -> None:
 
 async def test_ignored_hci() -> None:
     bt_manager = BleAdvBtHciManager(mock.AsyncMock(), mock.AsyncMock(), ["hci"])
-    await bt_manager.async_init()
-    assert bt_manager._disabled
+    assert bt_manager.disabled
+    bt_manager = BleAdvBtHciManager(mock.AsyncMock(), mock.AsyncMock(), ["hci/"])
+    assert bt_manager.disabled
