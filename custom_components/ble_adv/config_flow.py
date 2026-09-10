@@ -478,7 +478,8 @@ class BleAdvConfigFlow(ConfigFlow, domain=DOMAIN):
     async def async_step_tools(self, _: dict[str, Any] | None = None) -> ConfigFlowResult:
         """Tooling Step."""
         self._return_step_after_diag = "tools"
-        return self.async_show_menu(step_id="tools", menu_options=["diag", "manual", "inject", "listen_raw", "decode_raw"])
+        supp_menus = ["manual", "decode_raw", "inject"] if self.coordinator.maintainer_menus else []
+        return self.async_show_menu(step_id="tools", menu_options=["diag", "listen_raw", *supp_menus])
 
     async def async_step_diag(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         """Diagnostic step."""
@@ -549,8 +550,12 @@ class BleAdvConfigFlow(ConfigFlow, domain=DOMAIN):
     async def async_step_manual(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         """Manual input step."""
         if user_input is not None:
-            codec_id_old = user_input.pop(CONF_CODEC_ID_OLD)
-            (codec_id, params) = DYN_CODEC_PARAM_MAP.get(codec_id_old, (codec_id_old, []))
+            if CONF_PARAMS in user_input:
+                codec_id = user_input[CONF_CODEC_ID_OLD]
+                params = user_input[CONF_PARAMS]
+            else:
+                codec_id_old = user_input.pop(CONF_CODEC_ID_OLD)
+                (codec_id, params) = DYN_CODEC_PARAM_MAP.get(codec_id_old, (codec_id_old, []))
             codec = _CodecConfig(codec_id, int(f"0x{user_input[CONF_FORCED_ID]}", 16), int(user_input[CONF_INDEX]), params)
             self._confs = BleAdvConfigHandler({user_input[CONF_ADAPTER_ID]: [codec]})
             self._add_diag(f"Step Manual - confs: {self._confs}")
@@ -561,6 +566,7 @@ class BleAdvConfigFlow(ConfigFlow, domain=DOMAIN):
             {
                 vol.Required(CONF_ADAPTER_ID): vol.In(self.coordinator.get_adapter_ids()),
                 vol.Required(CONF_CODEC_ID_OLD): vol.In(sorted(set(DYN_CODEC_PARAM_MAP.keys()).union(set(self.coordinator.codecs.keys())))),
+                vol.Optional(CONF_PARAMS): selector.ObjectSelector(selector.ObjectSelectorConfig()),
                 vol.Required(CONF_FORCED_ID): selector.TextSelector(selector.TextSelectorConfig(prefix="0x")),
                 vol.Required(CONF_INDEX): selector.NumberSelector(
                     selector.NumberSelectorConfig(step=1, min=0, max=255, mode=selector.NumberSelectorMode.BOX)

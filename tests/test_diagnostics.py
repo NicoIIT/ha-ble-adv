@@ -32,6 +32,8 @@ async def test_diagnostics(hass: HomeAssistant) -> None:
             "ign_duration": 60000,
             "ign_cids": list({*CONF_GOOGLE_LCC_UUIDS, *CONF_APPLE_INC_UUIDS}),
             "ign_macs": [],
+            "keep_recv": 100,
+            "maintainer_menus": False,
             "adapter_macs": [],
             "last_dec_raw": {},
             "last_unk_raw": {},

@@ -151,6 +151,7 @@ class BleAdvCoordinator:
         ign_cids: list[int],
         ign_macs: list[str],
         keep_recv: int,
+        maintainer_menus: bool,
     ) -> None:
         """Init."""
         self.hass: HomeAssistant = hass
@@ -159,6 +160,7 @@ class BleAdvCoordinator:
         self.ign_macs: set[str] = set(ign_macs)
         self.ign_duration: int = ign_duration
         self.ign_adapters = ign_adapters
+        self.maintainer_menus = maintainer_menus
 
         self._raw_last_advs: dict[bytes, datetime] = {}
         self._dec_last_advs: dict[bytes, BleAdvRecvItem] = {}
@@ -377,6 +379,8 @@ class BleAdvCoordinator:
             "ign_duration": self.ign_duration,
             "ign_cids": list(self.ign_cids),
             "ign_macs": list(self.ign_macs),
+            "keep_recv": self._diags.maxlen,
+            "maintainer_menus": self.maintainer_menus,
             "adapter_macs": list(self._adapter_macs),
             "last_unk_raw": {x.hex().upper(): y for x, y in self._raw_last_advs.items()},
             "last_dec_raw": {x.hex().upper(): y for x, y in self._dec_last_advs.items()},
