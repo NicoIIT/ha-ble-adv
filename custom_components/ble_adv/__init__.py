@@ -34,6 +34,7 @@ from .const import (
     CONF_KEEP_RECV,
     CONF_LAST_VERSION,
     CONF_LIGHTS,
+    CONF_MAINTAINER_MENUS,
     CONF_MAX_ENTITY_NB,
     CONF_PAIRED,
     CONF_PARAMS,
@@ -78,6 +79,7 @@ CONFIG_SCHEMA = vol.Schema(
                 vol.Optional(CONF_IGN_CIDS): vol.All(cv.ensure_list, [vol.All(vol.Coerce(int), vol.Range(min=0, max=0xFFFF))]),
                 vol.Optional(CONF_IGN_MACS): vol.All(cv.ensure_list, [cv.string]),
                 vol.Optional(CONF_KEEP_RECV): vol.All(vol.Coerce(int), vol.Range(min=0, max=10000)),
+                vol.Optional(CONF_MAINTAINER_MENUS): cv.boolean,
             }
         )
     },
@@ -99,6 +101,7 @@ async def get_coordinator(hass: HomeAssistant) -> BleAdvCoordinator:
         conf.get(CONF_IGN_CIDS, [*CONF_GOOGLE_LCC_UUIDS, *CONF_APPLE_INC_UUIDS]),
         conf.get(CONF_IGN_MACS, []),
         conf.get(CONF_KEEP_RECV, 100),
+        conf.get(CONF_MAINTAINER_MENUS, False),
     )
     await coordinator.async_init()
     return coordinator

@@ -17,6 +17,7 @@ logger:
 
 ble_adv:
   ignored_duration: 60000
+  maintainer_menus: true
   # ignored_macs:
   #   - 64:F0:AD:38:DC:E2
   #   - C4:8B:78:8E:07:E2
