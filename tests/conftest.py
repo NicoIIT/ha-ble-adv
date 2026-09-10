@@ -152,7 +152,8 @@ class MockShellyEntry:
         self.rpc_device._update_listener = self.prev_listener  # noqa: SLF001
         self.rpc_device.call_rpc = mock.AsyncMock()
         self.rpc_device.methods_list = mock.AsyncMock(return_value=["BLE.AdvertiseOnce"])
-        self.rpc_device.config = {"ble": {"enable": True}}
+        self.rpc_device.config = {"ble": {}}
+        self.rpc_device.status = {"ble": {}}
         self.rpc_device.shelly = {"mac": self._mac}
         self.rpc_device.initialized = True
 

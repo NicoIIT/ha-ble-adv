@@ -203,9 +203,8 @@ class BleAdvShellyBtManager(BleAdvBtManager):
 
     async def _create_adapter(self, adapter_name: str, rpc_device: RpcDevice, conf_id: str) -> None:
         """Validate an initialized device (RPC_BLE_ADVERT_METHOD available and BLE activated) and create the adapter instance."""
-        if not rpc_device.config.get("ble", {}).get("enable", False):
-            self._add_diag(f"Discarded '{adapter_name}': BLE not activated", logging.INFO)
-            return
+        self._add_diag(f"Config '{adapter_name}': {rpc_device.config}")
+        self._add_diag(f"Status '{adapter_name}': {rpc_device.status}")
 
         methods_list = await rpc_device.methods_list()
         if RPC_BLE_ADVERT_METHOD not in methods_list:
