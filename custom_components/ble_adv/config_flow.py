@@ -21,6 +21,7 @@ from homeassistant.data_entry_flow import section
 from homeassistant.helpers import selector
 from homeassistant.helpers.http import HomeAssistantView
 from homeassistant.helpers.json import ExtendedJSONEncoder
+from homeassistant.helpers.network import get_url
 
 from . import get_coordinator
 from .codecs import DYN_CODEC_PARAM_MAP, PHONE_APPS, codec_from_dyn
@@ -446,7 +447,7 @@ class BleAdvConfigFlow(ConfigFlow, domain=DOMAIN):
 
         api_view = BleAdvConfigView(self.flow_id, api_resp)
         self.hass.http.register_view(api_view)
-        return api_view.full_url
+        return f"{get_url(self.hass)}{api_view.full_url}"
 
     def _create_api_json_view(self, name: str, data: dict[str, Any]) -> str:
         return self._create_api_view(
