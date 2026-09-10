@@ -11,9 +11,7 @@ from ble_adv.config_flow import (
     BleAdvConfigFlow,
     BleAdvConfigHandler,
     BleAdvConfigView,
-    BleAdvPairProgressFlow,
-    BleAdvTestFanProgressFlow,
-    BleAdvTestLightProgressFlow,
+    BleAdvProgressFlow,
     BleAdvWaitConfigProgress,
     BleAdvWaitRawAdvProgress,
     _CodecConfig,
@@ -46,37 +44,31 @@ async def test_api_view() -> None:
     assert await av.get(None, "flow") == av.NOT_FOUND_RESP  # type: ignore[none]
 
 
-async def test_light_progress(hass: HomeAssistant) -> None:
-    """Test BleAdvTestLightProgressFlow."""
+async def test_flow_progress(hass: HomeAssistant) -> None:
+    """Test BleAdvProgressFlow."""
     flow = BleAdvConfigFlow()
-    flow.async_test_light = mock.AsyncMock()
+    action_mock = mock.AsyncMock()
     flow.hass = hass
-    mtp = BleAdvTestLightProgressFlow(flow, "step", {})
-    mtp.next()
-    flow.async_test_light.assert_called_once()
+    mtp = BleAdvProgressFlow(flow, "step", action_mock)
+    assert mtp.next() is not None
+    assert len(flow._diags) == 0  # noqa: SLF001
+    action_mock.assert_called_once()
+    action_mock.reset_mock()
+    # The second call to next is only triggering a sleep of 0.1s
+    assert mtp.next() is not None
+    await asyncio.sleep(0.2)
     assert mtp.next() is None
 
+    async def exception_action() -> None:
+        raise Exception("test")  # noqa: TRY002
 
-async def test_fan_progress(hass: HomeAssistant) -> None:
-    """Test BleAdvTestFanProgressFlow."""
-    flow = BleAdvConfigFlow()
-    flow.async_test_fan = mock.AsyncMock()
-    flow.hass = hass
-    mtp = BleAdvTestFanProgressFlow(flow, "step", {})
-    mtp.next()
-    flow.async_test_fan.assert_called_once()
-    assert mtp.next() is None
-
-
-async def test_pair_progress(hass: HomeAssistant) -> None:
-    """Test BleAdvPairProgressFlow."""
-    flow = BleAdvConfigFlow()
-    flow.async_pair_all = mock.AsyncMock()
-    flow.hass = hass
-    mtp = BleAdvPairProgressFlow(flow, "step", {})
-    mtp.next()
-    flow.async_pair_all.assert_called_once()
-    assert mtp.next() is None
+    exc = BleAdvProgressFlow(flow, "step", exception_action)
+    assert exc.next() is not None
+    assert len(flow._diags) == 1  # noqa: SLF001
+    # The second call to next is only triggering a sleep of 0.1s
+    assert exc.next() is not None
+    await asyncio.sleep(0.2)
+    assert exc.next() is None
 
 
 async def test_wait_config_progress(hass: HomeAssistant) -> None:

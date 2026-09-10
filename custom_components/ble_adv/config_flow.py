@@ -6,7 +6,7 @@ import asyncio
 import json
 import logging
 from abc import abstractmethod
-from collections.abc import Awaitable, Callable
+from collections.abc import Awaitable, Callable, Coroutine
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from http import HTTPStatus
@@ -148,7 +148,7 @@ class _ActionResult:
 class BleAdvProgressFlowBase:
     """Base Progress Flow."""
 
-    def __init__(self, flow: BleAdvConfigFlow, step_id: str, ph: dict[str, str]) -> None:
+    def __init__(self, flow: BleAdvConfigFlow, step_id: str, ph: dict[str, str] | None = None) -> None:
         self._flow: BleAdvConfigFlow = flow
         self._step_id: str = step_id
         self._task: asyncio.Task | None = None
@@ -156,54 +156,44 @@ class BleAdvProgressFlowBase:
         self._exit = False
 
     @abstractmethod
-    async def _action_task(self) -> None:
-        """Task to be implemented by child. Called in loop, updates _result until the _exit is setup."""
-
-    def _update_action_result(self, result: _ActionResult) -> bool:
-        if result.name is not None and self._result.name != result.name:
-            self._result.name = result.name
-            return True
-        if result.ph is not None and self._result.ph != result.ph:
-            self._result.ph = result.ph
-            return True
-        return False
+    async def _process_action(self) -> None:
+        """Process Action."""
 
     def next(self) -> ConfigFlowResult | None:
         """Execute next step of the Progress Flow."""
         if self._exit:
             return None
         if self._task is None or self._task.done():
-            self._task = self._flow.hass.async_create_task(self._action_task())
+            self._task = self._flow.hass.async_create_task(self._process_action())
         return self._flow.async_show_progress(
             step_id=self._step_id,
             progress_action=self._result.name if self._result.name is not None else self._step_id,
             progress_task=self._task,
-            description_placeholders=self._result.ph if self._result.ph is not None else {},
+            description_placeholders=self._result.ph,
         )
 
 
-class BleAdvTestLightProgressFlow(BleAdvProgressFlowBase):
-    """Progress flow for blink task."""
-
-    async def _action_task(self) -> None:
-        await self._flow.async_test_light()
-        self._exit = True
+type ProgressFlowAction = Callable[[], Coroutine[Any, Any, None]]
 
 
-class BleAdvTestFanProgressFlow(BleAdvProgressFlowBase):
-    """Progress flow for Fan test task."""
+class BleAdvProgressFlow(BleAdvProgressFlowBase):
+    """Progress Flow."""
 
-    async def _action_task(self) -> None:
-        await self._flow.async_test_fan()
-        self._exit = True
+    def __init__(self, flow: BleAdvConfigFlow, step_id: str, action: ProgressFlowAction, ph: dict[str, str] | None = None) -> None:
+        super().__init__(flow, step_id, ph)
+        self._action: ProgressFlowAction | None = action
 
-
-class BleAdvPairProgressFlow(BleAdvProgressFlowBase):
-    """Progress flow for pair task."""
-
-    async def _action_task(self) -> None:
-        await self._flow.async_pair_all()
-        self._exit = True
+    async def _process_action(self) -> None:
+        """Call simple Action if not done already, else exits ater 0.1s ."""
+        if self._action is not None:
+            try:
+                await self._action()
+            except Exception as err:
+                self._flow.add_diag(f"Exception running Action: {err}")
+            self._action = None
+        else:
+            await asyncio.sleep(0.1)
+            self._exit = True
 
 
 class BleAdvWaitProgress(BleAdvProgressFlowBase):
@@ -211,24 +201,32 @@ class BleAdvWaitProgress(BleAdvProgressFlowBase):
 
     def __init__(self, flow: BleAdvConfigFlow, step_id: str, max_duration: float) -> None:
         super().__init__(flow, step_id, {})
-        self._stop_time: datetime | None = None
+        self._stop_time: datetime = datetime.now() + timedelta(seconds=max_duration)
         self._max_duration: float = max_duration
-        self._setup_stop_time(max_duration)
-
-    def _setup_stop_time(self, max_duration: float | None = None) -> None:
-        if max_duration is not None:
-            self._stop_time = datetime.now() + timedelta(seconds=max_duration)
 
     @abstractmethod
     def _evaluate(self) -> _ActionResult:
         """Evaluate the updated name / placeholders. Called every 0.1s to compute the updated _ActionResult."""
 
-    async def _action_task(self) -> None:
-        """Task for Evaluation every 0.1s. Return if name / placeholders changed."""
-        while self._stop_time is None or datetime.now() < self._stop_time:
-            if self._update_action_result(self._evaluate()):
-                return
-            await asyncio.sleep(0.1)
+    def _update_action_result(self, result: _ActionResult) -> bool:
+        updated = False
+        if result.name is not None and self._result.name != result.name:
+            self._result.name = result.name
+            updated = True
+        if result.ph is not None and self._result.ph != result.ph:
+            self._result.ph = result.ph
+            updated = True
+        return updated
+
+    async def _process_action(self) -> None:
+        """Process Evaluation every 0.1s. Return if name / placeholders changed."""
+        try:
+            while datetime.now() < self._stop_time:
+                if self._update_action_result(self._evaluate()):
+                    return
+                await asyncio.sleep(0.1)
+        except Exception as err:
+            self._flow.add_diag(f"Exception running Action: {err}")
         self._exit = True
 
 
@@ -260,7 +258,7 @@ class BleAdvWaitConfigProgress(BleAdvWaitProgress):
             return _ActionResult(ph={"max_seconds": str(self._max_duration)})
         if not self._agg_mode:
             self._agg_mode = True
-            self._setup_stop_time(self._wait_agg)
+            self._stop_time = datetime.now() + timedelta(seconds=self._wait_agg)
         return _ActionResult(name="agg_config", ph={})
 
 
@@ -374,7 +372,8 @@ class BleAdvConfigFlow(ConfigFlow, domain=DOMAIN):
         self._diags: list[str] = []
         self._return_step_after_diag: str = ""
 
-    def _add_diag(self, msg: str, log_level: int = logging.DEBUG) -> None:
+    def add_diag(self, msg: str, log_level: int = logging.DEBUG) -> None:
+        """Log a message and add it to diagnostics."""
         _LOGGER.log(log_level, msg)
         self._diags.append(f"{datetime.now()} - {msg}")
 
@@ -394,7 +393,7 @@ class BleAdvConfigFlow(ConfigFlow, domain=DOMAIN):
 
     async def async_test_light(self) -> None:
         """Blink."""
-        self._add_diag(f"Start blink - {self._confs.selected_adapter()} / {self._confs.selected()}.")
+        self.add_diag(f"Start blink - {self._confs.selected_adapter()} / {self._confs.selected()}.")
         tmp_device: BleAdvBaseDevice = self._get_device("cf", self._confs.selected_adapter(), self._confs.selected())
         on_cmd = BleAdvEntAttr([ATTR_ON], {ATTR_ON: True}, LIGHT_TYPE, 0)
         off_cmd = BleAdvEntAttr([ATTR_ON], {ATTR_ON: False}, LIGHT_TYPE, 0)
@@ -411,11 +410,11 @@ class BleAdvConfigFlow(ConfigFlow, domain=DOMAIN):
         await tmp_device.advertise(off_cmd)
         await asyncio.sleep(self.WAIT_TEST_LIGHT)
         self.async_update_progress(1)
-        self._add_diag("Stop blink.")
+        self.add_diag("Stop blink.")
 
     async def async_test_fan(self) -> None:
         """Blink."""
-        self._add_diag(f"Start FAN blink - {self._confs.selected_adapter()} / {self._confs.selected()}.")
+        self.add_diag(f"Start FAN blink - {self._confs.selected_adapter()} / {self._confs.selected()}.")
         tmp_device: BleAdvBaseDevice = self._get_device("cf", self._confs.selected_adapter(), self._confs.selected())
         on_cmd = BleAdvEntAttr([ATTR_ON, ATTR_SPEED], {ATTR_ON: True, ATTR_SPEED: 1, ATTR_SPEED_COUNT: 6}, FAN_TYPE, 0)
         off_cmd = BleAdvEntAttr([ATTR_ON, ATTR_SPEED], {ATTR_ON: False, ATTR_SPEED: 1, ATTR_SPEED_COUNT: 6}, FAN_TYPE, 0)
@@ -426,11 +425,11 @@ class BleAdvConfigFlow(ConfigFlow, domain=DOMAIN):
         await tmp_device.advertise(off_cmd)
         await asyncio.sleep(self.WAIT_TEST_FAN)
         self.async_update_progress(1)
-        self._add_diag("Stop FAN blink.")
+        self.add_diag("Stop FAN blink.")
 
     async def async_pair_all(self) -> None:
         """Pair."""
-        self._add_diag(f"Start pair - {self._confs.selected_adapter()} / {self._confs.selected_confs()}.")
+        self.add_diag(f"Start pair - {self._confs.selected_adapter()} / {self._confs.selected_confs()}.")
         pair_cmd = BleAdvEntAttr([ATTR_CMD], {ATTR_CMD: ATTR_CMD_PAIR}, DEVICE_TYPE, 0)
         adapter_id = self._confs.selected_adapter()
         for i, config in enumerate(self._confs.selected_confs()):
@@ -438,7 +437,7 @@ class BleAdvConfigFlow(ConfigFlow, domain=DOMAIN):
             await tmp_device.advertise(pair_cmd)
             await asyncio.sleep(0.3)
         await asyncio.sleep(2)
-        self._add_diag("Stop pair.")
+        self.add_diag("Stop pair.")
 
     def _create_api_view(self, response: web.Response) -> str:
         async def api_resp() -> web.Response:
@@ -447,7 +446,7 @@ class BleAdvConfigFlow(ConfigFlow, domain=DOMAIN):
 
         api_view = BleAdvConfigView(self.flow_id, api_resp)
         self.hass.http.register_view(api_view)
-        return f"{get_url(self.hass)}{api_view.full_url}"
+        return f"{get_url(self.hass, prefer_external=True)}{api_view.full_url}"
 
     def _create_api_json_view(self, name: str, data: dict[str, Any]) -> str:
         return self._create_api_view(
@@ -460,7 +459,7 @@ class BleAdvConfigFlow(ConfigFlow, domain=DOMAIN):
 
     async def async_step_user(self, _: dict[str, Any] | None = None) -> ConfigFlowResult:
         """Handle the user step to setup a device."""
-        self._add_diag("Config flow 'user' started.")
+        self.add_diag("Config flow 'user' started.")
         self.coordinator: BleAdvCoordinator = await get_coordinator(self.hass)
         if not self.coordinator.has_available_adapters():
             return await self.async_step_no_adapters()
@@ -558,10 +557,10 @@ class BleAdvConfigFlow(ConfigFlow, domain=DOMAIN):
                 (codec_id, params) = DYN_CODEC_PARAM_MAP.get(codec_id_old, (codec_id_old, []))
             codec = _CodecConfig(codec_id, int(f"0x{user_input[CONF_FORCED_ID]}", 16), int(user_input[CONF_INDEX]), params)
             self._confs = BleAdvConfigHandler({user_input[CONF_ADAPTER_ID]: [codec]})
-            self._add_diag(f"Step Manual - confs: {self._confs}")
+            self.add_diag(f"Step Manual - confs: {self._confs}")
             return await self.async_step_blink()
 
-        self._add_diag("Step Manual")
+        self.add_diag("Step Manual")
         data_schema = vol.Schema(
             {
                 vol.Required(CONF_ADAPTER_ID): vol.In(self.coordinator.get_adapter_ids()),
@@ -582,10 +581,10 @@ class BleAdvConfigFlow(ConfigFlow, domain=DOMAIN):
             gen_id = randint(0xFF, 0xFFF5)
             codecs = [_CodecConfig(codec_id, gen_id, 1, params) for codec_id, params in PHONE_APPS[user_input[CONF_PHONE_APP]]]
             self._confs = BleAdvConfigHandler({user_input[CONF_ADAPTER_ID]: codecs})
-            self._add_diag(f"Step Pair - confs: {self._confs}")
+            self.add_diag(f"Step Pair - confs: {self._confs}")
             return await self.async_step_wait_pair()
 
-        self._add_diag("Step Pair")
+        self.add_diag("Step Pair")
         data_schema = vol.Schema(
             {
                 vol.Required(CONF_ADAPTER_ID): vol.In(self.coordinator.get_adapter_ids()),
@@ -597,7 +596,7 @@ class BleAdvConfigFlow(ConfigFlow, domain=DOMAIN):
     async def async_step_wait_pair(self, _: dict[str, Any] | None = None) -> ConfigFlowResult:
         """Effective Pair Step."""
         if self._progress is None:
-            self._progress = BleAdvPairProgressFlow(self, "wait_pair", {})
+            self._progress = BleAdvProgressFlow(self, "wait_pair", self.async_pair_all)
         if (flow_res := self._progress.next()) is not None:
             return flow_res
         self._progress = None
@@ -614,8 +613,8 @@ class BleAdvConfigFlow(ConfigFlow, domain=DOMAIN):
         if (flow_res := self._progress.next()) is not None:
             return flow_res
         self._confs = BleAdvConfigHandler(cast("BleAdvWaitConfigProgress", self._progress).configs)
-        self._add_diag(f"Wait Config - Raw advs: {[x.hex().upper() for x in self.coordinator.listened_raw_advs]}")
-        self._add_diag(f"Wait Config - Confs: {self._confs}")
+        self.add_diag(f"Wait Config - Raw advs: {[x.hex().upper() for x in self.coordinator.listened_raw_advs]}")
+        self.add_diag(f"Wait Config - Confs: {self._confs}")
         self._progress = None
         return self.async_show_progress_done(next_step_id="no_config" if self._confs.is_empty() else "choose_adapter")
 
@@ -634,7 +633,7 @@ class BleAdvConfigFlow(ConfigFlow, domain=DOMAIN):
                 self._confs.set_selected_adapter(user_input[CONF_ADAPTER_ID])
                 return await self.async_step_blink()
 
-            self._add_diag("Selecting adapter.")
+            self.add_diag("Selecting adapter.")
             data_schema = vol.Schema({vol.Required(CONF_ADAPTER_ID): vol.In(self._confs.adapters)})
             return self.async_show_form(step_id="choose_adapter", data_schema=data_schema)
 
@@ -647,7 +646,7 @@ class BleAdvConfigFlow(ConfigFlow, domain=DOMAIN):
     async def async_step_test_light(self, _: dict[str, Any] | None = None) -> ConfigFlowResult:
         """Test Light Step."""
         if self._progress is None:
-            self._progress = BleAdvTestLightProgressFlow(self, "test_light", self._confs.placeholders())
+            self._progress = BleAdvProgressFlow(self, "test_light", self.async_test_light, self._confs.placeholders())
         if (flow_res := self._progress.next()) is not None:
             return flow_res
         self._progress = None
@@ -662,7 +661,7 @@ class BleAdvConfigFlow(ConfigFlow, domain=DOMAIN):
     async def async_step_test_fan(self, _: dict[str, Any] | None = None) -> ConfigFlowResult:
         """Test Fan Step."""
         if self._progress is None:
-            self._progress = BleAdvTestFanProgressFlow(self, "test_fan", self._confs.placeholders())
+            self._progress = BleAdvProgressFlow(self, "test_fan", self.async_test_fan, self._confs.placeholders())
         if (flow_res := self._progress.next()) is not None:
             return flow_res
         self._progress = None
@@ -937,7 +936,7 @@ class BleAdvConfigFlow(ConfigFlow, domain=DOMAIN):
 
     async def async_step_reconfigure(self, _: dict[str, Any] | None = None) -> ConfigFlowResult:
         """Reconfigure Step."""
-        self._add_diag("'Reconfigure' flow started")
+        self.add_diag("'Reconfigure' flow started")
         self.coordinator = await get_coordinator(self.hass)
         self._data = {**self._get_reconfigure_entry().data}
         return await self.async_step_configure()
