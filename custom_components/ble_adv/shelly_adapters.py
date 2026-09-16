@@ -7,7 +7,7 @@ import logging
 from collections.abc import Callable, Mapping
 from typing import Any
 
-from aioshelly.ble.const import BLE_SCAN_RESULT_EVENT
+from aioshelly.ble.const import BLE_SCAN_RESULT_EVENT, BLE_SCRIPT_NAME
 from aioshelly.ble.parser import parse_ble_scan_result_event
 from aioshelly.rpc_device import RpcDevice, RpcUpdateType, bluetooth_mac_from_primary_mac
 from homeassistant.config_entries import ConfigEntry, ConfigEntryState
@@ -173,9 +173,10 @@ class BleAdvShellyBtManager(BleAdvBtManager):
                 # if we are called here, it means we already replaced the rpc_device listener with our own
                 try:
                     if update_type is RpcUpdateType.EVENT:
-                        if (event := rpc_device_in.event) is not None and event.get("event") == BLE_SCAN_RESULT_EVENT:
-                            for address, _, raw in parse_ble_scan_result_event(event.get("data", [])):
-                                self.hass.async_create_task(self._adv_recv(adapter_name, address, raw))
+                        if (full_event := rpc_device_in.event) is not None and (events := full_event.get("events")) is not None:
+                            for event in [ev for ev in events if ev.get("event") == BLE_SCAN_RESULT_EVENT]:
+                                for address, _, raw in parse_ble_scan_result_event(event.get("data", [])):
+                                    self.hass.async_create_task(self._adv_recv(adapter_name, address, raw))
                     elif update_type is RpcUpdateType.DISCONNECTED:
                         # on disconnection, remove the adapter instance
                         if adapter_name in self.adapters:
@@ -202,13 +203,16 @@ class BleAdvShellyBtManager(BleAdvBtManager):
         await self._create_adapter(adapter_name, rpc_device, entry.entry_id)
 
     async def _create_adapter(self, adapter_name: str, rpc_device: RpcDevice, conf_id: str) -> None:
-        """Validate an initialized device (RPC_BLE_ADVERT_METHOD available and BLE activated) and create the adapter instance."""
-        self._add_diag(f"Config '{adapter_name}': {rpc_device.config}")
-        self._add_diag(f"Status '{adapter_name}': {rpc_device.status}")
-
+        """Validate an initialized device (RPC_BLE_ADVERT_METHOD available and Bluetooth Scanner activated) and create the adapter instance."""
         methods_list = await rpc_device.methods_list()
         if RPC_BLE_ADVERT_METHOD not in methods_list:
             self._add_diag(f"Discarded '{adapter_name}': {RPC_BLE_ADVERT_METHOD} not available, please upgrade to firmware 2.0.0", logging.INFO)
+            return
+
+        scripts_list = await rpc_device.script_list()
+        if not any(script.get("name") == BLE_SCRIPT_NAME and script.get("running") for script in scripts_list):
+            check_url = "check https://www.home-assistant.io/integrations/shelly/ to set Scanner Mode as 'Passive' or 'Auto'"
+            self._add_diag(f"Discarded '{adapter_name}': {BLE_SCRIPT_NAME} not present or running, {check_url}.", logging.INFO)
             return
 
         bt_mac = format_mac(bluetooth_mac_from_primary_mac(rpc_device.shelly["mac"])).upper()

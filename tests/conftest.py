@@ -6,6 +6,7 @@ from unittest import mock
 
 import pytest
 import voluptuous as vol
+from aioshelly.rpc_device.models import ShellyScript
 from ble_adv import BleAdvConfigEntry, async_setup, get_coordinator
 from ble_adv.codecs.models import BleAdvEntAttr
 from ble_adv.const import CONF_LAST_VERSION, DOMAIN
@@ -17,7 +18,7 @@ from ble_adv.esp_adapters import (
     CONF_ATTR_RAW,
     ESPHOME_BLE_ADV_RECV_EVENT,
 )
-from ble_adv.shelly_adapters import SHELLY_DOMAIN, RpcDevice, RpcUpdateType
+from ble_adv.shelly_adapters import BLE_SCRIPT_NAME, SHELLY_DOMAIN, RpcDevice, RpcUpdateType
 from homeassistant.config_entries import ConfigEntry, ConfigEntryState
 from homeassistant.const import STATE_UNAVAILABLE
 from homeassistant.core import HomeAssistant, ServiceCall
@@ -152,8 +153,7 @@ class MockShellyEntry:
         self.rpc_device._update_listener = self.prev_listener  # noqa: SLF001
         self.rpc_device.call_rpc = mock.AsyncMock()
         self.rpc_device.methods_list = mock.AsyncMock(return_value=["BLE.AdvertiseOnce"])
-        self.rpc_device.config = {"ble": {}}
-        self.rpc_device.status = {"ble": {}}
+        self.rpc_device.script_list = mock.AsyncMock(return_value=[ShellyScript(id=10, name=BLE_SCRIPT_NAME, running=True, enable=True)])
         self.rpc_device.shelly = {"mac": self._mac}
         self.rpc_device.initialized = True
 
@@ -192,7 +192,7 @@ class MockShellyEntry:
     async def recv(self, data: list[Any]) -> None:
         """Receive an adv."""
         if self.shelly_conf.runtime_data is not None:
-            self.rpc_device.event = {"event": "ble.scan_result", "data": data}
+            self.rpc_device.event = {"events": [{"event": "ble.scan_result", "data": data}]}
             self.rpc_device._update_listener(self.rpc_device, RpcUpdateType.EVENT)  # noqa: SLF001
 
     async def unload(self) -> None:
