@@ -4,16 +4,12 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from collections.abc import Callable, Mapping
+from collections.abc import Callable, Coroutine, Mapping
 from typing import Any
 
-from aioshelly.ble.const import BLE_SCAN_RESULT_EVENT
-from aioshelly.ble.parser import parse_ble_scan_result_event
-from aioshelly.rpc_device import RpcDevice, RpcUpdateType, bluetooth_mac_from_primary_mac
 from homeassistant.config_entries import ConfigEntry, ConfigEntryState
 from homeassistant.core import CALLBACK_TYPE, Event, HomeAssistant, callback
 from homeassistant.helpers import device_registry as dr
-from homeassistant.helpers.device_registry import format_mac
 
 from .adapters import (
     AdapterEventCallback,
@@ -27,13 +23,18 @@ SHELLY_DOMAIN = "shelly"
 RPC_BLE_ADVERT_METHOD = "BLE.AdvertiseOnce"
 
 
+type ConnectedCallback = Callable[[], bool]
+type OnConnectionStateChange = Callable[[bool], Coroutine[None, None, None]]
+type AdvertiseRpcCallback = Callable[[str, dict[str, Any]], Coroutine[None, None, dict[str, Any]]]
+
+
 class BleAdvShellyAdapter(BleAdvAdapter):
     """Shelly BT Adapter leveraging the native aioshelly RPC connection inside HA."""
 
-    def __init__(self, manager: BleAdvShellyBtManager, adapter_name: str, mac: str, rpc_device: RpcDevice) -> None:
+    def __init__(self, manager: BleAdvShellyBtManager, adapter_name: str, mac: str, advertise_rpc_clbk: AdvertiseRpcCallback) -> None:
         super().__init__(adapter_name, mac, self._on_error, 1000)
         self.manager: BleAdvShellyBtManager = manager
-        self.rpc_device: RpcDevice = rpc_device
+        self._advertise_rpc_clbk: AdvertiseRpcCallback = advertise_rpc_clbk
 
     async def open(self) -> None:
         """Open the adapter using the shared WebSocket tunnel."""
@@ -52,11 +53,32 @@ class BleAdvShellyAdapter(BleAdvAdapter):
         """Broadcast the cleaned BLE frame using HA's native aioshelly RPC client."""
         # Strip standard BLE 'Flags' structure (type 0x01) if present at the start, as Shelly firmware auto-prepends it
         clean_data = item.data[item.data[0] + 1 :] if item.data[1] == 0x01 else item.data
-        await self.rpc_device.call_rpc(RPC_BLE_ADVERT_METHOD, {"adv_data": clean_data.hex()})
+        await self._advertise_rpc_clbk(RPC_BLE_ADVERT_METHOD, {"adv_data": clean_data.hex()})
         await asyncio.sleep(0.0009 * item.repeat * item.interval)
 
 
-type RpcListenerCallback = Callable[[RpcDevice, RpcUpdateType], None]
+class _MonitoredDevice:
+    WAIT_MONITOR: float = 1.0
+
+    def __init__(self, hass: HomeAssistant, connected_callback: ConnectedCallback, state_chg_clbk: OnConnectionStateChange) -> None:
+        self._connected_callback = connected_callback
+        self._state_chg_callback = state_chg_clbk
+        self.connected: bool = self._connected_callback()
+        self._mon_task: asyncio.Task = hass.async_create_task(self._monitor())
+
+    async def _monitor(self) -> None:
+        try:
+            while True:
+                new_connected = self._connected_callback()
+                if new_connected != self.connected:
+                    self.connected = new_connected
+                    await self._state_chg_callback(new_connected)
+                await asyncio.sleep(_MonitoredDevice.WAIT_MONITOR)
+        except asyncio.CancelledError:
+            pass
+
+    def stop(self) -> None:
+        self._mon_task.cancel()
 
 
 class BleAdvShellyBtManager(BleAdvBtManager):
@@ -69,8 +91,9 @@ class BleAdvShellyBtManager(BleAdvBtManager):
     ) -> None:
         super().__init__(BleAdvShellyBtManager.NAME, adv_recv_callback, adapter_event_callback, ign_adapters)
         self.hass: HomeAssistant = hass
+        self._mon_devices: dict[str, _MonitoredDevice] = {}
         self._cnl_callback: dict[str, CALLBACK_TYPE] = {}
-        self._rpc_prev_listeners: dict[str, RpcListenerCallback | None] = {}
+        self._cnl_scan_callback: dict[str, CALLBACK_TYPE] = {}
 
     async def async_init(self) -> None:
         """Async Init: Discovery and optimized registration to the HA event bus."""
@@ -94,16 +117,15 @@ class BleAdvShellyBtManager(BleAdvBtManager):
 
     async def async_final(self) -> None:
         """Async Final: Complete cleanup."""
+        for mon_dev in self._mon_devices.values():
+            mon_dev.stop()
+        self._mon_devices.clear()
+        for cancel_callback in self._cnl_scan_callback.values():
+            cancel_callback()
+        self._cnl_scan_callback.clear()
         for cancel_callback in self._cnl_callback.values():
             cancel_callback()
         self._cnl_callback.clear()
-        for conf_id, prev_listener in self._rpc_prev_listeners.items():
-            if (entry := self.hass.config_entries.async_get_entry(conf_id)) is not None and entry.state is ConfigEntryState.LOADED:
-                try:
-                    entry.runtime_data.rpc.device._update_listener = prev_listener  # noqa: SLF001
-                except Exception as err:
-                    self._add_diag(f"Failed to restore listener on entry {entry.title}: {err}")
-        self._rpc_prev_listeners.clear()
         await self._clean()
 
     async def _discover_existing(self) -> None:
@@ -132,9 +154,9 @@ class BleAdvShellyBtManager(BleAdvBtManager):
                 self._add_diag(f"Unloading entry {entry.entry_id}")
                 if adapter_name in self.adapters:
                     self.hass.async_create_task(self._remove_adapter(adapter_name))
-                # As best effort remove the custom rpc_device listener
-                # as the rpc_device is destroyed with the entry runtime_data also destroyed when unloaded
-                self._rpc_prev_listeners.pop(entry.entry_id, None)
+                if (mon_dev := self._mon_devices.pop(entry.entry_id, None)) is not None:
+                    mon_dev.stop()
+                self._cnl_scan_callback.pop(entry.entry_id, None)
             elif entry.state == ConfigEntryState.LOADED:
                 # Entry finished loading
                 self._add_diag(f"Loading entry {entry.entry_id}")
@@ -151,70 +173,74 @@ class BleAdvShellyBtManager(BleAdvBtManager):
 
     async def _handle_loaded_entry(self, entry: ConfigEntry) -> None:
         """Handle a LOADED Shelly entry."""
+        # We import here to avoid useless dependency on Shelly Component / aioshelly if the user do not have any Shelly Integration
+        from aioshelly.ble.const import BLE_SCAN_RESULT_EVENT, BLE_SCRIPT_NAME  # noqa: PLC0415
+        from aioshelly.ble.parser import parse_ble_scan_result_event  # noqa: PLC0415
+        from homeassistant.components.shelly.coordinator import ShellyRpcCoordinator  # noqa: PLC0415
+
         adapter_name = self._full_adapter_name(entry.title)
 
-        if not (
-            hasattr(entry, "runtime_data")
-            and hasattr(entry.runtime_data, "rpc")
-            and hasattr(entry.runtime_data.rpc, "device")
-            and isinstance(entry.runtime_data.rpc.device, RpcDevice)
-        ):
+        if not (hasattr(entry, "runtime_data") and hasattr(entry.runtime_data, "rpc") and isinstance(entry.runtime_data.rpc, ShellyRpcCoordinator)):
             self._add_diag(f"Discarded '{adapter_name}': Incompatible device - not supporting RPC", logging.INFO)
             return
 
-        # Listen to BLE Scan / connection / disconnection Events
-        rpc_device: RpcDevice = entry.runtime_data.rpc.device
-        if entry.entry_id not in self._rpc_prev_listeners:
-            # we need to replace the listener with our own to intercept BLE events / connection / disconnection events
-            self._rpc_prev_listeners[entry.entry_id] = rpc_device._update_listener  # noqa: SLF001
+        if entry.entry_id in self._mon_devices:
+            return
 
-            @callback
-            def _on_aioshelly_update(rpc_device_in: RpcDevice, update_type: RpcUpdateType) -> None:
-                # if we are called here, it means we already replaced the rpc_device listener with our own
+        # The Shelly device is a valid RPC Device: monitor and re asses it on connection / deconnection
+        rpc_coord: ShellyRpcCoordinator = entry.runtime_data.rpc
+
+        @callback
+        async def _validate_and_create_adapter() -> None:
+            # Check Shelly device Capacities
+            methods_list = await rpc_coord.device.methods_list()
+            if RPC_BLE_ADVERT_METHOD not in methods_list:
+                self._add_diag(f"Discarded '{adapter_name}': {RPC_BLE_ADVERT_METHOD} not available, please upgrade to firmware 2.0.0", logging.INFO)
+                return
+
+            scripts_list = await rpc_coord.device.script_list()
+            if not any(script.get("name") == BLE_SCRIPT_NAME and script.get("running") for script in scripts_list):
+                check_url = "check https://www.home-assistant.io/integrations/shelly/ to set Scanner Mode as 'Passive' or 'Auto'"
+                self._add_diag(f"Discarded '{adapter_name}': {BLE_SCRIPT_NAME} not present or running, {check_url}.", logging.INFO)
+                return
+
+            # Listen to BLE Scan events
+            def _async_on_event(event: dict[str, Any]) -> None:
                 try:
-                    if update_type is RpcUpdateType.EVENT:
-                        if (event := rpc_device_in.event) is not None and event.get("event") == BLE_SCAN_RESULT_EVENT:
-                            for address, _, raw in parse_ble_scan_result_event(event.get("data", [])):
-                                self.hass.async_create_task(self._adv_recv(adapter_name, address, raw))
-                    elif update_type is RpcUpdateType.DISCONNECTED:
-                        # on disconnection, remove the adapter instance
-                        if adapter_name in self.adapters:
-                            self.hass.async_create_task(self._remove_adapter(adapter_name))
-                    elif update_type is RpcUpdateType.INITIALIZED:
-                        # on reconnection, create the adapter instance
-                        if adapter_name not in self.adapters:
-                            self.hass.async_create_task(self._create_adapter(adapter_name, rpc_device_in, entry.entry_id))
+                    if event.get("event") == BLE_SCAN_RESULT_EVENT:
+                        for address, _, raw in parse_ble_scan_result_event(event.get("data", [])):
+                            self.hass.async_create_task(self._adv_recv(adapter_name, address, raw))
                 except Exception as err:
-                    self._add_diag(f"Exception in shelly update: {err}")
+                    self._add_diag(f"Error handling event {event}: {err}")
+                    return
 
-                # call the previous listener if it exists
-                if (prev_listener := self._rpc_prev_listeners.get(entry.entry_id)) is not None:
-                    prev_listener(rpc_device_in, update_type)
+            if entry.entry_id not in self._cnl_scan_callback:
+                self._add_diag(f"Subscribe to Scan: {adapter_name}")
+                self._cnl_scan_callback[entry.entry_id] = rpc_coord.async_subscribe_events(_async_on_event)
 
-            rpc_device._update_listener = _on_aioshelly_update  # noqa: SLF001
-            self._add_diag(f"callback added for entry {entry.entry_id} / {adapter_name}")
+            adapter = BleAdvShellyAdapter(self, adapter_name, rpc_coord.bluetooth_source, rpc_coord.device.call_rpc)
+            await self._add_adapter(adapter_name, entry.entry_id, adapter)
 
-        # if rpc_device not already initialized, wait for the INITIALIZED event to trigger the creation
-        if not rpc_device.initialized:
-            self._add_diag(f"Pending '{adapter_name}' rpc_device initialized", logging.DEBUG)
+        @callback
+        async def _conn_state_changed(connected: bool) -> None:
+            if connected:
+                self._add_diag(f"Evaluating '{adapter_name}' on connection")
+                await _validate_and_create_adapter()
+            else:
+                self._add_diag(f"Removing '{adapter_name}' on disconnection")
+                await self._remove_adapter(adapter_name)
+
+        @callback
+        def _is_connected() -> bool:
+            return rpc_coord.connected
+
+        self._mon_devices[entry.entry_id] = _MonitoredDevice(self.hass, _is_connected, _conn_state_changed)
+
+        if not rpc_coord.connected:
+            self._add_diag(f"Pending '{adapter_name}': Not connected - will assess later", logging.INFO)
             return
 
-        await self._create_adapter(adapter_name, rpc_device, entry.entry_id)
-
-    async def _create_adapter(self, adapter_name: str, rpc_device: RpcDevice, conf_id: str) -> None:
-        """Validate an initialized device (RPC_BLE_ADVERT_METHOD available and BLE activated) and create the adapter instance."""
-        self._add_diag(f"Config '{adapter_name}': {rpc_device.config}")
-        self._add_diag(f"Status '{adapter_name}': {rpc_device.status}")
-
-        methods_list = await rpc_device.methods_list()
-        if RPC_BLE_ADVERT_METHOD not in methods_list:
-            self._add_diag(f"Discarded '{adapter_name}': {RPC_BLE_ADVERT_METHOD} not available, please upgrade to firmware 2.0.0", logging.INFO)
-            return
-
-        bt_mac = format_mac(bluetooth_mac_from_primary_mac(rpc_device.shelly["mac"])).upper()
-
-        adapter = BleAdvShellyAdapter(self, adapter_name, bt_mac, rpc_device)
-        await self._add_adapter(adapter_name, conf_id, adapter)
+        await _validate_and_create_adapter()
 
     async def reset_adapter(self, adapter_name: str, msg: str) -> None:
         """Reset the designated adapter instance and trigger a fresh discovery loop."""
