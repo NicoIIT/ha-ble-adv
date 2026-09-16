@@ -6,6 +6,8 @@ from unittest import mock
 
 import pytest
 import voluptuous as vol
+from aioshelly.ble.const import BLE_SCAN_RESULT_EVENT, BLE_SCRIPT_NAME
+from aioshelly.rpc_device import RpcDevice
 from aioshelly.rpc_device.models import ShellyScript
 from ble_adv import BleAdvConfigEntry, async_setup, get_coordinator
 from ble_adv.codecs.models import BleAdvEntAttr
@@ -18,13 +20,14 @@ from ble_adv.esp_adapters import (
     CONF_ATTR_RAW,
     ESPHOME_BLE_ADV_RECV_EVENT,
 )
-from ble_adv.shelly_adapters import BLE_SCRIPT_NAME, SHELLY_DOMAIN, RpcDevice, RpcUpdateType
+from ble_adv.shelly_adapters import SHELLY_DOMAIN
+from homeassistant.components.shelly.coordinator import ShellyRpcCoordinator
 from homeassistant.config_entries import ConfigEntry, ConfigEntryState
 from homeassistant.const import STATE_UNAVAILABLE
-from homeassistant.core import HomeAssistant, ServiceCall
+from homeassistant.core import CALLBACK_TYPE, HomeAssistant, ServiceCall
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import entity_registry as er
-from homeassistant.helpers.device_registry import DeviceEntry
+from homeassistant.helpers.device_registry import DeviceEntry, format_mac
 
 
 class _Device(mock.AsyncMock):
@@ -136,7 +139,7 @@ class MockShellyEntry:
         self.hass = hass
         self._name = name
         self._mac = f"{bt_first_id}0000000000"
-        self.prev_listener = mock.MagicMock()
+        self._clbks = []
         self.shelly_conf = ConfigEntry(
             domain=SHELLY_DOMAIN,
             unique_id=self._mac,
@@ -150,12 +153,9 @@ class MockShellyEntry:
             subentries_data={},
         )
         self.rpc_device = mock.AsyncMock(spec=RpcDevice)
-        self.rpc_device._update_listener = self.prev_listener  # noqa: SLF001
         self.rpc_device.call_rpc = mock.AsyncMock()
         self.rpc_device.methods_list = mock.AsyncMock(return_value=["BLE.AdvertiseOnce"])
         self.rpc_device.script_list = mock.AsyncMock(return_value=[ShellyScript(id=10, name=BLE_SCRIPT_NAME, running=True, enable=True)])
-        self.rpc_device.shelly = {"mac": self._mac}
-        self.rpc_device.initialized = True
 
     async def create(self) -> None:
         """Create the entry, without loading it."""
@@ -170,37 +170,42 @@ class MockShellyEntry:
             sw_version="3.1",
         )
 
+    def _add_clbk(self, clbk: CALLBACK_TYPE) -> CALLBACK_TYPE:
+        def _rm_clbk() -> None:
+            self._clbks.remove(clbk)
+
+        self._clbks.append(clbk)
+        return _rm_clbk
+
     async def load(self) -> None:
         """Load the Entry."""
         await self.hass.config_entries.async_setup(self.shelly_conf.entry_id)
         self.shelly_conf.runtime_data = mock.MagicMock()
         self.shelly_conf.runtime_data.block = mock.MagicMock()
         self.shelly_conf.runtime_data.block.shutdown = mock.AsyncMock()
-        self.shelly_conf.runtime_data.rpc = mock.MagicMock()
+        self.shelly_conf.runtime_data.rpc = mock.MagicMock(spec=ShellyRpcCoordinator)
+        self.shelly_conf.runtime_data.rpc.bluetooth_source = format_mac(self._mac[:-1] + "2")
         self.shelly_conf.runtime_data.rpc.shutdown = mock.AsyncMock()
+        self.shelly_conf.runtime_data.rpc.connected = True
+        self.shelly_conf.runtime_data.rpc.async_subscribe_events = mock.MagicMock(side_effect=self._add_clbk)
         self.shelly_conf.runtime_data.rpc.device = self.rpc_device
         self.shelly_conf._async_set_state(self.hass, ConfigEntryState.LOADED, None)  # noqa: SLF001
-        await self.hass.async_block_till_done(wait_background_tasks=True)
 
     async def set_available(self, status: bool) -> None:
         """Set the status."""
         if self.shelly_conf.runtime_data is not None:
-            self.rpc_device.initialized = status
-            self.rpc_device._update_listener(self.rpc_device, RpcUpdateType.INITIALIZED if status else RpcUpdateType.DISCONNECTED)  # noqa: SLF001
-            await self.hass.async_block_till_done(wait_background_tasks=True)
+            self.shelly_conf.runtime_data.rpc.connected = status
 
     async def recv(self, data: list[Any]) -> None:
         """Receive an adv."""
-        if self.shelly_conf.runtime_data is not None:
-            self.rpc_device.event = {"events": [{"event": "ble.scan_result", "data": data}]}
-            self.rpc_device._update_listener(self.rpc_device, RpcUpdateType.EVENT)  # noqa: SLF001
+        for clbk in self._clbks:
+            clbk({"event": BLE_SCAN_RESULT_EVENT, "data": data})
 
     async def unload(self) -> None:
         """Unload the entry."""
         await self.hass.config_entries.async_unload(self.shelly_conf.entry_id)
-        await self.hass.async_block_till_done(wait_background_tasks=True)
-        self.rpc_device._update_listener = self.prev_listener  # noqa: SLF001
         self.shelly_conf.runtime_data = None
+        self._clbks.clear()
 
 
 async def create_base_entry(hass: HomeAssistant, unique_id: str | None, data: dict[str, Any], version: int = CONF_LAST_VERSION) -> BleAdvConfigEntry:

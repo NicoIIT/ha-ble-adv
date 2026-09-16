@@ -1,11 +1,12 @@
 """Shelly Adapters tests."""
 
 # ruff: noqa: S101
+import asyncio
 import binascii
 from unittest import mock
 
 from ble_adv.adapters import BleAdvQueueItem
-from ble_adv.shelly_adapters import BleAdvShellyBtManager
+from ble_adv.shelly_adapters import BleAdvShellyBtManager, _MonitoredDevice
 from homeassistant.core import HomeAssistant
 
 from .conftest import MockShellyEntry
@@ -13,6 +14,7 @@ from .conftest import MockShellyEntry
 
 async def test_shelly_bt_manager(hass: HomeAssistant) -> None:
     """Test Shelly BT Manager."""
+    _MonitoredDevice.WAIT_MONITOR = 0.1
     moc_recv = mock.AsyncMock()
     moc_adapt = mock.AsyncMock()
     man = BleAdvShellyBtManager(hass, moc_recv, moc_adapt, [])
@@ -25,26 +27,20 @@ async def test_shelly_bt_manager(hass: HomeAssistant) -> None:
     moc_adapt.assert_awaited_once_with("shl/test1", True)
     moc_adapt.reset_mock()
     await t1.set_available(False)
-    t1.prev_listener.assert_called_once()
-    t1.prev_listener.reset_mock()
+    await asyncio.sleep(_MonitoredDevice.WAIT_MONITOR + 0.01)
     assert list(man.adapters.keys()) == []
     moc_adapt.assert_awaited_once_with("shl/test1", False)
     moc_adapt.reset_mock()
     await t1.set_available(True)
-    t1.prev_listener.assert_called_once()
-    t1.prev_listener.reset_mock()
+    await asyncio.sleep(_MonitoredDevice.WAIT_MONITOR + 0.01)
     assert list(man.adapters.keys()) == ["shl/test1"]
     msg = b"msg01"
     await t1.recv([1, "AA:BB:CC:DD:EE:FF", -50, binascii.b2a_base64(msg).decode("ascii"), ""])
     moc_recv.assert_awaited_once_with("shl/test1", "AA:BB:CC:DD:EE:FF", msg)
     moc_recv.reset_mock()
-    t1.prev_listener.assert_called_once()
-    t1.prev_listener.reset_mock()
     await t1.recv([2, [["AA:BB:CC:DD:EE:FF", -50, binascii.b2a_base64(msg).decode("ascii"), ""]]])
     moc_recv.assert_awaited_once_with("shl/test1", "AA:BB:CC:DD:EE:FF", msg)
     moc_recv.reset_mock()
-    t1.prev_listener.assert_called_once()
-    t1.prev_listener.reset_mock()
     t2 = MockShellyEntry(hass, "test2", "02")
     await t2.create()
     await t2.load()  # Adding device after init
