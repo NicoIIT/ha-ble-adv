@@ -336,12 +336,12 @@ CODECS = [
     ZhimeiEncoderV2().id("zhimei_v2").header([0xF9, 0x08, 0x49]).ble(0x1A, 0x03).prefix([0x33, 0xAA, 0x55]).add_translators(TRANS_V2),
     # Zhi Mei Remotes
     ZhimeiEncoderV0().fid("zhimei_fan_vr0", "zhimei_fan_v0").header([0x55]).ble(0, 0).add_translators(TRANS_REMOTE),
-    ZhimeiEncoderV1().fid("zhimei_fan_vr1", "zhimei_fan_v1").header([0x48, 0x46, 0x4B, 0x4A], 3).ble(0x1A, 0xFF).add_translators(TRANS_REMOTE),
+    ZhimeiEncoderV1().fid("zhimei_fan_vr1", "zhimei_fan_v1").header([0x48, 0x46, 0x4B, 0x4A], 3).ble(0, 0xFF).add_translators(TRANS_REMOTE),
     ZhimeiEncoderV1().fid("zhimei_fan_v1b", "zhimei_fan_v1").header([0x00, 0x00, 0x00, 0x48, 0x46, 0x4B, 0x4A]).ble(0x1A, 0xFF)
         .add_translators(TRANS_FAN_V1)
         .add_translator_set("rev_on_off", TRANS_FAN_V1_REV),
     ZhimeiEncoderV1().fid("zhimei_v1b", "zhimei_v1").header([0x58, 0x55, 0x18, 0x48, 0x46, 0x4B, 0x4A]).ble(0x1A, 0xFF).add_translators(TRANS_V1),
-    ZhimeiEncoderV1().fid("zhimei_vr1", "zhimei_v1").header([0xFF, 0xFF, 0xFF, 0x48, 0x46, 0x4B, 0x4A]).footer([0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF]).ble(0x00, 0xFF).add_translators(TRANS_V1),
+    ZhimeiEncoderV1().fid("zhimei_vr1", "zhimei_v1").header([0xFF, 0xFF, 0xFF, 0x48, 0x46, 0x4B, 0x4A]).footer([0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF]).ble(0, 0xFF).add_translators(TRANS_V1),
     # Zhi Guang 2
     ZhimeiEncoderV2().id("zhiguang2_v2").header([0xF9, 0x08, 0x49]).ble(0x1A, 0xFF).prefix([0x33, 0xAA, 0x55]).add_translators(TRANS_V2),
 ]  # fmt: skip
