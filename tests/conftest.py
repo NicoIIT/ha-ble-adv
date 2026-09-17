@@ -156,6 +156,8 @@ class MockShellyEntry:
         self.rpc_device.call_rpc = mock.AsyncMock()
         self.rpc_device.methods_list = mock.AsyncMock(return_value=["BLE.AdvertiseOnce"])
         self.rpc_device.script_list = mock.AsyncMock(return_value=[ShellyScript(id=10, name=BLE_SCRIPT_NAME, running=True, enable=True)])
+        self.rpc_device.connected = True
+        self.rpc_device.initialized = True
 
     async def create(self) -> None:
         """Create the entry, without loading it."""
