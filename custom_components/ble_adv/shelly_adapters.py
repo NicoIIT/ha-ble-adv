@@ -192,34 +192,37 @@ class BleAdvShellyBtManager(BleAdvBtManager):
 
         @callback
         async def _validate_and_create_adapter() -> None:
-            # Check Shelly device Capacities
-            methods_list = await rpc_coord.device.methods_list()
-            if RPC_BLE_ADVERT_METHOD not in methods_list:
-                self._add_diag(f"Discarded '{adapter_name}': {RPC_BLE_ADVERT_METHOD} not available, please upgrade to firmware 2.0.0", logging.INFO)
-                return
-
-            scripts_list = await rpc_coord.device.script_list()
-            if not any(script.get("name") == BLE_SCRIPT_NAME and script.get("running") for script in scripts_list):
-                check_url = "check https://www.home-assistant.io/integrations/shelly/ to set Scanner Mode as 'Passive' or 'Auto'"
-                self._add_diag(f"Discarded '{adapter_name}': {BLE_SCRIPT_NAME} not present or running, {check_url}.", logging.INFO)
-                return
-
-            # Listen to BLE Scan events
-            def _async_on_event(event: dict[str, Any]) -> None:
-                try:
-                    if event.get("event") == BLE_SCAN_RESULT_EVENT:
-                        for address, _, raw in parse_ble_scan_result_event(event.get("data", [])):
-                            self.hass.async_create_task(self._adv_recv(adapter_name, address, raw))
-                except Exception as err:
-                    self._add_diag(f"Error handling event {event}: {err}")
+            try:
+                # Check Shelly device Capacities
+                methods_list = await rpc_coord.device.methods_list()
+                if RPC_BLE_ADVERT_METHOD not in methods_list:
+                    self._add_diag(f"Discarded '{adapter_name}': {RPC_BLE_ADVERT_METHOD} not available, upgrade to firmware 2.0.0", logging.INFO)
                     return
 
-            if entry.entry_id not in self._cnl_scan_callback:
-                self._add_diag(f"Subscribe to Scan: {adapter_name}")
-                self._cnl_scan_callback[entry.entry_id] = rpc_coord.async_subscribe_events(_async_on_event)
+                scripts_list = await rpc_coord.device.script_list()
+                if not any(script.get("name") == BLE_SCRIPT_NAME and script.get("running") for script in scripts_list):
+                    check_url = "check https://www.home-assistant.io/integrations/shelly/ to set Scanner Mode as 'Passive' or 'Auto'"
+                    self._add_diag(f"Discarded '{adapter_name}': {BLE_SCRIPT_NAME} not present or running, {check_url}.", logging.INFO)
+                    return
 
-            adapter = BleAdvShellyAdapter(self, adapter_name, rpc_coord.bluetooth_source, rpc_coord.device.call_rpc)
-            await self._add_adapter(adapter_name, entry.entry_id, adapter)
+                # Listen to BLE Scan events
+                def _async_on_event(event: dict[str, Any]) -> None:
+                    try:
+                        if event.get("event") == BLE_SCAN_RESULT_EVENT:
+                            for address, _, raw in parse_ble_scan_result_event(event.get("data", [])):
+                                self.hass.async_create_task(self._adv_recv(adapter_name, address, raw))
+                    except Exception as err:
+                        self._add_diag(f"Error handling event {event}: {err}")
+                        return
+
+                if entry.entry_id not in self._cnl_scan_callback:
+                    self._add_diag(f"Subscribe to Scan: {adapter_name}")
+                    self._cnl_scan_callback[entry.entry_id] = rpc_coord.async_subscribe_events(_async_on_event)
+
+                adapter = BleAdvShellyAdapter(self, adapter_name, rpc_coord.bluetooth_source, rpc_coord.device.call_rpc)
+                await self._add_adapter(adapter_name, entry.entry_id, adapter)
+            except Exception as err:
+                self._add_diag(f"Failed to create adapter '{adapter_name}': {err}", logging.INFO)
 
         @callback
         async def _conn_state_changed(connected: bool) -> None:
@@ -232,11 +235,11 @@ class BleAdvShellyBtManager(BleAdvBtManager):
 
         @callback
         def _is_connected() -> bool:
-            return rpc_coord.connected
+            return rpc_coord.connected and rpc_coord.device.connected and rpc_coord.device.initialized
 
         self._mon_devices[entry.entry_id] = _MonitoredDevice(self.hass, _is_connected, _conn_state_changed)
 
-        if not rpc_coord.connected:
+        if not _is_connected():
             self._add_diag(f"Pending '{adapter_name}': Not connected - will assess later", logging.INFO)
             return
 
