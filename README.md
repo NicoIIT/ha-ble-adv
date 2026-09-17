@@ -40,6 +40,7 @@ The Protocols supported are the ones used by the following Android Phone Apps (a
 * [RW.LIGHT](https://play.google.com/store/apps/details?id=com.rw.rwblelight) (No control by Group, No support for AURA / IR / FIBER types)
 * [Smart Elfin](https://play.google.com/store/apps/details?id=com.warpfuture.wfiot.g)
 * [GMIMA](https://www.jasonghost.com/lampSmartGmima/) (not available on Play Store)
+* [SmartHomeLight](https://wosk.top/zd.html) (not available on Play Store)
 * Other (Legacy), removed app from play store: 'FanLamp', 'ControlSwitch', 'Lamp Smart Pro - Soft Lighting / Smart Lighting'
 
 If the protocols of your application are not supported yet you can request for their support [here](https://github.com/NicoIIT/ha-ble-adv/issues/new?template=new_app.yml).
