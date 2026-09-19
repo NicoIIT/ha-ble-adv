@@ -340,9 +340,10 @@ class BleAdvDevice(BleAdvBaseDevice):
         if ATTR_CMD in ent_attr.chg_attrs:
             cmd = ent_attr.attrs.get(ATTR_CMD)
             if cmd == ATTR_CMD_TIMER:
-                expire = dt_util.utcnow() + timedelta(seconds=ent_attr.attrs[ATTR_TIME])  # type: ignore[none]
-                self.logger.info(f"Set Timer to expire at: {expire}")
-                self._timer_cancel = async_track_point_in_utc_time(self.hass, self._async_timeout, expire)
+                if ent_attr.attrs[ATTR_TIME] > 0:
+                    expire = dt_util.utcnow() + timedelta(seconds=ent_attr.attrs[ATTR_TIME])  # type: ignore[none]
+                    self.logger.info(f"Set Timer to expire at: {expire}")
+                    self._timer_cancel = async_track_point_in_utc_time(self.hass, self._async_timeout, expire)
             elif cmd in (ATTR_CMD_PAIR, ATTR_CMD_UNPAIR):
                 pass
             else:

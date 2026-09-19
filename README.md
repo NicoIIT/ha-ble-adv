@@ -33,7 +33,7 @@ The Protocols supported are the ones used by the following Android Phone Apps (a
 * [Zhi Jia](https://play.google.com/store/apps/details?id=com.cxw.cxwblelight)
 * [Zhi Guang](https://play.google.com/store/apps/details?id=com.cxw.zhiguang) (2 different versions: one based on zhimei, one based on zhijia)
 * [Zhi Mei Deng Kong](http://mihuan.iotworkshop.com/zhiguang/) (not available on Play Store)
-* [Mantra Lighting](https://play.google.com/store/apps/details?id=com.newenergy.baolilan) (Models Coin, Groenland)
+* [Mantra Lighting](https://play.google.com/store/apps/details?id=com.newenergy.baolilan) (Models Coin, Groenland. No support for direct Pairing)
 * [Smart Light / Argrace Smart](https://apkpure.com/argrace-smart/ai.argrace.oem) (No RGB, Only the control by device, not the Master Control, PARTIAL support for some remotes) (not available on Play Store anymore, seems abandoned)
 * [LE Light Pro / 乐智光Pro](https://openapi.lelight.top/dl/cqan) (not available on Play Store)
 * [RuiXin](https://rx-etech.com/rxzn.html) Sanweyter devices (No RGB, no Timer, Remote Temperature Switch not reflected in HA) (not available on Play Store)
@@ -41,6 +41,7 @@ The Protocols supported are the ones used by the following Android Phone Apps (a
 * [Smart Elfin](https://play.google.com/store/apps/details?id=com.warpfuture.wfiot.g)
 * [GMIMA](https://www.jasonghost.com/lampSmartGmima/) (not available on Play Store)
 * [SmartHomeLight](https://wosk.top/zd.html) (not available on Play Store)
+* [Dudugu](https://app.dudugu.com/duduguapp/app/) (not available on Play Store. FAN only Device. No support for direct Pairing)
 * Other (Legacy), removed app from play store: 'FanLamp', 'ControlSwitch', 'Lamp Smart Pro - Soft Lighting / Smart Lighting'
 
 If the protocols of your application are not supported yet you can request for their support [here](https://github.com/NicoIIT/ha-ble-adv/issues/new?template=new_app.yml).
