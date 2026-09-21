@@ -4,6 +4,7 @@ from typing import Any
 
 from .agarce import CODECS as AGARCE_CODECS
 from .dudugu import CODECS as DUDUGU_CODECS
+from .ewelink import CODECS as EWELINK_CODECS
 from .fanlamp import FLCODECS, LSCODECS
 from .le import CODECS as LE_CODECS
 from .mantra import CODECS as MANTRA_CODECS
@@ -46,6 +47,7 @@ def get_codec_list() -> list[BleAdvCodec]:
         *RW_CODECS,
         *SMARTELFIN_CODECS,
         *DUDUGU_CODECS,
+        *EWELINK_CODECS,
     ]
 
 
