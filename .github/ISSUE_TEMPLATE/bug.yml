@@ -37,6 +37,7 @@ body:
       - "--- Select a type ---"
       - "Bluetooth Adapter of the HA Server"
       - "Ble Adv Proxy"
+      - "Shelly"
   validations:
     required: true
 
