@@ -280,6 +280,6 @@ TRANS_REMOTE = [
 CODECS = [
     AgarceEncoder().id("agarce_v3").header([0xF9, 0x09]).prefix([0x83]).ble(0x19, 0xFF).add_translators(TRANS),
     AgarceEncoder().id("agarce_v4").header([0xF9, 0x09]).prefix([0x84]).ble(0x19, 0xFF).add_translators(TRANS),
-    AgarceRemoteEncoder().id("agarce_vr3").header([0xF9, 0x09]).prefix([0x03]).ble(0x00, 0xFF).add_translators(TRANS_REMOTE),
-    AgarceRemoteEncoder().id("agarce_vr4").header([0xF9, 0x09]).prefix([0x04]).ble(0x00, 0xFF).add_translators(TRANS_REMOTE),
+    AgarceRemoteEncoder().id("agarce_vr3").header([0xF9, 0x09]).prefix([0x03]).ble(None, 0xFF).add_translators(TRANS_REMOTE),
+    AgarceRemoteEncoder().id("agarce_vr4").header([0xF9, 0x09]).prefix([0x04]).ble(None, 0xFF).add_translators(TRANS_REMOTE),
 ]

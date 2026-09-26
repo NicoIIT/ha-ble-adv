@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from binascii import crc_hqx
-from typing import ClassVar
 
 from .const import (
     ATTR_CMD,
@@ -31,16 +30,15 @@ from .utils import whiten
 class DuduguCodec(BleAdvCodec):
     """Dudugu codec."""
 
-    KEY: ClassVar[bytes] = bytes([0x99, 0x6B, 0x75, 0x96])
+    KEY: bytes = bytes([0x99, 0x6B, 0x75, 0x96])
+    CRC_ADD: int = int.from_bytes(KEY[0:2], "little") + int.from_bytes(KEY[2:4], "little")
     WHITEN_SEED: int = 0x53
 
     _len = 24
     _seed_max = 0xFE
 
     def _crc(self, buffer: bytes | bytearray, seed: int) -> int:
-        crc = crc_hqx(buffer, 0xFF00 | ((~seed) & 0xFF))
-        key = int.from_bytes(self.KEY, "little")
-        return (crc + (key >> 16) + (key & 0xFFFF)) & 0xFFFF
+        return (crc_hqx(buffer, 0xFF00 | ((~seed) & 0xFF)) + self.CRC_ADD) & 0xFFFF
 
     def decrypt(self, buffer: bytearray) -> bytearray | None:
         """Decrypt / unwhiten an incoming raw buffer into a readable buffer."""
@@ -65,13 +63,7 @@ class DuduguCodec(BleAdvCodec):
         conf.index = int.from_bytes(decoded[4:6], "little")
         conf.tx_count = decoded[7]
         conf.seed = decoded[20]
-
-        enc_cmd = BleAdvEncCmd(decoded[8])
-        enc_cmd.arg0 = decoded[11]
-        enc_cmd.arg1 = decoded[12]
-        enc_cmd.arg2 = decoded[13]
-
-        return enc_cmd, conf
+        return BleAdvEncCmd(decoded[8], 0, decoded[11], decoded[12], decoded[13]), conf
 
     def convert_from_enc(self, enc_cmd: BleAdvEncCmd, conf: BleAdvConfig) -> bytearray:
         """Convert an encoder command and a config into a readable buffer."""

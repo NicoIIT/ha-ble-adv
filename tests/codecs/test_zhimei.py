@@ -342,6 +342,38 @@ class TestEncoderZhimeiFanFull(_TestEncoderFull):
             "id: 0x0000C002, index: 2, tx: 59, seed: 0x0000",
             "light_0: [] / {'sub_type': 'cww', 'cold': 1, 'warm': 1}",
         ),
+        # BR+
+        (
+            "zhimei_fan_v1b",
+            "1E.FF.00.00.00.48.46.4B.4A.51.02.CA.A6.07.82.AC.21.B2.F0.62.B7.AB.C5.87.34.10.11.12.13.14.15",
+            "cmd: 0xB5, param: 0x00, args: [1,0,100]",
+            "id: 0x00001221, index: 255, tx: 105, seed: 0x006A",
+            "light_0: ['cmd'] / {'sub_type': 'cww', 'cmd': 'B+', 'step': 0.166}",
+        ),
+        # BR-
+        (
+            "zhimei_fan_v1b",
+            "1E.FF.00.00.00.48.46.4B.4A.69.1B.DF.4E.EF.6A.94.C9.CA.60.F3.18.3B.D1.0C.53.10.11.12.13.14.15",
+            "cmd: 0xB5, param: 0x00, args: [2,0,80]",
+            "id: 0x00001221, index: 255, tx: 106, seed: 0x006B",
+            "light_0: ['cmd'] / {'sub_type': 'cww', 'cmd': 'B-', 'step': 0.166}",
+        ),
+        # K+
+        (
+            "zhimei_fan_v1b",
+            "1E.FF.00.00.00.48.46.4B.4A.16.AA.70.DF.46.BD.E7.64.77.C1.2E.EA.02.C8.7E.D8.10.11.12.13.14.15",
+            "cmd: 0xB7, param: 0x00, args: [1,2,16]",
+            "id: 0x00001221, index: 255, tx: 116, seed: 0x0075",
+            "light_0: ['cmd'] / {'sub_type': 'cww', 'cmd': 'K+', 'step': 0.166}",
+        ),
+        # K-
+        (
+            "zhimei_fan_v1b",
+            "1E.FF.00.00.00.48.46.4B.4A.99.3C.04.5E.DF.3A.64.F7.FA.39.B5.7F.65.FC.B7.35.10.11.12.13.14.15",
+            "cmd: 0xB7, param: 0x00, args: [2,1,212]",
+            "id: 0x00001221, index: 255, tx: 119, seed: 0x0078",
+            "light_0: ['cmd'] / {'sub_type': 'cww', 'cmd': 'K-', 'step': 0.166}",
+        ),
     ],
 )
 class TestEncoderZhimeiFanNoReverse(_TestEncoderFull):
@@ -374,14 +406,14 @@ class TestEncoderZhimeiFanNoReverse(_TestEncoderFull):
             "02.01.19.1B.03.48.46.4B.4A.1C.49.36.B8.0E.B7.E1.6C.98.C8.F3.E6.D5.B1.90.BA.10.11.12.13.14.15",
             "cmd: 0xA5, param: 0x00, args: [2,0,0]",
             "id: 0x0000C002, index: 4, tx: 32, seed: 0x0008",
-            "device_0: ['cmd'] / {'cmd': 'timer', 's': 120.0}",
+            "device_0: ['cmd'] / {'cmd': 'timer', 's': 7200.0}",
         ),
         (
             "zhimei_v2",
             "02.01.19.1B.03.F9.08.49.B2.CE.2C.A5.1D.4A.B4.3B.EA.EF.1B.94.D2.10.11.12.13.14.15.16.17.18.19",
             "cmd: 0xA5, param: 0x00, args: [2,0,0]",
             "id: 0x000002C0, index: 4, tx: 32, seed: 0x0000",
-            "device_0: ['cmd'] / {'cmd': 'timer', 's': 120.0}",
+            "device_0: ['cmd'] / {'cmd': 'timer', 's': 7200.0}",
         ),
         # MAIN LIGHT OFF
         (

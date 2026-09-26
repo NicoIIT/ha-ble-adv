@@ -170,7 +170,7 @@ TRANS_FAN = [
 TRANS_DEVICE = [
     Trans(DeviceCmd().act(ATTR_CMD, ATTR_CMD_PAIR), EncCmd(0x76)),
     Trans(DeviceCmd().act(ATTR_CMD, ATTR_CMD_UNPAIR), EncCmd(0x78)),
-    Trans(DeviceCmd().act(ATTR_CMD, ATTR_CMD_TIMER), EncCmd(0x63)).copy(ATTR_TIME, "arg1"),
+    Trans(DeviceCmd().act(ATTR_CMD, ATTR_CMD_TIMER), EncCmd(0x63)).copy(ATTR_TIME, "arg1", 1.0 / 3600.0),
 ]
 
 TRANS_CWW = [

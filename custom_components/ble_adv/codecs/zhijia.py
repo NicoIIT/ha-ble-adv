@@ -284,10 +284,10 @@ class ZhijiaEncoderRemote(ZhijiaEncoderV1):
 TRANS_V0 = [
     Trans(DeviceCmd().act(ATTR_CMD, ATTR_CMD_PAIR), EncCmd(0xB4)),
     Trans(DeviceCmd().act(ATTR_CMD, ATTR_CMD_UNPAIR), EncCmd(0xB0)),
-    Trans(DeviceCmd().act(ATTR_CMD, ATTR_CMD_TIMER).eq(ATTR_TIME, 60), EncCmd(0xD4)),
-    Trans(DeviceCmd().act(ATTR_CMD, ATTR_CMD_TIMER).eq(ATTR_TIME, 120), EncCmd(0xD5)),
-    Trans(DeviceCmd().act(ATTR_CMD, ATTR_CMD_TIMER).eq(ATTR_TIME, 240), EncCmd(0xD6)),
-    Trans(DeviceCmd().act(ATTR_CMD, ATTR_CMD_TIMER).eq(ATTR_TIME, 480), EncCmd(0xD7)),
+    Trans(DeviceCmd().act(ATTR_CMD, ATTR_CMD_TIMER).eq(ATTR_TIME, 3600), EncCmd(0xD4)),
+    Trans(DeviceCmd().act(ATTR_CMD, ATTR_CMD_TIMER).eq(ATTR_TIME, 7200), EncCmd(0xD5)),
+    Trans(DeviceCmd().act(ATTR_CMD, ATTR_CMD_TIMER).eq(ATTR_TIME, 14400), EncCmd(0xD6)),
+    Trans(DeviceCmd().act(ATTR_CMD, ATTR_CMD_TIMER).eq(ATTR_TIME, 28800), EncCmd(0xD7)),
     Trans(LightCmd().act(ATTR_ON, True), EncCmd(0xB3)),
     Trans(LightCmd().act(ATTR_ON, False), EncCmd(0xB2)),
     Trans(CTLightCmd().act(ATTR_BR), EncCmd(0xB5)).split_copy(ATTR_BR, ["arg2", "arg1"], 1000.0),
@@ -318,7 +318,7 @@ TRANS_V0 = [
 TRANS_COMMON_V1_V2 = [
     Trans(DeviceCmd().act(ATTR_CMD, ATTR_CMD_PAIR), EncCmd(0xA2)),
     Trans(DeviceCmd().act(ATTR_CMD, ATTR_CMD_UNPAIR), EncCmd(0xA3)),
-    Trans(DeviceCmd().act(ATTR_CMD, ATTR_CMD_TIMER), EncCmd(0xD9)).copy(ATTR_TIME, "arg0", 1.0 / 60.0),
+    Trans(DeviceCmd().act(ATTR_CMD, ATTR_CMD_TIMER), EncCmd(0xD9)).copy(ATTR_TIME, "arg0", 1.0 / 3600.0),
     Trans(LightCmd().act(ATTR_ON, True), EncCmd(0xA5)),
     Trans(LightCmd().act(ATTR_ON, False), EncCmd(0xA6)),
     Trans(LightCmd(1).act(ATTR_ON, True), EncCmd(0xAF)),
