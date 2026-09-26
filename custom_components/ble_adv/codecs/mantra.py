@@ -37,6 +37,7 @@ from .models import (
     TranslatorSet,
 )
 from .models import EncoderMatcher as EncCmd
+from .utils import whiten16
 
 
 class MantraEncoder(BleAdvCodec):
@@ -49,32 +50,16 @@ class MantraEncoder(BleAdvCodec):
     _tx_max: int = 0xFFFF
     _family = bytes([0x12, 0x34, 0x56, 0x78])
 
-    def _whiten16(self, buffer: bytearray, seed: int, param: int = 4777, xorer: int = 73) -> bytearray:
-        obuf = bytearray()
-        r = seed
-        for val in buffer:
-            b = 0
-            for j in range(8):
-                high_bit = 0x8000 & r
-                r = (r << 1) & 0xFFFF
-                if high_bit != 0:
-                    r ^= param
-                    b |= 1 << (7 - j)
-                if r == 0:
-                    r = 1061
-            obuf.append(val ^ xorer ^ b)
-        return obuf
-
     def decrypt(self, buffer: bytearray) -> bytearray | None:
         """Decrypt / unwhiten an incoming raw buffer into a readable buffer."""
         obuf = bytearray(buffer[:5])
-        obuf += self._whiten16(buffer[5:], int.from_bytes(buffer[2:4]))
+        obuf += whiten16(buffer[5:], int.from_bytes(buffer[2:4]))
         return obuf
 
     def encrypt(self, buffer: bytearray) -> bytearray:
         """Encrypt / whiten a readable buffer."""
         obuf = bytearray(buffer[:5])
-        obuf += self._whiten16(buffer[5:], int.from_bytes(buffer[2:4]))
+        obuf += whiten16(buffer[5:], int.from_bytes(buffer[2:4]))
         return obuf
 
     def convert_to_enc(self, decoded: bytearray) -> tuple[BleAdvEncCmd | None, BleAdvConfig | None]:
@@ -86,24 +71,14 @@ class MantraEncoder(BleAdvCodec):
         conf.tx_count = int.from_bytes(decoded[0:2])
         conf.index = 0
         conf.id = int.from_bytes(decoded[8:10])
-
-        enc_cmd = BleAdvEncCmd(decoded[3])
-        enc_cmd.param = decoded[10]
-        enc_cmd.arg0 = decoded[11]
-        enc_cmd.arg1 = decoded[12]
-        enc_cmd.arg2 = decoded[13]
-        enc_cmd.arg3 = decoded[14]
-        enc_cmd.arg4 = decoded[15]
-
-        return enc_cmd, conf
+        return BleAdvEncCmd(decoded[3], *decoded[10:16]), conf
 
     def convert_from_enc(self, enc_cmd: BleAdvEncCmd, conf: BleAdvConfig) -> bytearray:
         """Convert an encoder command and a config into a readable buffer."""
         count = conf.tx_count.to_bytes(2)
         uid = conf.id.to_bytes(2)
-        return bytearray(
-            [*count, 0x06, enc_cmd.cmd, *self._family, *uid, enc_cmd.param, enc_cmd.arg0, enc_cmd.arg1, enc_cmd.arg2, enc_cmd.arg3, enc_cmd.arg4]
-        )
+        args = [enc_cmd.param, enc_cmd.arg0, enc_cmd.arg1, enc_cmd.arg2, enc_cmd.arg3, enc_cmd.arg4]
+        return bytearray([*count, 0x06, enc_cmd.cmd, *self._family, *uid, *args])
 
 
 class TransRemote(Trans):
@@ -129,10 +104,10 @@ class TransRemote(Trans):
 
 TRANS_APP_V0 = [
     Trans(DeviceCmd().act(ATTR_ON, False), EncCmd(0x01).eq("param", 0x02)).no_direct(),
-    Trans(DeviceCmd().act(ATTR_CMD, ATTR_CMD_TIMER).eq(ATTR_TIME, 60), EncCmd(0x01).eq("param", 0x09)),
-    Trans(DeviceCmd().act(ATTR_CMD, ATTR_CMD_TIMER).eq(ATTR_TIME, 120), EncCmd(0x01).eq("param", 0x0A)),
-    Trans(DeviceCmd().act(ATTR_CMD, ATTR_CMD_TIMER).eq(ATTR_TIME, 240), EncCmd(0x01).eq("param", 0x0B)),
-    Trans(DeviceCmd().act(ATTR_CMD, ATTR_CMD_TIMER).eq(ATTR_TIME, 480), EncCmd(0x01).eq("param", 0x0C)),
+    Trans(DeviceCmd().act(ATTR_CMD, ATTR_CMD_TIMER).eq(ATTR_TIME, 3600), EncCmd(0x01).eq("param", 0x09)).no_direct(),
+    Trans(DeviceCmd().act(ATTR_CMD, ATTR_CMD_TIMER).eq(ATTR_TIME, 7200), EncCmd(0x01).eq("param", 0x0A)).no_direct(),
+    Trans(DeviceCmd().act(ATTR_CMD, ATTR_CMD_TIMER).eq(ATTR_TIME, 14400), EncCmd(0x01).eq("param", 0x0B)).no_direct(),
+    Trans(DeviceCmd().act(ATTR_CMD, ATTR_CMD_TIMER).eq(ATTR_TIME, 28800), EncCmd(0x01).eq("param", 0x0C)).no_direct(),
     Trans(LightCmd().act(ATTR_ON, True), EncCmd(0x01).eq("param", 0x05)),
     Trans(LightCmd().act(ATTR_ON, False), EncCmd(0x01).eq("param", 0x06)),
     Trans(CTLightCmd().act(ATTR_COLD).act(ATTR_WARM), EncCmd(0x02))

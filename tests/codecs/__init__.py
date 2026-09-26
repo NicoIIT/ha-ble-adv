@@ -82,6 +82,8 @@ class _TestEncoderFullAll:
         adv = BleAdvAdvertisement.FromRaw(_from_dotted(raw))
         codec = CODECS[enc_name]
         enc_cmd, conf = codec.decode_adv(adv)
+        if adv.ad_flag is None:
+            assert codec._ad_flag is None  # noqa: SLF001
         assert enc_cmd is not None
         assert repr(enc_cmd) == enc_str
         assert conf is not None

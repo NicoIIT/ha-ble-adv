@@ -28,6 +28,7 @@ We need to communicate, so let's use a common vocabulary so that there is no mis
 * BLUETOOTH ADAPTER: the Bluetooth Adapter you are using to send commands to your device using this component. Could be
     * 'HCI'- the bluetooth adapter of your Home Assistant Server
     * 'BLE ADV Proxy' - A `ble_adv_proxy` component deployed on an ESP32 linked to your Home Assistant
+    * 'Shelly' - A SHelly device supporting BLE Advertising 
 * Home Assistant vocabulary: Entity / State / ...
 * (G)UI: (Graphical) User Interface - the one provided by Home Assistant usually
 * PAIR: the action to send a Pairing request to the Device and complete it, following the Pairing protocol recommended by the device manufacturer. It can be done:
@@ -65,7 +66,7 @@ As a result the maintainer will come back to you asking to clarify, so take 1 mo
 
 
 ### Optimizing maintainer's time
-The maintainer is providing this component for FREE and can only spend a limited amount of time in helping users and improving this component. The more time he spend in reading and investigating issues the less time he can spend on improving this component and fix real issues.
+The maintainer is providing this component for FREE and can only spend a limited amount of time in helping users and improving this component. The more time he spends in reading and investigating issues the less time he can spend on improving this component and fix real issues.
 
 As a consequence the phylosophy of the maintainer of this component is to help users ONLY after they have tried everything they could on their own using the documentation. Asking for questions that are already answered in the docs, or even worse asking where to find an info in the docs is not a good idea. If you do not agree with this way to go no problem: do not use this component or do not open issues.
 
@@ -77,14 +78,13 @@ The best way to have everyone lose his time is to lie in Issues (saying you have
 ## Issues
 Opening an issue MUST be your last solution after having tried every single advise that can be found in the documentation. As this is unfortunately not the case for most issues, the issue templates are very strict and request you to confirm every step you already checked from the doc in order to be 100% sure your issue does not already have an answer in the docs. You can think what is requested in the issue templates is not of any use for your case, this is your right, but if the maintainer requests it just provide it or your issue will be rejected.
 
-In order to  avoid asking for useless info in issue templates, there are several different templates for different purposes: please choose the relevant one!
+In order to avoid asking for useless info in issue templates, there are several different templates for different purposes: please choose the relevant one!
 
 As the maintainer wants to enforce the read of the documentation BEFORE you open an issue, he will not provide you with any details on where you can find answer in the documentation while rejecting your issue.
 
 If you are 100% sure you are facing a bug or that you are facing a problem which answer is NOT in the doc then you can open issues from [here](../../issues/new/choose).
 
 The detailed reasons for rejections can be found [here](https://github.com/NicoIIT/ha-ble-adv/wiki/Why-was-my-issue-rejected%3F)
-
 
 ## Pull Requests
 Pull requests are more than welcome but they can be very time consumming to understand and to review, so following basic steps are needed in order to optimize their handling.
@@ -94,7 +94,10 @@ Before trying to code something you should first open an issue requesting for it
 * if the change is a good idea or not, or if the issue is really an issue that needs a fix in this component.
 * if it complies with the global architecture of the component
 * if it complies with Home Assistant architecture
+
 After you and the maintainer agree on a solution, then you can propose a Pull Request. Any Pull Request submitted without preliminary issue opened and discussed will be rejected.
+
+Note that this rule does not apply to contributions related to translations / docunmentation: such PRs can be submitted without a preliminary issue.
 
 ### Implementation
 You are free to implement a change with any tool you want (such as an AI), but you MUST:
@@ -102,7 +105,7 @@ You are free to implement a change with any tool you want (such as an AI), but y
 * understand the software change you propose
 * fully test your changes in Unit Tests and with a real HA server
 
-In particular if using an AI you must be able to challenge it on your own if the implementation it proposes is breaking the architecture of this component, or is going against HA design. If you are not an experienced developer and are then not able to do so, the maintainer will need to iterativelly challenge your software for those reasons during reviews and lose a huge amount of time. He would lose less time directly interacting with the AI, so while you think you would help the maintainer by contributing, this is the countrary that happens.
+In particular if using an AI you must be able to challenge it on your own if the implementation it proposes is breaking the architecture of this component, or is going against HA design. If you are not an experienced developer and are then not able to do so, the maintainer will need to iterativelly challenge your software for those reasons during reviews and lose a huge amount of time. He would lose less time directly interacting with the AI, so while you think you would help the maintainer by contributing, this is the contrary that happens.
 
 To sum-up: if you are not an experienced developer, do not open PRs that modifies the core components of this software.
 

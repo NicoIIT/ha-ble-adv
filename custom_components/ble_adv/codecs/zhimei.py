@@ -221,7 +221,7 @@ class ZhimeiEncoderV2(BleAdvCodec):
 
 TRANS_COMMON = [
     Trans(DeviceCmd().act(ATTR_CMD, ATTR_CMD_UNPAIR), EncCmd(0xB0)),
-    Trans(DeviceCmd().act(ATTR_CMD, ATTR_CMD_TIMER), EncCmd(0xA5)).split_copy(ATTR_TIME, ["arg0", "arg1"], 1.0 / 60.0, 60),
+    Trans(DeviceCmd().act(ATTR_CMD, ATTR_CMD_TIMER), EncCmd(0xA5)).split_copy(ATTR_TIME, ["arg0", "arg1"], 1.0 / 3600.0, 60),
     Trans(LightCmd().act(ATTR_ON, True), EncCmd(0xB3)),
     Trans(LightCmd().act(ATTR_ON, False), EncCmd(0xB2)),
     Trans(LightCmd(1).act(ATTR_ON, True), EncCmd(0xA6).eq("arg0", 2)),
@@ -283,8 +283,8 @@ TRANS_FAN_COMMON = [
 
 TRANS_REMOTE = [
     Trans(DeviceCmd().act(ATTR_ON, False), EncCmd(0x10)).no_direct(),
-    Trans(DeviceCmd().act(ATTR_CMD, ATTR_CMD_TIMER).eq(ATTR_TIME, 60 * 60), EncCmd(0x12)).no_direct(),
-    Trans(DeviceCmd().act(ATTR_CMD, ATTR_CMD_TIMER).eq(ATTR_TIME, 2 * 60 * 60), EncCmd(0x14)).no_direct(),
+    Trans(DeviceCmd().act(ATTR_CMD, ATTR_CMD_TIMER).eq(ATTR_TIME, 3600), EncCmd(0x12)).no_direct(),
+    Trans(DeviceCmd().act(ATTR_CMD, ATTR_CMD_TIMER).eq(ATTR_TIME, 7200), EncCmd(0x14)).no_direct(),
     Trans(LightCmd().act(ATTR_ON, ATTR_CMD_TOGGLE), EncCmd(0x04)).no_direct(),
     Trans(LightCmd().act(ATTR_ON, True), EncCmd(0x04)).no_reverse(),
     Trans(LightCmd().act(ATTR_ON, False), EncCmd(0x04)).no_reverse(),
@@ -335,13 +335,13 @@ CODECS = [
     ZhimeiEncoderV1().id("zhimei_v1").header([0x48, 0x46, 0x4B, 0x4A]).ble(0x1A, 0x03).add_translators(TRANS_V1),
     ZhimeiEncoderV2().id("zhimei_v2").header([0xF9, 0x08, 0x49]).ble(0x1A, 0x03).prefix([0x33, 0xAA, 0x55]).add_translators(TRANS_V2),
     # Zhi Mei Remotes
-    ZhimeiEncoderV0().fid("zhimei_fan_vr0", "zhimei_fan_v0").header([0x55]).ble(0, 0).add_translators(TRANS_REMOTE),
-    ZhimeiEncoderV1().fid("zhimei_fan_vr1", "zhimei_fan_v1").header([0x48, 0x46, 0x4B, 0x4A], 3).ble(0, 0xFF).add_translators(TRANS_REMOTE),
-    ZhimeiEncoderV1().fid("zhimei_fan_v1b", "zhimei_fan_v1").header([0x00, 0x00, 0x00, 0x48, 0x46, 0x4B, 0x4A]).ble(0x1A, 0xFF)
+    ZhimeiEncoderV0().fid("zhimei_fan_vr0", "zhimei_fan_v0").header([0x55]).ble(None, 0).add_translators(TRANS_REMOTE),
+    ZhimeiEncoderV1().fid("zhimei_fan_vr1", "zhimei_fan_v1").header([0x48, 0x46, 0x4B, 0x4A], 3).ble(None, 0xFF).add_translators(TRANS_REMOTE),
+    ZhimeiEncoderV1().fid("zhimei_fan_v1b", "zhimei_fan_v1").header([0x00, 0x00, 0x00, 0x48, 0x46, 0x4B, 0x4A]).ble(None, 0xFF)
         .add_translators(TRANS_FAN_V1)
         .add_translator_set("rev_on_off", TRANS_FAN_V1_REV),
     ZhimeiEncoderV1().fid("zhimei_v1b", "zhimei_v1").header([0x58, 0x55, 0x18, 0x48, 0x46, 0x4B, 0x4A]).ble(0x1A, 0xFF).add_translators(TRANS_V1),
-    ZhimeiEncoderV1().fid("zhimei_vr1", "zhimei_v1").header([0xFF, 0xFF, 0xFF, 0x48, 0x46, 0x4B, 0x4A]).footer([0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF]).ble(0, 0xFF).add_translators(TRANS_V1),
+    ZhimeiEncoderV1().fid("zhimei_vr1", "zhimei_v1").header([0xFF, 0xFF, 0xFF, 0x48, 0x46, 0x4B, 0x4A]).footer([0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF]).ble(None, 0xFF).add_translators(TRANS_V1),
     # Zhi Guang 2
     ZhimeiEncoderV2().id("zhiguang2_v2").header([0xF9, 0x08, 0x49]).ble(0x1A, 0xFF).prefix([0x33, 0xAA, 0x55]).add_translators(TRANS_V2),
 ]  # fmt: skip

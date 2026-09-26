@@ -22,14 +22,6 @@ class TestEncoderMantra(_TestEncoderBase):
 @pytest.mark.parametrize(
     _TestEncoderFull.PARAM_NAMES,
     [
-        # Timer 2H (120min / 7200s)
-        (
-            "mantra_v0",
-            "02.01.1A.15.FF.4E.6F.72.0E.04.36.06.4C.20.A2.67.36.44.8E.C0.CC.39.14.FE.87",
-            "cmd: 0x01, param: 0x0A, args: [0,0,0]",
-            "id: 0x0000C5F0, index: 0, tx: 1078, seed: 0x0000",
-            "device_0: ['cmd'] / {'cmd': 'timer', 's': 120}",
-        ),
         # MAIN LIGHT ON
         (
             "mantra_v0",
@@ -119,6 +111,14 @@ class TestEncoderMantraV0Full(_TestEncoderFull):
 @pytest.mark.parametrize(
     _TestEncoderFull.PARAM_NAMES,
     [
+        # Timer 2H (120min / 7200s)
+        (
+            "mantra_v0",
+            "02.01.1A.15.FF.4E.6F.72.0E.04.36.06.4C.20.A2.67.36.44.8E.C0.CC.39.14.FE.87",
+            "cmd: 0x01, param: 0x0A, args: [0,0,0]",
+            "id: 0x0000C5F0, index: 0, tx: 1078, seed: 0x0000",
+            "device_0: ['cmd'] / {'cmd': 'timer', 's': 7200}",
+        ),
         # FAN SPEED 21/30
         (
             "mantra_v0",

@@ -34,6 +34,7 @@ class BleAdvAdvertisement:
     def FromRaw(cls, raw_adv: bytes) -> Self:  # noqa: N802
         """Build an Advertisement from raw."""
         ble_type = 0x00
+        ad_flag = None
         sec_type = 0x00
         sec_raw = None
         rem_data = raw_adv
@@ -42,7 +43,9 @@ class BleAdvAdvertisement:
             if part_len > len(rem_data):
                 break
             part_type = rem_data[1]
-            if part_type in [0x03, 0x05, 0x07, 0x16, 0xFF]:
+            if part_type == 0x01 and part_len == 2:
+                ad_flag = rem_data[2]
+            elif part_type in [0x03, 0x05, 0x07, 0x16, 0xFF]:
                 if ble_type == 0x00:
                     ble_type = part_type
                     raw_data = rem_data[2 : part_len + 1]
@@ -52,12 +55,12 @@ class BleAdvAdvertisement:
             rem_data = rem_data[part_len + 1 :]
         if ble_type == 0:
             raw_data = raw_adv
-        return cls(ble_type, raw_data, 0, sec_type, sec_raw)
+        return cls(ble_type, raw_data, ad_flag, sec_type, sec_raw)
 
-    def __init__(self, ble_type: int, raw: bytes, ad_flag: int = 0, sec_type: int = 0, sec_raw: bytes | None = None) -> None:
+    def __init__(self, ble_type: int, raw: bytes, ad_flag: int | None = None, sec_type: int = 0, sec_raw: bytes | None = None) -> None:
         self.ble_type: int = ble_type
         self.raw: bytes = raw
-        self.ad_flag = ad_flag
+        self.ad_flag: int | None = ad_flag
         self.second_type: int = sec_type
         self.second_raw: bytes | None = sec_raw
 
@@ -76,7 +79,7 @@ class BleAdvAdvertisement:
         """Get the raw buffer."""
         full_raw = bytearray([len(self.raw) + 1, self.ble_type]) + self.raw if self.ble_type != 0 else self.raw
         second_raw = bytearray([len(self.second_raw) + 1, self.second_type]) + self.second_raw if self.second_raw is not None else bytes([])
-        return bytes(full_raw if self.ad_flag == 0 else bytearray([0x02, 0x01, self.ad_flag]) + full_raw + second_raw)
+        return bytes(full_raw if self.ad_flag is None else bytearray([0x02, 0x01, self.ad_flag]) + full_raw + second_raw)
 
 
 @dataclass
@@ -452,7 +455,7 @@ class BleAdvCodec(ABC):
         self._prefix: bytes = b""  # prefix is included in the data sent to the child encoder
         self._footer: bytes = b""  # footer is excluded from the data sent to the child encoder
         self._ble_type: int = 0
-        self._ad_flag: int = 0
+        self._ad_flag: int | None = None
         self._translator_maps: dict[str, TranslatorSet] = {self.DEF_TRANS_NAME: TranslatorSet()}
 
     @abstractmethod
@@ -504,7 +507,7 @@ class BleAdvCodec(ABC):
         self._footer = bytes(footer)
         return self
 
-    def ble(self, ad_flag: int, ble_type: int) -> Self:
+    def ble(self, ad_flag: int | None, ble_type: int) -> Self:
         """Set BLE param."""
         self._ad_flag = ad_flag
         self._ble_type = ble_type

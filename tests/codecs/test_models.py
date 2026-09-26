@@ -61,16 +61,15 @@ EncCmd = EncoderMatcher
 def test_adv() -> None:
     """Test BleAAdvdvertisement."""
     raw_msg = "F0.08.10.80.33.BC.2E.B0.49.EA.58.76.C0.1D.99.5E.9C.D6.B8.0E.6E.14.2B.A5.30.A9"
-    raw_with_ble = "1B.16." + raw_msg
-    adv_str = _from_dotted("02.01.19." + raw_with_ble)
+    raw_with_ble_ad = "02.01.19.1B.16." + raw_msg
+    adv_str = _from_dotted(raw_with_ble_ad)
     adv = BleAdvAdvertisement.FromRaw(adv_str)
     assert hash(adv) != 0
     assert as_hex(adv.raw) == raw_msg
     assert adv.ble_type == 0x16
-    assert adv.to_raw() == _from_dotted(raw_with_ble)
+    assert adv.to_raw() == _from_dotted(raw_with_ble_ad)
     assert repr(adv) == "Type: 0x16, raw: " + raw_msg
-    assert adv == BleAdvAdvertisement(0x16, _from_dotted(raw_msg))
-    adv.ad_flag = 0x19
+    assert adv == BleAdvAdvertisement(0x16, _from_dotted(raw_msg), 0x19)
     adv = BleAdvAdvertisement.FromRaw(_from_dotted(raw_msg))
     assert adv.ble_type == 0
     assert adv.to_raw() == _from_dotted(raw_msg)

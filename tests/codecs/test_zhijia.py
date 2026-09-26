@@ -52,21 +52,21 @@ class TestEncoderZhijia(_TestEncoderBase):
             "02.01.1A.1B.FF.22.9D.49.4F.BF.2F.AB.1C.11.BF.D6.77.AD.65.E0.EA.78.02.12.4A.5F.85.F6.9C.A9.19",
             "cmd: 0xD9, param: 0x00, args: [2,0,0]",
             "id: 0x00E15324, index: 1, tx: 99, seed: 0x0000",
-            "device_0: ['cmd'] / {'cmd': 'timer', 's': 120.0}",
+            "device_0: ['cmd'] / {'cmd': 'timer', 's': 7200.0}",
         ),
         (
             "zhijia_v0",
             "02.01.1A.11.FF.F9.08.49.89.E4.E1.92.0E.5E.A5.5A.68.C9.08.3D.59",
             "cmd: 0xD5, param: 0x00, args: [0,0,0]",
             "id: 0x00005324, index: 1, tx: 49, seed: 0x0000",
-            "device_0: ['cmd'] / {'cmd': 'timer', 's': 120}",
+            "device_0: ['cmd'] / {'cmd': 'timer', 's': 7200}",
         ),
         (
             "zhijia_v1",
             "02.01.1A.1B.FF.F9.08.49.13.E1.2B.48.C1.28.4A.85.85.C5.54.60.96.BF.A0.2C.89.DB.11.0D.92.A4.3E",
             "cmd: 0xD9, param: 0x00, args: [2,0,0]",
             "id: 0x00E15324, index: 1, tx: 98, seed: 0x0000",
-            "device_0: ['cmd'] / {'cmd': 'timer', 's': 120.0}",
+            "device_0: ['cmd'] / {'cmd': 'timer', 's': 7200.0}",
         ),
         # MAIN LIGHT OFF
         (

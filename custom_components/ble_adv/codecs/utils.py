@@ -1,7 +1,7 @@
 """Utils for codecs."""
 
 
-def whiten(buffer: bytes | bytearray, seed: int) -> bytearray:
+def whiten(buffer: bytes | bytearray, seed: int, xorer: int = 0) -> bytearray:
     """Whiten / Unwiten buffer with seed."""
     obuf = bytearray()
     r = seed
@@ -13,7 +13,25 @@ def whiten(buffer: bytes | bytearray, seed: int) -> bytearray:
                 r ^= 0x11
                 b |= 1 << j
             r &= 0x7F
-        obuf.append(val ^ b)
+        obuf.append(val ^ b ^ xorer)
+    return obuf
+
+
+def whiten16(buffer: bytearray, seed: int, param: int = 4777, xorer: int = 73) -> bytearray:
+    """Whiten / unwhiten with a 16 bit base."""
+    obuf = bytearray()
+    r = seed
+    for val in buffer:
+        b = 0
+        for j in range(8):
+            high_bit = 0x8000 & r
+            r = (r << 1) & 0xFFFF
+            if high_bit != 0:
+                r ^= param
+                b |= 1 << (7 - j)
+            if r == 0:
+                r = 1061
+        obuf.append(val ^ xorer ^ b)
     return obuf
 
 
