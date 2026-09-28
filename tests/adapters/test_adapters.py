@@ -116,6 +116,28 @@ async def test_adapter(mock_socket: _AsyncSocketMock) -> None:
         await hci_adapter._advertise(BleAdvAdapterAdvItem(20, 3, b"", 2))
 
 
+async def test_adapter_race(mock_socket: _AsyncSocketMock) -> None:
+    """Test race condition when final is called while advertising."""
+    # setup an asyncio event loop with custom exception handler to catch errors in background tasks
+    loop = asyncio.get_running_loop()
+    errors = []
+
+    def _exception_handler(_: asyncio.AbstractEventLoop, context: dict[str, object]) -> None:
+        errors.append(context["exception"])
+
+    loop.set_exception_handler(_exception_handler)
+
+    # Run the test
+    adapter = BluetoothHCIAdapter("hci0", 0, "mac", mock.AsyncMock(), mock.AsyncMock(), mock.AsyncMock())
+    adapter._async_socket = mock_socket
+    await adapter.async_init()
+    await adapter.enqueue("q1", BleAdvQueueItem(21, 1, 100, 60, [b"msg01"], 2))
+    await asyncio.sleep(0.1)  # ensure the item is advertised once and lock created
+    await adapter.async_final()
+    await asyncio.sleep(0.1)  # wait for lock to expire after async_final called
+    assert not errors
+
+
 INIT_CALLS_EXT_ADV = [
     ("bind", ((0,),)),
     ("setsockopt", (0, 2, b"\x10\x00\x00\x00\x00@\x00\x00\x00\x00\x00@\x00\x00\x00\x00")),
