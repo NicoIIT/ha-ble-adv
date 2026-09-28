@@ -109,7 +109,7 @@ class BleAdvAdapter(ABC):
         self._queues: list[list[BleAdvQueueItem]] = []
         self._locked_tasks: list[asyncio.Task | None] = []
         self._add_event: asyncio.Event = asyncio.Event()
-        self._cur_ind: int = -1
+        self._cur_ind: int | None = None
         self._lock: asyncio.Lock = asyncio.Lock()
         self._processing: bool = False
         self._dequeue_task: asyncio.Task | None = None
@@ -155,8 +155,10 @@ class BleAdvAdapter(ABC):
         """Async Final: clean-up to be ready for another init."""
         async with self._lock:
             self._processing = False
+            for task in [ts for ts in self._locked_tasks if ts is not None]:
+                task.cancel()
             self._qlen = 0
-            self._cur_ind = -1
+            self._cur_ind = None
             self._queues.clear()
             self._queues_index.clear()
             self._locked_tasks.clear()
@@ -192,12 +194,16 @@ class BleAdvAdapter(ABC):
             self._add_event.set()
 
     async def _unlock_queue(self, qind: int, delay: int) -> None:
-        await asyncio.sleep(delay / 1000.0)
-        self._locked_tasks[qind] = None
-        self._add_event.set()
+        try:
+            await asyncio.sleep(delay / 1000.0)
+            if self._qlen > 0:
+                self._locked_tasks[qind] = None
+            self._add_event.set()
+        except asyncio.CancelledError:
+            self.logger.debug(f"Unlock queue {qind} task cancelled.")
 
-    async def _lock_queue_for(self, qind: int, delay: int) -> None:
-        if not delay:
+    async def _lock_queue_for(self, qind: int | None, delay: int) -> None:
+        if not delay or qind is None:
             return
         self._locked_tasks[qind] = asyncio.create_task(self._unlock_queue(qind, delay))
 
@@ -210,7 +216,7 @@ class BleAdvAdapter(ABC):
                 await self._add_event.wait()
                 async with self._lock:
                     for _ in range(self._qlen):
-                        self._cur_ind = (self._cur_ind + 1) % self._qlen
+                        self._cur_ind = (self._cur_ind + 1) % self._qlen if self._cur_ind is not None else 0
                         if self._locked_tasks[self._cur_ind] is not None:
                             continue
                         tq = self._queues[self._cur_ind]
