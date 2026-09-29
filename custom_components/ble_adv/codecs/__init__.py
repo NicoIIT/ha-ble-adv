@@ -6,6 +6,7 @@ from .agarce import CODECS as AGARCE_CODECS
 from .dudugu import CODECS as DUDUGU_CODECS
 from .ewelink import CODECS as EWELINK_CODECS
 from .fanlamp import FLCODECS, LSCODECS
+from .hxlight import CODECS as HXLIGHT_CODECS
 from .le import CODECS as LE_CODECS
 from .mantra import CODECS as MANTRA_CODECS
 from .models import BleAdvCodec
@@ -48,6 +49,7 @@ def get_codec_list() -> list[BleAdvCodec]:
         *SMARTELFIN_CODECS,
         *DUDUGU_CODECS,
         *EWELINK_CODECS,
+        *HXLIGHT_CODECS,
     ]
 
 
