@@ -43,6 +43,7 @@ The Protocols supported are the ones used by the following Android Phone Apps (a
 * [SmartHomeLight](https://wosk.top/zd.html) (not available on Play Store)
 * [Dudugu](https://app.dudugu.com/duduguapp/app/) (not available on Play Store. FAN only Device. No support for direct Pairing)
 * [eWeLink](https://play.google.com/store/apps/details?id=com.coolkit) ONLY BLE ADV devices such as [VACZON](https://github.com/NicoIIT/ha-ble-adv/issues/201) !!! Will **_NEVER_** work for Standard BLE GATT devices (99% of eWeLink Devices) so ensure the Device is [BLE ADV Controlled](https://github.com/NicoIIT/ha-ble-adv/wiki/How-to-know-if-my-Physical-Remote-is-using-BLE-Advertising-to-control-my-device) BEFORE opening an issue.
+* [Hxlight](https://play.google.com/store/apps/details?id=com.dxc.delight) / [LED-Spots](https://play.google.com/store/apps/details?id=com.hmwin.bt.broadcast) (On / Off, Brightness, Color Temperature and Night Mode. No support for direct Pairing)
 * Other (Legacy), removed app from play store: 'FanLamp', 'ControlSwitch', 'Lamp Smart Pro - Soft Lighting / Smart Lighting'
 
 If the protocols of your application are not supported yet you can request for their support [here](https://github.com/NicoIIT/ha-ble-adv/issues/new?template=new_app.yml).
