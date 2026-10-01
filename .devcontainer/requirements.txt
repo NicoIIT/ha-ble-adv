@@ -16,7 +16,7 @@ homeassistant==2026.8.3
 # ble_adv requirements
 pycryptodome==3.23.0
 btsocket==0.3.0
-aioshelly==13.29.0
+aioshelly==13.34.0
 
 # for unit tests
 pytest-homeassistant-custom-component==0.13.357
