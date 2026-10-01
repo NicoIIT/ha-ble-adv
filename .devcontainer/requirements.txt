@@ -25,4 +25,4 @@ ruff==0.16.9
 
 # needed for shelly component used by Unit Tests
 aiousbwatcher==1.1.2
-serialx==1.8.2
+serialx==1.10.0
