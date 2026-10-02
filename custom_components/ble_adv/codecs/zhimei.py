@@ -44,7 +44,7 @@ from .models import (
     TranslatorSet,
 )
 from .models import EncoderMatcher as EncCmd
-from .utils import reverse_all, reverse_byte, whiten
+from .utils import rev_crc16_ccit, whiten
 
 
 class ZhimeiEncoderV0(BleAdvCodec):
@@ -168,8 +168,7 @@ class ZhimeiEncoderV2(BleAdvCodec):
         self.footer([0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17, 0x18, 0x19])
 
     def _crc16(self, buffer: bytearray) -> int:
-        pre_cec: int = crc_hqx(reverse_all(buffer), 0xFFFF)
-        return 0xFFFF ^ (((reverse_byte(pre_cec & 0xFF) << 8) & 0xFF00) | (reverse_byte(pre_cec >> 8) & 0xFF))
+        return rev_crc16_ccit(buffer, 0)
 
     def decrypt(self, buffer: bytearray) -> bytearray | None:
         """Decrypt / unwhiten an incoming raw buffer into a readable buffer."""
