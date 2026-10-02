@@ -44,7 +44,7 @@ body:
   attributes:
     label: Checklist
     options:
-      - label: I **_CAREFULLY_** read the [Contribution Guidelines](../CONTRIBUTING.md) of the project and this issue fully complies with them.
+      - label: I **_CAREFULLY_** read the [Contribution Guidelines](https://github.com/NicoIIT/ha-ble-adv?tab=contributing-ov-file#contribution-guidelines) of the project and this issue fully complies with them.
         required: true
       - label: I **_CAREFULLY_** checked the [troubleshooting guide](https://github.com/NicoIIT/ha-ble-adv/wiki/Troubleshooting-Guide) and the [configuration guide](https://github.com/NicoIIT/ha-ble-adv/wiki/Configuration-Guide) and it did not solve my issue
         required: true

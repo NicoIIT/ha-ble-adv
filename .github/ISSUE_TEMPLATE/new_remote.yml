@@ -10,7 +10,7 @@ body:
   attributes:
     label: Checklist
     options:
-      - label: I **_CAREFULLY_** read the [Contribution Guidelines](../CONTRIBUTING.md) of the project and this issue fully complies with them.
+      - label: I **_CAREFULLY_** read the [Contribution Guidelines](https://github.com/NicoIIT/ha-ble-adv?tab=contributing-ov-file#contribution-guidelines) of the project and this issue fully complies with them.
         required: true
       - label: I have filled out the template COMPLETELY. In particular if either of the mandatory info is not given then your request is useless and will be Closed.
         required: true

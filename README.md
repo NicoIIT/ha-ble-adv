@@ -3,7 +3,7 @@
 [![GitHub release](https://img.shields.io/github/v/release/NicoIIT/ha-ble-adv.svg)](https://github.com/NicoIIT/ha-ble-adv/releases/)
 ![Usage](https://img.shields.io/badge/dynamic/json?color=9932CC&logo=home-assistant&label=usage&suffix=%20installs&cacheSeconds=15600&url=https://analytics.home-assistant.io/custom_integrations.json&query=$.ble_adv.total)
 
-Home Assistant Custom Integration to control Ceiling Fan / Lamp Devices from various Brands using **_BLE Raw Advertising_** as communication method.
+Home Assistant Custom Integration to control Ceiling Fan / Lamp Devices from various Brands using _non standard_ **_BLE Raw Advertising_** as communication method. Please note this component will **_never_** support standard BLE GATT protocol as it is not its purpose.
 
 This integration **is not limited to any specific device type or brand**: it is able to recognize and reproduce the communication protocols used by various [Phone Apps](#supported-ceiling-fans--lamps-protocols) and Remotes.
 
@@ -13,7 +13,7 @@ This integration **is not limited to any specific device type or brand**: it is 
 * Listen to the command emitted by the Phone App and updates Home Assistant Entities state
 * Synchronize another controller: allows to have a Phone App and a remote both updating Home Assistant entities state
 * Guided configuration fully based on Home Assistant User Interface configuration flow
-* Use either the bluetooth of the HomeAssistant host or an ESPHome based [ble_adv_proxy](https://github.com/NicoIIT/esphome-ble_adv_proxy) similar to the ESPHome `bluetooth_proxy` but supporting _BLE Raw Advertising_
+* Use either the bluetooth of the HomeAssistant host, an ESPHome based [ble_adv_proxy](https://github.com/NicoIIT/esphome-ble_adv_proxy) similar to the ESPHome `bluetooth_proxy` but supporting _BLE Raw Advertising_ or a Shelly device supporting HA Bluetooth Proxy.
 
 ## Requirements
 * Your Home Assistant must _either_:
@@ -21,7 +21,7 @@ This integration **is not limited to any specific device type or brand**: it is 
   * Have one or several ESPHome [ble_adv_proxy](https://github.com/NicoIIT/esphome-ble_adv_proxy) linked to your Home Assistant instance. If you already have some [bluetooth_proxy](https://esphome.io/components/bluetooth_proxy/) they can easily be extended to `ble_adv_proxy`.
   * Have one or several standard **Shelly Bluetooth Proxy** linked to your Home Assistant instance, with internal firmware version at least v2.0.0 and with [Bluetooth Scanner](https://www.home-assistant.io/integrations/shelly/#options) mode Enabled and working OK.
 * Your device can be reached by Bluetooth from the Home Assistant Host / `ble_adv_proxy` / Shelly Bluetooth Proxy.
-* Have an up-to-date Home Assistant Core (2026.8.3 minimum) and HACS (2.0.1 minimum)
+* Have an up-to-date Home Assistant Core and HACS, see minimum versions [here](hacs.json)
 
 ## Supported Ceiling Fans / Lamps Protocols
 The Protocols supported are the ones used by the following Android Phone Apps (and iOS for most of them):

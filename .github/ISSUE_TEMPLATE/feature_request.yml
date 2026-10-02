@@ -10,7 +10,7 @@ body:
   attributes:
     label: Checklist
     options:
-      - label: I **_CAREFULLY_** read the [Contribution Guidelines](../CONTRIBUTING.md) of the project and this issue fully complies with them.
+      - label: I **_CAREFULLY_** read the [Contribution Guidelines](https://github.com/NicoIIT/ha-ble-adv?tab=contributing-ov-file#contribution-guidelines) of the project and this issue fully complies with them.
         required: true
       - label: I have checked the [README](https://github.com/NicoIIT/ha-ble-adv?tab=readme-ov-file#home-assistant-ble-adv-ceiling-fan--lamps), the [config guide](https://github.com/NicoIIT/ha-ble-adv/wiki/Configuration-Guide) and the [troubleshooting guide](https://github.com/NicoIIT/ha-ble-adv/wiki/Troubleshooting-Guide) to be sure the feature is not existing alreay.
         required: true
