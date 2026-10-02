@@ -10,7 +10,7 @@ body:
   attributes:
     label: Checklist
     options:
-      - label: I **_CAREFULLY_** read the [Contribution Guidelines](../CONTRIBUTING.md) of the project and this issue fully complies with them.
+      - label: I **_CAREFULLY_** read the [Contribution Guidelines](https://github.com/NicoIIT/ha-ble-adv?tab=contributing-ov-file#contribution-guidelines) of the project and this issue fully complies with them.
         required: true
       - label: I have checked the [README](https://github.com/NicoIIT/ha-ble-adv?tab=readme-ov-file#home-assistant-ble-adv-ceiling-fan--lamps) and the Phone App is not already supported.
         required: true

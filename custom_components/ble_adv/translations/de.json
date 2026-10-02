@@ -1,0 +1,496 @@
+{
+  "title": "Bluetooth Low Energy Advertising gesteuerte Geräte",
+  "config": {
+    "step": {
+      "user": {
+        "description": "Stelle vor dem Start sicher, dass du dich im selben Raum wie das zu steuernde Gerät befindest!",
+        "menu_options": {
+          "wait_config": "Konfiguration der gekoppelten Handy-App übernehmen (empfohlen)",
+          "pair": "Pairing",
+          "tools": "Tools und Hilfsmittel"
+        }
+      },
+      "no_adapters": {
+        "description": "Es wurde kein Bluetooth-Adapter gefunden, der BLE Advertising unterstützt.\nBitte lies den [Troubleshooting-Guide – Schritt 1.2]({url}).",
+        "menu_options": {
+          "abort_no_adapters": "Abbrechen",
+          "open_issue": "Issue öffnen"
+        }
+      },
+      "tools": {
+        "title": "Tools und Hilfsmittel",
+        "description": "Tooling-Bereich",
+        "menu_options": {
+          "diag": "Diagnose-Dump",
+          "manual": "Manuelle Eingabe (Experte)",
+          "inject": "Rohdaten injizieren",
+          "listen_raw": "BLE ADV mithören",
+          "decode_raw": "BLE-ADV-Rohdaten dekodieren"
+        }
+      },
+      "diag": {
+        "title": "Diagnose-Dump"
+      },
+      "listen_raw": {
+        "title": "BLE ADV mithören"
+      },
+      "listen_raw_res": {
+        "title": "BLE ADV mithören",
+        "description": "Empfangenes BLE Advertising:\n{advs}",
+        "menu_options": {
+          "listen_raw": "Erneut versuchen",
+          "tools": "Zurück zu Tools"
+        }
+      },
+      "inject": {
+        "title": "Rohdaten injizieren",
+        "description": "Für erfahrene Nutzer: Rohdaten injizieren",
+        "data": {
+          "adapter_id": "BLE-ADV-Adapter",
+          "raw": "Rohdaten",
+          "interval": "Intervall",
+          "repeat": "Wiederholung"
+        }
+      },
+      "inject_res": {
+        "title": "Ergebnis der Injektion",
+        "description": "Injektion abgeschlossen.",
+        "menu_options": {
+          "inject": "Neue Rohdaten injizieren",
+          "tools": "Zurück zu Tools"
+        }
+      },
+      "decode_raw": {
+        "title": "BLE-ADV-Rohdaten dekodieren",
+        "data": {
+          "raw": "Rohdaten"
+        }
+      },
+      "decode_raw_res": {
+        "title": "Ergebnis der Dekodierung von BLE-ADV-Rohdaten",
+        "description": "{conf}",
+        "menu_options": {
+          "decode_raw": "Neue Rohdaten dekodieren",
+          "tools": "Zurück zu Tools"
+        }
+      },
+      "manual": {
+        "title": "Manuelle Eingabe",
+        "description": "Für erfahrene Nutzer, z. B. beim Umstieg von ESPHome",
+        "data": {
+          "name": "Gerätename",
+          "codec_id": "Codec",
+          "adapter_id": "BLE-ADV-Adapter",
+          "forced_id": "Erzwungene Id",
+          "index": "Index"
+        }
+      },
+      "wait_config": {
+        "title": "Warte auf Konfiguration von der gekoppelten Handy-App."
+      },
+      "no_config": {
+        "description": "Innerhalb von 10 s wurde keine Konfiguration empfangen",
+        "menu_options": {
+          "wait_config": "Erneut versuchen",
+          "abort_config": "Abbrechen",
+          "open_issue": "Issue öffnen"
+        }
+      },
+      "test_light": {
+        "title": "Konfigurationstest"
+      },
+      "test_fan": {
+        "title": "Konfigurationstest"
+      },
+      "pair": {
+        "title": "Pairing",
+        "description": "Bitte wähle unten den passenden Bluetooth-Adapter und die Handy-App aus, trenne dein Gerät von der Stromversorgung, schließe es wieder an und drücke innerhalb von 5 s auf **Absenden** (dadurch werden die Pairing-Befehle gesendet)",
+        "data": {
+          "adapter_id": "BLE-ADV-Adapter",
+          "phone_app": "Handy-App"
+        }
+      },
+      "wait_pair": {
+        "title": "Pairing"
+      },
+      "confirm_pair": {
+        "description": "War das Pairing erfolgreich? Normalerweise blinkt die Lampe dabei, das hängt aber vom Lampentyp ab …",
+        "menu_options": {
+          "pair": "Pairing FEHLGESCHLAGEN, erneut versuchen",
+          "confirm_no_abort": "Pairing FEHLGESCHLAGEN, abbrechen",
+          "blink": "Pairing OK, Konfigurationen testen"
+        }
+      },
+      "choose_adapter": {
+        "title": "Adapterauswahl",
+        "description": "Mehrere Bluetooth-Adapter haben eine Konfiguration empfangen, bitte wähle den aus, der deinem Gerät am nächsten ist",
+        "data": {
+          "adapter_id": "BLE-ADV-Adapter"
+        }
+      },
+      "confirm_light": {
+        "title": "Validierung",
+        "description": "Teste Konfiguration {nb}/{tot}:\n\n    Codec: {codec}\n    Id: {id}\n    Index: {index}\n\nHat die Lampe geblinkt?",
+        "menu_options": {
+          "confirm_yes": "Ja!",
+          "confirm_no_another": "Nein, nächste versuchen.",
+          "confirm_no_abort": "Nein, abbrechen.",
+          "open_issue": "Nein, Issue öffnen",
+          "confirm_retry_last": "Dieselbe erneut versuchen.",
+          "confirm_retry_all": "Von vorne beginnen.",
+          "confirm_test_fan": "Gerät ohne Lampe, mit Ventilator testen."
+        }
+      },
+      "confirm_fan": {
+        "title": "Validierung",
+        "description": "Teste Konfiguration {nb}/{tot}:\n\n    Codec: {codec}\n    Id: {id}\n    Index: {index}\n\nHat der Ventilator gestartet / gestoppt?",
+        "menu_options": {
+          "confirm_yes": "Ja!",
+          "confirm_no_another": "Nein, nächste versuchen.",
+          "confirm_no_abort": "Nein, abbrechen.",
+          "open_issue": "Nein, Issue öffnen",
+          "confirm_retry_last": "Dieselbe erneut versuchen.",
+          "confirm_retry_all": "Von vorne beginnen."
+        }
+      },
+      "open_issue": {
+        "title": "Issue öffnen",
+        "description": "1. Lade den Diagnose-Dump über die Schaltfläche unten herunter\n2. Öffne ein Config-Flow-[Issue]({url}) und hänge den Dump daran an.",
+        "menu_options": {
+          "diag": "Diagnose-Dump herunterladen"
+        }
+      },
+      "configure": {
+        "title": "Konfiguration",
+        "description": "Konfiguration von Objekten, physischer Fernbedienung und technischen Parametern.\nDiese Parameter können später über den Weg „Neu konfigurieren“ geändert werden.",
+        "menu_options": {
+          "config_entities": "Lampen / Ventilatoren konfigurieren",
+          "config_remotes": "Weiteren Controller konfigurieren (physische Fernbedienung, ..)",
+          "config_technical": "Technische Parameter",
+          "finalize": "Abschließen"
+        }
+      },
+      "config_entities": {
+        "title": "Gesteuerte Objekte",
+        "description": "Wähle die zu erstellenden Objekte und ihre Eigenschaften aus",
+        "sections": {
+          "light_0": {
+            "name": "Hauptlampe",
+            "data": {
+              "type": "Typ",
+              "min_brightness": "Minimale Helligkeit",
+              "refresh_on_start": "Farbe/Helligkeit beim Einschalten erzwungen aktualisieren",
+              "reversed": "Kalt/Warm umkehren",
+              "forced_cmds": "Befehle immer senden, auch wenn sich nichts geändert hat",
+              "effects": "Lichtmodi"
+            }
+          },
+          "light_1": {
+            "name": "Zweite Lampe",
+            "data": {
+              "type": "Typ",
+              "min_brightness": "Minimale Helligkeit",
+              "refresh_on_start": "Farbe/Helligkeit beim Einschalten erzwungen aktualisieren",
+              "reversed": "Kalt/Warm umkehren",
+              "forced_cmds": "Befehle immer senden, auch wenn sich nichts geändert hat",
+              "effects": "Lichtmodi"
+            }
+          },
+          "light_2": {
+            "name": "Dritte Lampe",
+            "data": {
+              "type": "Typ",
+              "min_brightness": "Minimale Helligkeit",
+              "refresh_on_start": "Farbe/Helligkeit beim Einschalten erzwungen aktualisieren",
+              "reversed": "Kalt/Warm umkehren",
+              "forced_cmds": "Befehle immer senden, auch wenn sich nichts geändert hat",
+              "effects": "Lichtmodi"
+            }
+          },
+          "fan_0": {
+            "name": "Hauptventilator",
+            "data": {
+              "type": "Typ",
+              "direction": "Unterstützt Drehrichtung",
+              "oscillating": "Unterstützt Oszillation",
+              "refresh_dir_on_start": "Drehrichtung beim Einschalten erzwungen aktualisieren",
+              "refresh_osc_on_start": "Oszillation beim Einschalten erzwungen aktualisieren",
+              "forced_cmds": "Befehle immer senden, auch wenn sich nichts geändert hat",
+              "presets": "Ventilatormodi"
+            }
+          },
+          "fan_1": {
+            "name": "Zweiter Ventilator",
+            "data": {
+              "type": "Typ",
+              "direction": "Unterstützt Drehrichtung",
+              "oscillating": "Unterstützt Oszillation",
+              "refresh_dir_on_start": "Drehrichtung beim Einschalten erzwungen aktualisieren",
+              "refresh_osc_on_start": "Oszillation beim Einschalten erzwungen aktualisieren",
+              "forced_cmds": "Befehle immer senden, auch wenn sich nichts geändert hat",
+              "presets": "Ventilatormodi"
+            }
+          },
+          "fan_2": {
+            "name": "Dritter Ventilator",
+            "data": {
+              "type": "Typ",
+              "direction": "Unterstützt Drehrichtung",
+              "oscillating": "Unterstützt Oszillation",
+              "refresh_dir_on_start": "Drehrichtung beim Einschalten erzwungen aktualisieren",
+              "refresh_osc_on_start": "Oszillation beim Einschalten erzwungen aktualisieren",
+              "forced_cmds": "Befehle immer senden, auch wenn sich nichts geändert hat",
+              "presets": "Ventilatormodi"
+            }
+          }
+        }
+      },
+      "config_remotes": {
+        "title": "Verknüpften Controller auswählen",
+        "description": "Wähle den verknüpften Controller aus",
+        "data": {
+          "remote": "Verknüpfter Controller"
+        }
+      },
+      "config_remote": {
+        "title": "Verknüpften Controller konfigurieren",
+        "description": "Verknüpfter Controller:\n\n    Name: {name}\n\n    Codec: {codec}\n    Id: {id}\n    Index: {index}",
+        "menu_options": {
+          "config_remote_delete": "Verknüpften Controller löschen",
+          "config_remote_update": "Optionen des verknüpften Controllers ändern",
+          "configure": "Zurück"
+        }
+      },
+      "wait_config_remote": {
+        "title": "Neuen verknüpften Controller konfigurieren"
+      },
+      "config_remote_update": {
+        "title": "Optionen des verknüpften Controllers konfigurieren",
+        "description": "Verknüpfter Controller:\n\n    Codec: {codec}\n    Id: {id}\n    Index: {index}",
+        "data": {
+          "name": "Name",
+          "paired": "Steuert das Gerät",
+          "tr_set": "Übersetzer-Set"
+        }
+      },
+      "config_technical": {
+        "title": "Technische Optionen konfigurieren",
+        "description": "Jeder Befehl wird an den/die angegebenen Adapter 'Wiederholungen'-mal im angegebenen 'Intervall' (ms) gesendet, wobei zwischen 2 unterschiedlichen Befehlen die 'Minimale Dauer' eingehalten wird.\n\nÄndere dies nur, wenn du weißt, was du tust!\n\nVon mehreren Adaptern wird DRINGEND ABGERATEN, dafür wird kein Support geleistet.",
+        "data": {
+          "tr_set": "Übersetzer-Set",
+          "adapter_ids": "BLE-ADV-Adapter",
+          "interval": "Intervall",
+          "repeats": "Wiederholungen",
+          "duration": "Minimale Dauer"
+        }
+      },
+      "finalize": {
+        "title": "Benenne dein Gerät",
+        "description": "Dies ist der letzte Schritt!",
+        "data": {
+          "name": "Gerätename"
+        }
+      }
+    },
+    "progress": {
+      "listen_raw": "BLE Advertising wird empfangen\n{advs}",
+      "wait_pair": "Pairing läuft …",
+      "wait_config": "Bitte drücke innerhalb von {max_seconds} s einen beliebigen Knopf (vorzugsweise Pair) in der Handy-App, die dein Gerät steuert.",
+      "agg_config": "Konfigurationsdaten werden zusammengeführt.",
+      "test_light": "Lasse die Lampe blinken mit Konfiguration {nb}/{tot}:\n\n    Codec: {codec}\n    Id: {id}\n    Index: {index}",
+      "test_fan": "Ventilator wird gestartet/gestoppt mit Konfiguration {nb}/{tot}:\n\n    Codec: {codec}\n    Id: {id}\n    Index: {index}",
+      "wait_config_remote": "Bitte drücke innerhalb von {max_seconds} s einen beliebigen Knopf (vorzugsweise Pair) auf dem Controller."
+    },
+    "abort": {
+      "no_adapters": "Es wurde kein Bluetooth-Adapter gefunden, der BLE Advertising unterstützt. Abbruch.",
+      "no_config": "Es wurde keine Konfiguration gefunden oder erfolgreich getestet.",
+      "not_implemented": "(Noch) nicht implementiert",
+      "reconfigure_successful": "Neukonfiguration erfolgreich!",
+      "already_configured": "Ein Gerät mit derselben Kombination (Codec / Id / Index) ist bereits konfiguriert.\nWeitere Infos im Troubleshooting-Guide – Schritt 3.3"
+    },
+    "error": {
+      "missing_entity": "Es muss mindestens ein Ventilator oder eine Lampe konfiguriert werden.",
+      "missing_adapter": "Es muss mindestens ein Adapter ausgewählt werden."
+    }
+  },
+  "selector": {
+    "light": {
+      "options": {
+        "cww": "Kalt-/Warmweiß",
+        "onoff": "Nur Ein/Aus",
+        "rgb": "RGB",
+        "none": "Keine"
+      }
+    },
+    "fan": {
+      "options": {
+        "3speed": "Ventilator mit 3 Stufen",
+        "4speed": "Ventilator mit 4 Stufen",
+        "6speed": "Ventilator mit 6 Stufen",
+        "8speed": "Ventilator mit 8 Stufen",
+        "100speed": "Ventilator mit 100 Stufen",
+        "none": "Keiner"
+      }
+    },
+    "remote": {
+      "options": {
+        "new": "Neuer verknüpfter Controller"
+      }
+    },
+    "forced_cmds": {
+      "options": {
+        "turn_on": "Einschalten",
+        "turn_off": "Ausschalten"
+      }
+    },
+    "effects": {
+      "options": {
+        "nm": "Nachtmodus",
+        "rgb": "RGB-Zyklus",
+        "rgbk": "RGBK-Zyklus"
+      }
+    },
+    "presets": {
+      "options": {
+        "breeze": "Natürlicher Wind",
+        "sleep": "Schlafmodus"
+      }
+    },
+    "tr_set": {
+      "options": {
+        "default": "Standard",
+        "rev_on_off": "EIN/AUS umkehren",
+        "fl": "Flackern",
+        "no_nm": "Kein Nachtmodus",
+        "nm_as_effect": "Nachtmodus als Effekt",
+        "nm_as_second_light": "Nachtmodus als zweite Lampe"
+      }
+    }
+  },
+  "entity": {
+    "event": {
+      "event": {
+        "name": "Kodierter Befehl"
+      }
+    },
+    "switch": {
+      "silent": {
+        "name": "Modus ohne Befehle"
+      }
+    },
+    "fan": {
+      "fan_0": {
+        "name": "Hauptventilator",
+        "state_attributes": {
+          "preset_mode": {
+            "state": {
+              "breeze": "Natürlicher Wind",
+              "sleep": "Schlafmodus"
+            }
+          }
+        }
+      },
+      "fan_1": {
+        "name": "Zweiter Ventilator",
+        "state_attributes": {
+          "preset_mode": {
+            "state": {
+              "breeze": "Natürlicher Wind",
+              "sleep": "Schlafmodus"
+            }
+          }
+        }
+      },
+      "fan_2": {
+        "name": "Dritter Ventilator",
+        "state_attributes": {
+          "preset_mode": {
+            "state": {
+              "breeze": "Natürlicher Wind",
+              "sleep": "Schlafmodus"
+            }
+          }
+        }
+      }
+    },
+    "light": {
+      "light_0": {
+        "name": "Hauptlampe",
+        "state_attributes": {
+          "effect": {
+            "state": {
+              "nm": "Nachtmodus",
+              "rgb": "RGB-Zyklus",
+              "rgbk": "RGBK-Zyklus"
+            }
+          }
+        }
+      },
+      "light_1": {
+        "name": "Zweite Lampe",
+        "state_attributes": {
+          "effect": {
+            "state": {
+              "nm": "Nachtmodus",
+              "rgb": "RGB-Zyklus",
+              "rgbk": "RGBK-Zyklus"
+            }
+          }
+        }
+      },
+      "light_2": {
+        "name": "Dritte Lampe",
+        "state_attributes": {
+          "effect": {
+            "state": {
+              "nm": "Nachtmodus",
+              "rgb": "RGB-Zyklus",
+              "rgbk": "RGBK-Zyklus"
+            }
+          }
+        }
+      }
+    }
+  },
+  "services": {
+    "inject_raw": {
+      "name": "BLE-ADV-Rohdaten injezieren",
+      "description": "Injeziere RAW BLE-ADV-Daten im binären Hex-Format ein.",
+      "fields": {
+        "adapter_id": {
+          "name": "Adapter-ID",
+          "description": "Der Name des zu verwendenden Adapters."
+        },
+        "raw": {
+          "name": "RAW BLE ADV",
+          "description": "Das zu sendende rohe BLE Advertisement."
+        },
+        "interval": {
+          "name": "Intervall",
+          "description": "Das Intervall zwischen 2 Advertisements, in ms."
+        },
+        "repeat": {
+          "name": "Wiederholung",
+          "description": "Das Advertisement wird 'Wiederholung'-mal gesendet."
+        },
+        "device_queue": {
+          "name": "Geräte-Warteschlangenname",
+          "description": "Der Name der Ziel-Geräte-Warteschlange, der keiner ID entspricht: Er wird verwendet, um Advertisements verschiedener Geräte zu unterscheiden und die passende Warteschlangen-Behandlung anzuwenden."
+        },
+        "duration": {
+          "name": "Minimale Dauer",
+          "description": "Die minimale Dauer, bevor ein weiteres Advertisement mit demselben Adapter/Gerät gesendet werden kann, in ms."
+        }
+      }
+    }
+  },
+  "device_automation": {
+    "trigger_type": {
+      "any_entity_state": "Zustand einer Entität hat sich geändert",
+      "enc_cmd": "Befehl empfangen"
+    },
+    "action_type": {
+      "enc_cmd": "Befehl senden"
+    }
+  }
+}
