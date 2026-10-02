@@ -1,5 +1,7 @@
 """Utils for codecs."""
 
+from binascii import crc_hqx
+
 
 def whiten(buffer: bytes | bytearray, seed: int, xorer: int = 0) -> bytearray:
     """Whiten / Unwiten buffer with seed."""
@@ -35,16 +37,24 @@ def whiten16(buffer: bytearray, seed: int, param: int = 4777, xorer: int = 73) -
     return obuf
 
 
-def reverse_byte(x: int) -> int:
+def reverse_8(x: int) -> int:
     """Reverse a single byte: 1100 1010 => 0101 0011."""
     x = ((x & 0x55) << 1) | ((x & 0xAA) >> 1)
     x = ((x & 0x33) << 2) | ((x & 0xCC) >> 2)
     return ((x & 0x0F) << 4) | ((x & 0xF0) >> 4)
 
 
+def reverse_16(x: int) -> int:
+    """Reverse bits in a 16 bit integer."""
+    x = ((x & 0x5555) << 1) | ((x >> 1) & 0x5555)
+    x = ((x & 0x3333) << 2) | ((x >> 2) & 0x3333)
+    x = ((x & 0x0F0F) << 4) | ((x >> 4) & 0x0F0F)
+    return ((x & 0x00FF) << 8) | ((x >> 8) & 0x00FF)
+
+
 def reverse_all(buffer: bytes | bytearray) -> bytearray:
     """Reverse All bytes in buffer."""
-    return bytearray([reverse_byte(x) for x in buffer])
+    return bytearray([reverse_8(x) for x in buffer])
 
 
 def crc16_le(buffer: bytes | bytearray, seed: int, poly: int = 0x8408, ref_in: bool = True, ref_out: bool = True) -> int:
@@ -58,3 +68,9 @@ def crc16_le(buffer: bytes | bytearray, seed: int, poly: int = 0x8408, ref_in: b
             else:
                 crc = crc >> 1
     return crc if not ref_out else crc ^ 0xFFFF
+
+
+def rev_crc16_ccit(buffer: bytes | bytearray, seed: int, ref_in: bool = True, ref_out: bool = True) -> int:
+    """CRC16 CCITT computing with bit reversed buffer and bit reversed result."""
+    crc = crc_hqx(reverse_all(buffer), seed if not ref_in else seed ^ 0xFFFF)
+    return reverse_16(crc if not ref_out else crc ^ 0xFFFF)

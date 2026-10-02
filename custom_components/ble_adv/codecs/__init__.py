@@ -30,6 +30,7 @@ _PHONE_APPS_BASE = {
     "RuiXin": ["ruixin_v0"],
     "RW.LIGHT": ["rwlight_mix"],
     "Smart Elfin": ["fanlamp_pro_v3/se", "smartelfin_v0"],
+    "HxLight": ["hxlight_v0"],
 }
 
 
