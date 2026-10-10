@@ -37,6 +37,54 @@ class TestEncoderAntenlight(_TestEncoderBase):
             "id: 0x000061DC, index: 0, tx: 158, seed: 0x0000",
             "light_0: ['on'] / {'on': True}",
         ),
+        # LIGHT ON
+        (
+            "antenlight_v0",
+            "02.01.1A.0C.16.00.00.61.DC.00.AD.00.01.00.00.B6",
+            "cmd: 0x00, param: 0x00, args: [1,0,0]",
+            "id: 0x000061DC, index: 0, tx: 173, seed: 0x0000",
+            "light_0: ['on'] / {'on': True}",
+        ),
+        # LIGHT OFF
+        (
+            "antenlight_v0",
+            "02.01.1A.0C.16.00.00.61.DC.00.AE.00.00.00.00.B8",
+            "cmd: 0x00, param: 0x00, args: [0,0,0]",
+            "id: 0x000061DC, index: 0, tx: 174, seed: 0x0000",
+            "light_0: ['on'] / {'on': False}",
+        ),
+        # LIGHT ON
+        (
+            "antenlight_v0",
+            "02.01.1A.0C.16.00.00.61.DC.00.AF.00.01.00.00.B8",
+            "cmd: 0x00, param: 0x00, args: [1,0,0]",
+            "id: 0x000061DC, index: 0, tx: 175, seed: 0x0000",
+            "light_0: ['on'] / {'on': True}",
+        ),
+        # LIGHT OFF
+        (
+            "antenlight_v0",
+            "02.01.1A.0C.16.00.00.61.DC.00.B0.00.00.00.00.B2",
+            "cmd: 0x00, param: 0x00, args: [0,0,0]",
+            "id: 0x000061DC, index: 0, tx: 176, seed: 0x0000",
+            "light_0: ['on'] / {'on': False}",
+        ),
+        # LIGHT ON
+        (
+            "antenlight_v0",
+            "02.01.1A.0C.16.00.00.61.DC.00.B1.00.01.00.00.B2",
+            "cmd: 0x00, param: 0x00, args: [1,0,0]",
+            "id: 0x000061DC, index: 0, tx: 177, seed: 0x0000",
+            "light_0: ['on'] / {'on': True}",
+        ),
+        # LIGHT OFF
+        (
+            "antenlight_v0",
+            "02.01.1A.0C.16.00.00.61.DC.00.B2.00.00.00.00.B4",
+            "cmd: 0x00, param: 0x00, args: [0,0,0]",
+            "id: 0x000061DC, index: 0, tx: 178, seed: 0x0000",
+            "light_0: ['on'] / {'on': False}",
+        ),
     ],
 )
 class TestEncoderAntenlightFull(_TestEncoderFull):

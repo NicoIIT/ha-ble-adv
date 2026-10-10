@@ -25,17 +25,16 @@ class AntenlightCodec(BleAdvCodec):
         [4]     cmd
         [5:8]   args
 
-    followed on air by a XOR checksum such that the XOR of the full AD structure
-    (length 0x0C, type 0x16, UUID, data and checksum) is 0xFF.
+    followed on air by a checksum: XOR of the 8 bytes, plus 0xA5.
     """
 
-    CHECKSUM_SEED: int = 0xE5  # ~(0x0C ^ 0x16): AD length and AD type are part of the XOR
+    CHECKSUM_ADD: int = 0xA5
 
     _len = 9
     _tx_max = 0x100
 
     def _checksum(self, buffer: bytes | bytearray) -> int:
-        return reduce(lambda x, y: x ^ y, buffer, self.CHECKSUM_SEED)
+        return (reduce(lambda x, y: x ^ y, buffer, 0) + self.CHECKSUM_ADD) & 0xFF
 
     def decrypt(self, buffer: bytearray) -> bytearray | None:
         """Decrypt / unwhiten an incoming raw buffer into a readable buffer."""
