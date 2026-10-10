@@ -3,6 +3,7 @@
 from typing import Any
 
 from .agarce import CODECS as AGARCE_CODECS
+from .antenlight import CODECS as ANTENLIGHT_CODECS
 from .dudugu import CODECS as DUDUGU_CODECS
 from .ewelink import CODECS as EWELINK_CODECS
 from .fanlamp import FLCODECS, LSCODECS
@@ -51,6 +52,7 @@ def get_codec_list() -> list[BleAdvCodec]:
         *DUDUGU_CODECS,
         *EWELINK_CODECS,
         *HXLIGHT_CODECS,
+        *ANTENLIGHT_CODECS,
     ]
 
 
