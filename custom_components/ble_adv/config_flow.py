@@ -66,6 +66,9 @@ from .const import (
     CONF_PARAMS,
     CONF_PHONE_APP,
     CONF_PRESETS,
+    CONF_PRESET_SLEEP,
+    CONF_PRESET_TURBO,
+    CONF_PRESET_WORK,
     CONF_RAW,
     CONF_REFRESH_DIR_ON_START,
     CONF_REFRESH_ON_START,
@@ -795,6 +798,30 @@ class BleAdvConfigFlow(ConfigFlow, domain=DOMAIN):
                     presets = feats[ATTR_PRESET]
                     def_presets = [preset for preset in opts.get(CONF_PRESETS, presets) if preset in presets]
                     schema_opts[vol.Required(CONF_PRESETS, default=def_presets)] = self._get_multi_selector(CONF_PRESETS, list(presets))
+                # Bounded speed choices: "none", "1", ... "max_speed"
+                fan_type = opts.get(CONF_TYPE, types[0] if types else CONF_TYPE_NONE)
+                if fan_type and fan_type != CONF_TYPE_NONE and fan_type[:-5].isdigit():
+                    max_speed = int(fan_type[:-5])
+                else:
+                    max_speed = max(feats[ATTR_SPEED_COUNT]) if feats[ATTR_SPEED_COUNT] else 6
+                speed_choices = ["none", *[str(n) for n in range(1, max_speed + 1)]]
+
+                def_sleep = opts.get(CONF_PRESET_SLEEP, "1")
+                if def_sleep not in speed_choices:
+                    def_sleep = "none"
+                schema_opts[vol.Optional(CONF_PRESET_SLEEP, default=def_sleep)] = self._get_selector("speed_options", speed_choices)
+
+                def_work_val = str(max(1, round(max_speed / 2)))
+                def_work = opts.get(CONF_PRESET_WORK, def_work_val)
+                if def_work not in speed_choices:
+                    def_work = "none"
+                schema_opts[vol.Optional(CONF_PRESET_WORK, default=def_work)] = self._get_selector("speed_options", speed_choices)
+
+                def_turbo_val = str(max_speed)
+                def_turbo = opts.get(CONF_PRESET_TURBO, def_turbo_val)
+                if def_turbo not in speed_choices:
+                    def_turbo = "none"
+                schema_opts[vol.Optional(CONF_PRESET_TURBO, default=def_turbo)] = self._get_selector("speed_options", speed_choices)
                 sections[f"{FAN_TYPE}_{i}"] = (schema_opts, CONF_TYPE in opts or (self._test_with_fan and i == 0))
 
         # Finalize schema with all sections

@@ -216,7 +216,10 @@
               "refresh_dir_on_start": "Drehrichtung beim Einschalten erzwungen aktualisieren",
               "refresh_osc_on_start": "Oszillation beim Einschalten erzwungen aktualisieren",
               "forced_cmds": "Befehle immer senden, auch wenn sich nichts geändert hat",
-              "presets": "Ventilatormodi"
+              "presets": "Ventilatormodi",
+              "preset_sleep": "Preset Schlafmodus",
+              "preset_work": "Preset Arbeitsmodus",
+              "preset_turbo": "Preset Turbomodus"
             }
           },
           "fan_1": {
@@ -228,7 +231,10 @@
               "refresh_dir_on_start": "Drehrichtung beim Einschalten erzwungen aktualisieren",
               "refresh_osc_on_start": "Oszillation beim Einschalten erzwungen aktualisieren",
               "forced_cmds": "Befehle immer senden, auch wenn sich nichts geändert hat",
-              "presets": "Ventilatormodi"
+              "presets": "Ventilatormodi",
+              "preset_sleep": "Preset Schlafmodus",
+              "preset_work": "Preset Arbeitsmodus",
+              "preset_turbo": "Preset Turbomodus"
             }
           },
           "fan_2": {
@@ -240,7 +246,10 @@
               "refresh_dir_on_start": "Drehrichtung beim Einschalten erzwungen aktualisieren",
               "refresh_osc_on_start": "Oszillation beim Einschalten erzwungen aktualisieren",
               "forced_cmds": "Befehle immer senden, auch wenn sich nichts geändert hat",
-              "presets": "Ventilatormodi"
+              "presets": "Ventilatormodi",
+              "preset_sleep": "Preset Schlafmodus",
+              "preset_work": "Preset Arbeitsmodus",
+              "preset_turbo": "Preset Turbomodus"
             }
           }
         }
@@ -365,6 +374,19 @@
         "nm_as_effect": "Nachtmodus als Effekt",
         "nm_as_second_light": "Nachtmodus als zweite Lampe"
       }
+    },
+    "speed_options": {
+      "options": {
+        "none": "Deaktiviert",
+        "1": "Geschwindigkeit 1",
+        "2": "Geschwindigkeit 2",
+        "3": "Geschwindigkeit 3",
+        "4": "Geschwindigkeit 4",
+        "5": "Geschwindigkeit 5",
+        "6": "Geschwindigkeit 6",
+        "7": "Geschwindigkeit 7",
+        "8": "Geschwindigkeit 8"
+      }
     }
   },
   "entity": {
@@ -385,7 +407,10 @@
           "preset_mode": {
             "state": {
               "breeze": "Natürlicher Wind",
-              "sleep": "Schlafmodus"
+              "sleep": "Schlafmodus",
+              "sleep_mode": "Schlafmodus",
+              "work_mode": "Arbeitsmodus",
+              "turbo": "Turbomodus"
             }
           }
         }
@@ -396,7 +421,10 @@
           "preset_mode": {
             "state": {
               "breeze": "Natürlicher Wind",
-              "sleep": "Schlafmodus"
+              "sleep": "Schlafmodus",
+              "sleep_mode": "Schlafmodus",
+              "work_mode": "Arbeitsmodus",
+              "turbo": "Turbomodus"
             }
           }
         }
@@ -407,7 +435,10 @@
           "preset_mode": {
             "state": {
               "breeze": "Natürlicher Wind",
-              "sleep": "Schlafmodus"
+              "sleep": "Schlafmodus",
+              "sleep_mode": "Schlafmodus",
+              "work_mode": "Arbeitsmodus",
+              "turbo": "Turbomodus"
             }
           }
         }

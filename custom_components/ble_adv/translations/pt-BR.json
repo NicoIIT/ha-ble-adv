@@ -216,7 +216,10 @@
               "refresh_dir_on_start": "Forçar atualização de direção ao LIGAR",
               "refresh_osc_on_start": "Forçar atualização de oscilação ao LIGAR",
               "forced_cmds": "Comandos sempre enviados mesmo sem alteração",
-              "presets": "Modos do ventilador"
+              "presets": "Modos do ventilador",
+              "preset_sleep": "Preset Modo Dormir",
+              "preset_work": "Preset Modo Trabalho",
+              "preset_turbo": "Preset Calor Extremo"
             }
           },
           "fan_1": {
@@ -228,7 +231,10 @@
               "refresh_dir_on_start": "Forçar atualização de direção ao LIGAR",
               "refresh_osc_on_start": "Forçar atualização de oscilação ao LIGAR",
               "forced_cmds": "Comandos sempre enviados mesmo sem alteração",
-              "presets": "Modos do ventilador"
+              "presets": "Modos do ventilador",
+              "preset_sleep": "Preset Modo Dormir",
+              "preset_work": "Preset Modo Trabalho",
+              "preset_turbo": "Preset Calor Extremo"
             }
           },
           "fan_2": {
@@ -240,7 +246,10 @@
               "refresh_dir_on_start": "Forçar atualização de direção ao LIGAR",
               "refresh_osc_on_start": "Forçar atualização de oscilação ao LIGAR",
               "forced_cmds": "Comandos sempre enviados mesmo sem alteração",
-              "presets": "Modos do ventilador"
+              "presets": "Modos do ventilador",
+              "preset_sleep": "Preset Modo Dormir",
+              "preset_work": "Preset Modo Trabalho",
+              "preset_turbo": "Preset Calor Extremo"
             }
           }
         }
@@ -254,7 +263,7 @@
       },
       "config_remote": {
         "title": "Configurar Controlador Vinculado",
-        "description": "Controlador Vinculado:\n\n    Codec: {codec}\n    Id: {id}\n    Index: {index}",
+        "description": "Controlador Vinculado:\n\n    Nome: {name}\n\n    Codec: {codec}\n    Id: {id}\n    Index: {index}",
         "menu_options": {
           "config_remote_delete": "Excluir o controlador vinculado",
           "config_remote_update": "Modificar as Opções do controlador vinculado",
@@ -365,6 +374,19 @@
         "nm_as_effect": "Modo Noturno como Efeito",
         "nm_as_second_light": "Modo Noturno como Segunda Luz"
       }
+    },
+    "speed_options": {
+      "options": {
+        "none": "Desativado",
+        "1": "Velocidade 1",
+        "2": "Velocidade 2",
+        "3": "Velocidade 3",
+        "4": "Velocidade 4",
+        "5": "Velocidade 5",
+        "6": "Velocidade 6",
+        "7": "Velocidade 7",
+        "8": "Velocidade 8"
+      }
     }
   },
   "entity": {
@@ -385,7 +407,10 @@
           "preset_mode": {
             "state": {
               "breeze": "Brisa Natural",
-              "sleep": "Modo Sono"
+              "sleep": "Modo Sono",
+              "sleep_mode": "Modo Dormir",
+              "work_mode": "Modo Trabalho",
+              "turbo": "Calor Extremo"
             }
           }
         }
@@ -396,7 +421,10 @@
           "preset_mode": {
             "state": {
               "breeze": "Brisa Natural",
-              "sleep": "Modo Sono"
+              "sleep": "Modo Sono",
+              "sleep_mode": "Modo Dormir",
+              "work_mode": "Modo Trabalho",
+              "turbo": "Calor Extremo"
             }
           }
         }
@@ -407,7 +435,10 @@
           "preset_mode": {
             "state": {
               "breeze": "Brisa Natural",
-              "sleep": "Modo Sono"
+              "sleep": "Modo Sono",
+              "sleep_mode": "Modo Dormir",
+              "work_mode": "Modo Trabalho",
+              "turbo": "Calor Extremo"
             }
           }
         }

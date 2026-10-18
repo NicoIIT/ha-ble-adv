@@ -45,6 +45,15 @@ CONF_USE_OSC = "oscillating"
 CONF_REFRESH_DIR_ON_START = "refresh_dir_on_start"
 CONF_REFRESH_OSC_ON_START = "refresh_osc_on_start"
 CONF_PRESETS = "presets"
+CONF_PRESET_SLEEP = "preset_sleep"
+CONF_PRESET_WORK = "preset_work"
+CONF_PRESET_TURBO = "preset_turbo"
+
+PRESET_MODE_SLEEP = "sleep_mode"
+PRESET_MODE_WORK = "work_mode"
+PRESET_MODE_TURBO = "turbo"
+
+
 CONF_EFFECTS = "effects"
 CONF_REFRESH_ON_START = "refresh_on_start"
 CONF_REVERSED = "reversed"

@@ -216,7 +216,10 @@
               "refresh_dir_on_start": "Force direction refresh when switched ON",
               "refresh_osc_on_start": "Force oscillation refresh when switched ON",
               "forced_cmds": "Commands always sent even if nothing changed",
-              "presets": "Fan modes"
+              "presets": "Fan modes",
+              "preset_sleep": "Sleep Mode Preset",
+              "preset_work": "Work Mode Preset",
+              "preset_turbo": "Turbo Preset"
             }
           },
           "fan_1": {
@@ -228,7 +231,10 @@
               "refresh_dir_on_start": "Force direction refresh when switched ON",
               "refresh_osc_on_start": "Force oscillation refresh when switched ON",
               "forced_cmds": "Commands always sent even if nothing changed",
-              "presets": "Fan modes"
+              "presets": "Fan modes",
+              "preset_sleep": "Sleep Mode Preset",
+              "preset_work": "Work Mode Preset",
+              "preset_turbo": "Turbo Preset"
             }
           },
           "fan_2": {
@@ -240,7 +246,10 @@
               "refresh_dir_on_start": "Force direction refresh when switched ON",
               "refresh_osc_on_start": "Force oscillation refresh when switched ON",
               "forced_cmds": "Commands always sent even if nothing changed",
-              "presets": "Fan modes"
+              "presets": "Fan modes",
+              "preset_sleep": "Sleep Mode Preset",
+              "preset_work": "Work Mode Preset",
+              "preset_turbo": "Turbo Preset"
             }
           }
         }
@@ -365,6 +374,19 @@
         "nm_as_effect": "Night Mode as Effect",
         "nm_as_second_light": "Night Mode as Second Light"
       }
+    },
+    "speed_options": {
+      "options": {
+        "none": "Disabled",
+        "1": "Speed 1",
+        "2": "Speed 2",
+        "3": "Speed 3",
+        "4": "Speed 4",
+        "5": "Speed 5",
+        "6": "Speed 6",
+        "7": "Speed 7",
+        "8": "Speed 8"
+      }
     }
   },
   "entity": {
@@ -385,7 +407,10 @@
           "preset_mode": {
             "state": {
               "breeze": "Natural Wind",
-              "sleep": "Sleep Mode"
+              "sleep": "Sleep Mode",
+              "sleep_mode": "Sleep Mode",
+              "work_mode": "Work Mode",
+              "turbo": "Turbo"
             }
           }
         }
@@ -396,7 +421,10 @@
           "preset_mode": {
             "state": {
               "breeze": "Natural Wind",
-              "sleep": "Sleep Mode"
+              "sleep": "Sleep Mode",
+              "sleep_mode": "Sleep Mode",
+              "work_mode": "Work Mode",
+              "turbo": "Turbo"
             }
           }
         }
@@ -407,7 +435,10 @@
           "preset_mode": {
             "state": {
               "breeze": "Natural Wind",
-              "sleep": "Sleep Mode"
+              "sleep": "Sleep Mode",
+              "sleep_mode": "Sleep Mode",
+              "work_mode": "Work Mode",
+              "turbo": "Turbo"
             }
           }
         }

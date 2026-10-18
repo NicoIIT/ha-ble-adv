@@ -216,7 +216,10 @@
               "refresh_dir_on_start": "打开时强制刷新方向",
               "refresh_osc_on_start": "打开时强制刷新摇头状态",
               "forced_cmds": "即使没有变化也始终发送的命令",
-              "presets": "风扇模式"
+              "presets": "风扇模式",
+              "preset_sleep": "睡眠模式预设",
+              "preset_work": "工作模式预设",
+              "preset_turbo": "强风模式预设"
             }
           },
           "fan_1": {
@@ -228,7 +231,10 @@
               "refresh_dir_on_start": "打开时强制刷新方向",
               "refresh_osc_on_start": "打开时强制刷新摇头状态",
               "forced_cmds": "即使没有变化也始终发送的命令",
-              "presets": "风扇模式"
+              "presets": "风扇模式",
+              "preset_sleep": "睡眠模式预设",
+              "preset_work": "工作模式预设",
+              "preset_turbo": "强风模式预设"
             }
           },
           "fan_2": {
@@ -240,7 +246,10 @@
               "refresh_dir_on_start": "打开时强制刷新方向",
               "refresh_osc_on_start": "打开时强制刷新摇头状态",
               "forced_cmds": "即使没有变化也始终发送的命令",
-              "presets": "风扇模式"
+              "presets": "风扇模式",
+              "preset_sleep": "睡眠模式预设",
+              "preset_work": "工作模式预设",
+              "preset_turbo": "强风模式预设"
             }
           }
         }
@@ -365,6 +374,19 @@
         "nm_as_effect": "夜间模式作为效果",
         "nm_as_second_light": "夜间模式作为第二盏灯"
       }
+    },
+    "speed_options": {
+      "options": {
+        "none": "已禁用",
+        "1": "速度 1",
+        "2": "速度 2",
+        "3": "速度 3",
+        "4": "速度 4",
+        "5": "速度 5",
+        "6": "速度 6",
+        "7": "速度 7",
+        "8": "速度 8"
+      }
     }
   },
   "entity": {
@@ -385,7 +407,10 @@
           "preset_mode": {
             "state": {
               "breeze": "自然风",
-              "sleep": "睡眠模式"
+              "sleep": "睡眠模式",
+              "sleep_mode": "睡眠模式",
+              "work_mode": "工作模式",
+              "turbo": "强风模式"
             }
           }
         }
@@ -396,7 +421,10 @@
           "preset_mode": {
             "state": {
               "breeze": "自然风",
-              "sleep": "睡眠模式"
+              "sleep": "睡眠模式",
+              "sleep_mode": "睡眠模式",
+              "work_mode": "工作模式",
+              "turbo": "强风模式"
             }
           }
         }
@@ -407,7 +435,10 @@
           "preset_mode": {
             "state": {
               "breeze": "自然风",
-              "sleep": "睡眠模式"
+              "sleep": "睡眠模式",
+              "sleep_mode": "睡眠模式",
+              "work_mode": "工作模式",
+              "turbo": "强风模式"
             }
           }
         }

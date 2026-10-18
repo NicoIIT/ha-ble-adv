@@ -33,27 +33,54 @@ from .codecs.const import (
 from .const import (
     CONF_FANS,
     CONF_FORCED_CMDS,
+    CONF_PRESET_SLEEP,
+    CONF_PRESET_TURBO,
+    CONF_PRESET_WORK,
     CONF_PRESETS,
     CONF_REFRESH_DIR_ON_START,
     CONF_REFRESH_OSC_ON_START,
     CONF_USE_DIR,
     CONF_USE_OSC,
+    DOMAIN,
+    PRESET_MODE_SLEEP,
+    PRESET_MODE_TURBO,
+    PRESET_MODE_WORK,
 )
 from .device import ATTR_IS_ON, BleAdvDevice, BleAdvEntAttr, BleAdvEntity, BleAdvStateAttribute
+
+
+def get_speed_presets(options: dict[str, Any], max_speed: int) -> dict[str, int]:
+    """Extract speed presets from configured options respecting max_speed limits."""
+    presets: dict[str, int] = {}
+    preset_definitions = [
+        (PRESET_MODE_SLEEP, CONF_PRESET_SLEEP),
+        (PRESET_MODE_WORK, CONF_PRESET_WORK),
+        (PRESET_MODE_TURBO, CONF_PRESET_TURBO),
+    ]
+    for name, conf_key in preset_definitions:
+        val = options.get(conf_key)
+        if val is not None and str(val) != "none" and str(val).isdigit():
+            spd = int(val)
+            if 1 <= spd <= max_speed:
+                presets[name] = spd
+    return presets
 
 
 def create_entity(options: dict[str, Any], device: BleAdvDevice, index: int) -> BleAdvFan:
     """Create a Fan Entity from the entry."""
     features = FanEntityFeature.TURN_ON | FanEntityFeature.TURN_OFF | FanEntityFeature.SET_SPEED
-    presets = options.get(CONF_PRESETS, [])
+    presets = list(options.get(CONF_PRESETS, []))
+    speed_count = int(options[CONF_TYPE][:-5])
+    speed_presets = get_speed_presets(options, speed_count)
+
     if options.get(CONF_USE_OSC, False):
         features |= FanEntityFeature.OSCILLATE
     if options.get(CONF_USE_DIR, False):
         features |= FanEntityFeature.DIRECTION
-    if len(presets) > 0:
+    if len(presets) > 0 or len(speed_presets) > 0:
         features |= FanEntityFeature.PRESET_MODE
 
-    fan = BleAdvFan(device, index, int(options[CONF_TYPE][:-5]), features, presets)
+    fan = BleAdvFan(device, index, speed_count, features, presets, speed_presets)
     fan.refresh_dir_on_start = options.get(CONF_REFRESH_DIR_ON_START, False)
     fan.refresh_osc_on_start = options.get(CONF_REFRESH_OSC_ON_START, False)
     fan.set_forced_cmds(options.get(CONF_FORCED_CMDS, []))
@@ -61,9 +88,9 @@ def create_entity(options: dict[str, Any], device: BleAdvDevice, index: int) -> 
     return fan
 
 
-async def async_setup_entry(_: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback) -> None:
+async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback) -> None:
     """Entry setup."""
-    device: BleAdvDevice = entry.runtime_data
+    device: BleAdvDevice = getattr(entry, "runtime_data", None) or hass.data[DOMAIN][entry.entry_id]
     entities = [create_entity(options, device, i) for i, options in enumerate(entry.data[CONF_FANS]) if CONF_TYPE in options]
     async_add_entities(entities, True)
 
@@ -92,40 +119,58 @@ class BleAdvFan(BleAdvEntity, FanEntity):
         speed_count: int,
         features: FanEntityFeature,
         presets: list[str],
+        speed_presets: dict[str, int] | None = None,
     ) -> None:
         super().__init__(FAN_TYPE, None, device, index)
         self._attr_supported_features: FanEntityFeature = features
         self._attr_speed_count: int = speed_count
-        self._attr_preset_modes = presets
+        self._hardware_presets: list[str] = list(presets)
+        self._speed_presets: dict[str, int] = speed_presets or {}
+        self._attr_preset_modes = list(self._speed_presets.keys()) + [p for p in presets if p not in self._speed_presets]
 
-    # redefining 'current_direction' as the attribute name is messy, and not the one defined in the last_state
     @property
     def current_direction(self) -> str | None:
         """Return the current direction of the fan."""
         return self._attr_direction
 
-    # redefining 'percentage' in order to consider it 0 when a preset mode is setup
     @property
     def percentage(self) -> int | None:
         """Return the percentage of the fan."""
-        return self._attr_percentage if self._attr_preset_mode is None else 0
+        return 0 if self._attr_preset_mode in self._hardware_presets else self._attr_percentage
+
+    def _match_speed_preset(self, preset_mode: str) -> int | None:
+        """Match preset mode string or localized alias to corresponding speed level."""
+        if preset_mode in self._speed_presets:
+            return self._speed_presets[preset_mode]
+        norm = preset_mode.lower().strip()
+        for name, spd in self._speed_presets.items():
+            if name.lower() == norm:
+                return spd
+            if norm in ("sleep", "sleep_mode", "dormir", "modo dormir", "schlafmodus", "sommeil") and name == PRESET_MODE_SLEEP:
+                return spd
+            if norm in ("work", "work_mode", "trabalho", "modo trabalho", "arbeitsmodus", "travail", "trabajo") and name == PRESET_MODE_WORK:
+                return spd
+            if norm in ("turbo", "turbo_mode", "calor extremo", "extremo", "turbomodus", "mode turbo") and name == PRESET_MODE_TURBO:
+                return spd
+        return None
 
     def get_attrs(self) -> dict[str, Any]:
         """Get the attrs."""
         eff_percentage = self._attr_percentage if self._attr_percentage is not None else 0
+        preset_attr = self._attr_preset_mode if self._attr_preset_mode in self._hardware_presets else None
         return {
             **super().get_attrs(),
             ATTR_SPEED_COUNT: self._attr_speed_count,
             ATTR_DIR: self._attr_direction == DIRECTION_FORWARD,
             ATTR_OSC: self._attr_oscillating,
-            ATTR_PRESET: self._attr_preset_mode,
+            ATTR_PRESET: preset_attr,
             ATTR_SPEED: ceil(percentage_to_ranged_value((1, self._attr_speed_count), eff_percentage)),
         }
 
     def forced_changed_attr_on_start(self) -> list[str]:
         """List Forced changed attributes on start."""
         forced_attrs = []
-        if self._attr_supported_features & FanEntityFeature.PRESET_MODE:
+        if self._attr_supported_features & FanEntityFeature.PRESET_MODE and self._attr_preset_mode in self._hardware_presets:
             forced_attrs.append(ATTR_PRESET)
         if self.refresh_osc_on_start and self._attr_supported_features & FanEntityFeature.OSCILLATE:
             forced_attrs.append(ATTR_OSC)
@@ -142,9 +187,10 @@ class BleAdvFan(BleAdvEntity, FanEntity):
         if ATTR_OSC in ent_attr.chg_attrs:
             self._attr_oscillating = self.change_bool(self._attr_oscillating, ent_attr.attrs[ATTR_OSC])
         if ATTR_SPEED in ent_attr.chg_attrs:
-            self._attr_preset_mode = None
             speed_count = ent_attr.attrs.get(ATTR_SPEED_COUNT, self._attr_speed_count)
-            self._attr_percentage = ranged_value_to_percentage((1, speed_count), ent_attr.attrs[ATTR_SPEED])
+            speed_val = ent_attr.attrs[ATTR_SPEED]
+            self._attr_percentage = ranged_value_to_percentage((1, speed_count), speed_val)
+            self._attr_preset_mode = next((name for name, spd in self._speed_presets.items() if spd == speed_val), None)
         if ATTR_PRESET in ent_attr.chg_attrs:
             self._attr_preset_mode = ent_attr.attrs[ATTR_PRESET]
 
@@ -160,8 +206,11 @@ class BleAdvFan(BleAdvEntity, FanEntity):
     async def async_set_percentage(self, percentage: int) -> None:
         """Set the speed percentage of the fan."""
         if percentage == 0:
+            self._attr_preset_mode = None
             await self._handle_state_change({ATTR_IS_ON: False})
         else:
+            speed_val = ceil(percentage_to_ranged_value((1, self._attr_speed_count), percentage))
+            self._attr_preset_mode = next((name for name, spd in self._speed_presets.items() if spd == speed_val), None)
             await self._handle_state_change({ATTR_IS_ON: True, ATTR_PERCENTAGE: percentage})
 
     async def async_set_direction(self, direction: str) -> None:
@@ -174,4 +223,11 @@ class BleAdvFan(BleAdvEntity, FanEntity):
 
     async def async_set_preset_mode(self, preset_mode: str) -> None:
         """Set the preset mode of the fan."""
-        await self._handle_state_change({ATTR_IS_ON: True, ATTR_PRESET_MODE: preset_mode})
+        target_speed = self._match_speed_preset(preset_mode)
+        if target_speed is not None:
+            target_percent = ranged_value_to_percentage((1, self._attr_speed_count), target_speed)
+            display_name = next((name for name, spd in self._speed_presets.items() if spd == target_speed), preset_mode)
+            self._attr_preset_mode = display_name
+            await self.async_set_percentage(target_percent)
+        else:
+            await self._handle_state_change({ATTR_IS_ON: True, ATTR_PRESET_MODE: preset_mode})

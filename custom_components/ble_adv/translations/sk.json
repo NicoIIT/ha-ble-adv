@@ -216,7 +216,10 @@
               "refresh_dir_on_start": "Vynútiť obnovenie smeru pri zapnutí",
               "refresh_osc_on_start": "Vynútiť obnovenie oscilácie pri zapnutí",
               "forced_cmds": "Príkazy vždy odoslané aj keď sa nič nezmenilo",
-              "presets": "Režimy ventilátora"
+              "presets": "Režimy ventilátora",
+              "preset_sleep": "Predvoľba Režim spánku",
+              "preset_work": "Predvoľba Pracovný režim",
+              "preset_turbo": "Predvoľba Turbo režim"
             }
           },
           "fan_1": {
@@ -228,7 +231,10 @@
               "refresh_dir_on_start": "Vynútiť obnovenie smeru pri zapnutí",
               "refresh_osc_on_start": "Vynútiť obnovenie oscilácie pri zapnutí",
               "forced_cmds": "Príkazy vždy odoslané aj keď sa nič nezmenilo",
-              "presets": "Režimy ventilátora"
+              "presets": "Režimy ventilátora",
+              "preset_sleep": "Predvoľba Režim spánku",
+              "preset_work": "Predvoľba Pracovný režim",
+              "preset_turbo": "Predvoľba Turbo režim"
             }
           },
           "fan_2": {
@@ -240,7 +246,10 @@
               "refresh_dir_on_start": "Vynútiť obnovenie smeru pri zapnutí",
               "refresh_osc_on_start": "Vynútiť obnovenie oscilácie pri zapnutí",
               "forced_cmds": "Príkazy vždy odoslané aj keď sa nič nezmenilo",
-              "presets": "Režimy ventilátora"
+              "presets": "Režimy ventilátora",
+              "preset_sleep": "Predvoľba Režim spánku",
+              "preset_work": "Predvoľba Pracovný režim",
+              "preset_turbo": "Predvoľba Turbo režim"
             }
           }
         }
@@ -365,6 +374,19 @@
         "nm_as_effect": "Nočný režim ako efekt",
         "nm_as_second_light": "Nočný režim ako druhé svetlo"
       }
+    },
+    "speed_options": {
+      "options": {
+        "none": "Vypnuté",
+        "1": "Rýchlosť 1",
+        "2": "Rýchlosť 2",
+        "3": "Rýchlosť 3",
+        "4": "Rýchlosť 4",
+        "5": "Rýchlosť 5",
+        "6": "Rýchlosť 6",
+        "7": "Rýchlosť 7",
+        "8": "Rýchlosť 8"
+      }
     }
   },
   "entity": {
@@ -385,7 +407,10 @@
           "preset_mode": {
             "state": {
               "breeze": "Prírodný vietor",
-              "sleep": "Režim spánku"
+              "sleep": "Režim spánku",
+              "sleep_mode": "Režim spánku",
+              "work_mode": "Pracovný režim",
+              "turbo": "Turbo režim"
             }
           }
         }
@@ -396,7 +421,10 @@
           "preset_mode": {
             "state": {
               "breeze": "Prírodný vietor",
-              "sleep": "Režim spánku"
+              "sleep": "Režim spánku",
+              "sleep_mode": "Režim spánku",
+              "work_mode": "Pracovný režim",
+              "turbo": "Turbo režim"
             }
           }
         }
@@ -407,7 +435,10 @@
           "preset_mode": {
             "state": {
               "breeze": "Prírodný vietor",
-              "sleep": "Režim spánku"
+              "sleep": "Režim spánku",
+              "sleep_mode": "Režim spánku",
+              "work_mode": "Pracovný režim",
+              "turbo": "Turbo režim"
             }
           }
         }

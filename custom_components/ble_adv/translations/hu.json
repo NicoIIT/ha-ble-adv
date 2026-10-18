@@ -216,7 +216,10 @@
               "refresh_dir_on_start": "Irány frissítés bekapcsoláskor",
               "refresh_osc_on_start": "Oszcilláció frissítés bekapcsoláskor",
               "forced_cmds": "Parancsok mindig elküldve, még ha semmi sem változott",
-              "presets": "Ventilátor módok"
+              "presets": "Ventilátor módok",
+              "preset_sleep": "Alvás mód beállítás",
+              "preset_work": "Munka mód beállítás",
+              "preset_turbo": "Turbó mód beállítás"
             }
           },
           "fan_1": {
@@ -228,7 +231,10 @@
               "refresh_dir_on_start": "Irány frissítés bekapcsoláskor",
               "refresh_osc_on_start": "Oszcilláció frissítés bekapcsoláskor",
               "forced_cmds": "Parancsok mindig elküldve, még ha semmi sem változott",
-              "presets": "Ventilátor módok"
+              "presets": "Ventilátor módok",
+              "preset_sleep": "Alvás mód beállítás",
+              "preset_work": "Munka mód beállítás",
+              "preset_turbo": "Turbó mód beállítás"
             }
           },
           "fan_2": {
@@ -240,7 +246,10 @@
               "refresh_dir_on_start": "Irány frissítés bekapcsoláskor",
               "refresh_osc_on_start": "Oszcilláció frissítés bekapcsoláskor",
               "forced_cmds": "Parancsok mindig elküldve, még ha semmi sem változott",
-              "presets": "Ventilátor módok"
+              "presets": "Ventilátor módok",
+              "preset_sleep": "Alvás mód beállítás",
+              "preset_work": "Munka mód beállítás",
+              "preset_turbo": "Turbó mód beállítás"
             }
           }
         }
@@ -365,6 +374,19 @@
         "nm_as_effect": "Éjszakai mód effektként",
         "nm_as_second_light": "Éjszakai mód második fényként"
       }
+    },
+    "speed_options": {
+      "options": {
+        "none": "Letiltva",
+        "1": "1. sebesség",
+        "2": "2. sebesség",
+        "3": "3. sebesség",
+        "4": "4. sebesség",
+        "5": "5. sebesség",
+        "6": "6. sebesség",
+        "7": "7. sebesség",
+        "8": "8. sebesség"
+      }
     }
   },
   "entity": {
@@ -385,7 +407,10 @@
           "preset_mode": {
             "state": {
               "breeze": "Természetes szél",
-              "sleep": "Alvási mód"
+              "sleep": "Alvási mód",
+              "sleep_mode": "Alvás mód",
+              "work_mode": "Munka mód",
+              "turbo": "Turbó mód"
             }
           }
         }
@@ -396,7 +421,10 @@
           "preset_mode": {
             "state": {
               "breeze": "Természetes szél",
-              "sleep": "Alvási mód"
+              "sleep": "Alvási mód",
+              "sleep_mode": "Alvás mód",
+              "work_mode": "Munka mód",
+              "turbo": "Turbó mód"
             }
           }
         }
@@ -407,7 +435,10 @@
           "preset_mode": {
             "state": {
               "breeze": "Természetes szél",
-              "sleep": "Alvási mód"
+              "sleep": "Alvási mód",
+              "sleep_mode": "Alvás mód",
+              "work_mode": "Munka mód",
+              "turbo": "Turbó mód"
             }
           }
         }

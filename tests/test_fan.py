@@ -5,7 +5,20 @@ from unittest import mock
 
 from ble_adv.codecs.const import ATTR_DIR, ATTR_ON, ATTR_OSC, ATTR_PRESET, ATTR_SPEED, ATTR_SPEED_COUNT, FAN_TYPE
 from ble_adv.codecs.models import BleAdvEntAttr
-from ble_adv.const import CONF_FANS, CONF_PRESETS, CONF_REFRESH_DIR_ON_START, CONF_REFRESH_OSC_ON_START, CONF_USE_DIR, CONF_USE_OSC
+from ble_adv.const import (
+    CONF_FANS,
+    CONF_PRESET_SLEEP,
+    CONF_PRESET_TURBO,
+    CONF_PRESET_WORK,
+    CONF_PRESETS,
+    CONF_REFRESH_DIR_ON_START,
+    CONF_REFRESH_OSC_ON_START,
+    CONF_USE_DIR,
+    CONF_USE_OSC,
+    PRESET_MODE_SLEEP,
+    PRESET_MODE_TURBO,
+    PRESET_MODE_WORK,
+)
 from ble_adv.fan import BleAdvFan, async_setup_entry, create_entity
 from homeassistant.components.fan import DIRECTION_FORWARD, DIRECTION_REVERSE, FanEntityFeature
 from homeassistant.const import CONF_TYPE
@@ -189,3 +202,58 @@ async def test_fan_preset(device: _Device) -> None:
     assert fan.preset_mode == "PRES1"
     fan.apply_attrs(BleAdvEntAttr([ATTR_PRESET], {ATTR_ON: True, ATTR_PRESET: None}, FAN_TYPE, 0))
     assert fan.percentage == 100
+
+
+async def test_fan_speed_presets(device: _Device) -> None:
+    """Test speed presets configuration and matching."""
+    fan: BleAdvFan = create_entity(
+        {
+            CONF_TYPE: "6speed",
+            CONF_PRESETS: ["breeze", "sleep"],
+            CONF_PRESET_SLEEP: "1",
+            CONF_PRESET_WORK: "3",
+            CONF_PRESET_TURBO: "6",
+        },
+        device,
+        4,
+    )
+    assert fan.id == (FAN_TYPE, 4)
+    assert fan.supported_features == BASE_FAN_FEATURES | FanEntityFeature.PRESET_MODE
+    assert fan.preset_modes == [PRESET_MODE_SLEEP, PRESET_MODE_WORK, PRESET_MODE_TURBO, "breeze", "sleep"]
+    await fan.async_added_to_hass()
+
+    # Test setting sleep mode preset -> speed 1 (17%)
+    await fan.async_set_preset_mode(PRESET_MODE_SLEEP)
+    assert fan.preset_mode == PRESET_MODE_SLEEP
+    assert fan.percentage == 17
+    assert fan.get_attrs() == {ATTR_ON: True, ATTR_SPEED_COUNT: 6, ATTR_DIR: True, ATTR_OSC: False, ATTR_PRESET: None, ATTR_SPEED: 1}
+    device.assert_apply_change(fan, [ATTR_ON, ATTR_SPEED])
+
+    # Test setting work mode preset -> speed 3 (50%)
+    await fan.async_set_preset_mode(PRESET_MODE_WORK)
+    assert fan.preset_mode == PRESET_MODE_WORK
+    assert fan.percentage == 50
+    assert fan.get_attrs() == {ATTR_ON: True, ATTR_SPEED_COUNT: 6, ATTR_DIR: True, ATTR_OSC: False, ATTR_PRESET: None, ATTR_SPEED: 3}
+    device.assert_apply_change(fan, [ATTR_SPEED])
+
+    # Test setting turbo preset -> speed 6 (100%)
+    await fan.async_set_preset_mode(PRESET_MODE_TURBO)
+    assert fan.preset_mode == PRESET_MODE_TURBO
+    assert fan.percentage == 100
+    assert fan.get_attrs() == {ATTR_ON: True, ATTR_SPEED_COUNT: 6, ATTR_DIR: True, ATTR_OSC: False, ATTR_PRESET: None, ATTR_SPEED: 6}
+    device.assert_apply_change(fan, [ATTR_SPEED])
+
+    # Test voice/localized alias matching
+    await fan.async_set_preset_mode("Modo Dormir")
+    assert fan.preset_mode == PRESET_MODE_SLEEP
+    assert fan.percentage == 17
+
+    await fan.async_set_preset_mode("Calor Extremo")
+    assert fan.preset_mode == PRESET_MODE_TURBO
+    assert fan.percentage == 100
+
+    # Test hardware preset preserves hardware preset_attr and 0 percentage
+    await fan.async_set_preset_mode("breeze")
+    assert fan.preset_mode == "breeze"
+    assert fan.percentage == 0
+    assert fan.get_attrs()[ATTR_PRESET] == "breeze"
