@@ -484,7 +484,7 @@ class BleAdvConfigFlow(ConfigFlow, domain=DOMAIN):
         """Diagnostic step."""
         if user_input is not None:
             return self.async_external_step_done(next_step_id=self._return_step_after_diag)
-        return self.async_external_step(url=self._create_api_json_view("ble_adv_diag", await self._diagnostic_dump()))
+        return self.async_external_step(step_id="diag", url=self._create_api_json_view("ble_adv_diag", await self._diagnostic_dump()))
 
     async def async_step_inject(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         """Manual injection step."""
