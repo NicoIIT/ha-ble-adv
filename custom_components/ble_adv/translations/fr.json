@@ -363,7 +363,8 @@
         "fl": "Clignotement",
         "no_nm": "Pas de mode Nuit",
         "nm_as_effect": "Mode Nuit comme Effet",
-        "nm_as_second_light": "Mode Nuit comme seconde lampe"
+        "nm_as_second_light": "Mode Nuit comme seconde lampe",
+        "br_after_ct": "Renvoyer la luminosité après la température de couleur"
       }
     }
   },
