@@ -363,7 +363,8 @@
         "fl": "Villogás",
         "no_nm": "Nincs éjszakai mód",
         "nm_as_effect": "Éjszakai mód effektként",
-        "nm_as_second_light": "Éjszakai mód második fényként"
+        "nm_as_second_light": "Éjszakai mód második fényként",
+        "br_after_ct": "Fényerő újraküldése a színhőmérséklet után"
       }
     }
   },

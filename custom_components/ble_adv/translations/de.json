@@ -363,7 +363,8 @@
         "fl": "Flackern",
         "no_nm": "Kein Nachtmodus",
         "nm_as_effect": "Nachtmodus als Effekt",
-        "nm_as_second_light": "Nachtmodus als zweite Lampe"
+        "nm_as_second_light": "Nachtmodus als zweite Lampe",
+        "br_after_ct": "Helligkeit nach Farbtemperatur erneut senden"
       }
     }
   },

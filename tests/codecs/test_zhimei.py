@@ -1,8 +1,10 @@
+# ruff: noqa: S101
 """Zhi Mei pro Unit Tests."""
 
 import pytest
+from ble_adv.codecs.models import BleAdvCodec, BleAdvEncCmd, BleAdvEntAttr
 
-from . import _TestEncoderBase, _TestEncoderFull, _TestEncoderFullAll
+from . import CODECS, _TestEncoderBase, _TestEncoderFull, _TestEncoderFullAll
 
 
 @pytest.mark.parametrize(
@@ -962,3 +964,67 @@ class TestEncoderZhimeiFanRemote(_TestEncoderFull):
 )
 class TestEncoderZhimeiSets(_TestEncoderFullAll):
     """Zhimei Encoder / Decoder Full ALL tests."""
+
+
+_CWW_ATTRS = {"sub_type": "cww", "on": True, "br": 0.3, "ct": 0.2, "ctr": 0.8, "cold": 0.3, "warm": 0.12}
+_CT_CMD = "cmd: 0xB7, param: 0x00, args: [0,3,32]"
+_BR_CMD = "cmd: 0xB5, param: 0x00, args: [0,1,44]"
+
+
+@pytest.mark.parametrize("enc_name", ["zhimei_v1", "zhimei_v1b", "zhimei_v2", "zhiguang2_v2"])
+@pytest.mark.parametrize(
+    ("chg_attrs", "expected_def", "expected_br_after_ct"),
+    [
+        (["ct", "ctr", "cold", "warm"], [_CT_CMD], [_CT_CMD, _BR_CMD]),
+        (["br", "cold", "warm"], [_BR_CMD], [_BR_CMD]),
+        (["br", "ct", "ctr", "cold", "warm"], [_BR_CMD, _CT_CMD], [_CT_CMD, _BR_CMD]),
+        (["on"], ["cmd: 0xB3, param: 0x00, args: [0,0,0]"], ["cmd: 0xB3, param: 0x00, args: [0,0,0]"]),
+    ],
+)
+def test_br_after_ct(enc_name: str, chg_attrs: list[str], expected_def: list[str], expected_br_after_ct: list[str]) -> None:
+    """With 'br_after_ct', the brightness is always sent after the Color Temperature, the default set is unchanged."""
+    codec = CODECS[enc_name]
+    ent_attr = BleAdvEntAttr(chg_attrs, _CWW_ATTRS, "light", 0)
+    assert [repr(enc_cmd) for enc_cmd in codec.ent_to_enc(ent_attr, BleAdvCodec.DEF_TRANS_NAME)] == expected_def
+    assert [repr(enc_cmd) for enc_cmd in codec.ent_to_enc(ent_attr, "br_after_ct")] == expected_br_after_ct
+
+
+@pytest.mark.parametrize(
+    _TestEncoderFullAll.PARAM_NAMES,
+    [
+        # BRIGHTNESS 100%
+        (
+            "zhimei_v1",
+            [],
+            "br_after_ct",
+            "02.01.19.1B.03.48.46.4B.4A.9E.09.B8.3A.8C.35.5F.FA.16.21.4E.7B.71.E0.31.45.10.11.12.13.14.15",
+            "cmd: 0xB5, param: 0x00, args: [0,3,232]",
+            "id: 0x0000C002, index: 4, tx: 36, seed: 0x004A",
+            "light_0: ['br'] / {'sub_type': 'cww', 'br': 1.0}",
+        ),
+        (
+            "zhimei_v2",
+            [],
+            "br_after_ct",
+            "02.01.19.1B.03.F9.08.49.B2.CE.2C.49.F3.A6.5B.C7.06.07.1D.23.A9.10.11.12.13.14.15.16.17.18.19",
+            "cmd: 0xB5, param: 0x00, args: [0,3,232]",
+            "id: 0x000002C0, index: 4, tx: 36, seed: 0x0000",
+            "light_0: ['br'] / {'sub_type': 'cww', 'br': 1.0}",
+        ),
+    ],
+)
+class TestEncoderZhimeiBrAfterCt(_TestEncoderFullAll):
+    """Zhi Mei Encoder / Decoder 'br_after_ct' tests: the reverse side is unchanged."""
+
+
+@pytest.mark.parametrize("enc_name", ["zhimei_v1", "zhimei_v1b", "zhimei_v2", "zhiguang2_v2"])
+@pytest.mark.parametrize("cmd", [0xB5, 0xB7])
+def test_br_after_ct_reverse(enc_name: str, cmd: int) -> None:
+    """With 'br_after_ct', the brightness and Color Temperature commands received are decoded as with the default set."""
+    codec = CODECS[enc_name]
+    enc_cmd = BleAdvEncCmd(cmd)
+    enc_cmd.arg1 = 1
+    enc_cmd.arg2 = 44
+    def_ent_attrs = codec.enc_to_ent(enc_cmd, BleAdvCodec.DEF_TRANS_NAME)
+    assert len(def_ent_attrs) == 1
+    assert [repr(ent_attr) for ent_attr in codec.enc_to_ent(enc_cmd, "br_after_ct")] == [repr(def_ent_attrs[0])]

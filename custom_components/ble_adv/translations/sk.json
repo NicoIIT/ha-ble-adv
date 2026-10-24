@@ -363,7 +363,8 @@
         "fl": "Blikanie",
         "no_nm": "Bez nočného režimu",
         "nm_as_effect": "Nočný režim ako efekt",
-        "nm_as_second_light": "Nočný režim ako druhé svetlo"
+        "nm_as_second_light": "Nočný režim ako druhé svetlo",
+        "br_after_ct": "Znovu odoslať jas po teplote farby"
       }
     }
   },

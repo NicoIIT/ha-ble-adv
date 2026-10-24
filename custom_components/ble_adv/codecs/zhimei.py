@@ -321,6 +321,26 @@ TRANS_FAN_V1_REV = TranslatorSet(TRANS_FAN_V1)
 TRANS_FAN_V1_REV.replace(Trans(LightCmd().act(ATTR_ON, True), EncCmd(0xA6).eq("arg0", 1)))
 TRANS_FAN_V1_REV.replace(Trans(LightCmd().act(ATTR_ON, False), EncCmd(0xA6).eq("arg0", 2)))
 
+BR_AFTER_CT = "br_after_ct"
+
+
+def br_after_ct(translators: list[Trans]) -> TranslatorSet:
+    """Build the translator set re-sending the brightness after each Color Temperature change.
+
+    Some devices are resetting their brightness to 100% on each Color Temperature command:
+    the Color Temperature command is sent first, then the brightness command is always sent,
+    even if only the Color Temperature changed. The reverse (listening) side is unchanged.
+    """
+    trans_set = TranslatorSet(translators).delete(BleAdvEncCmd(0xB5)).delete(BleAdvEncCmd(0xB7))
+    return trans_set.add_translators(
+        [
+            Trans(CTLightCmd().act(ATTR_CT_REV), EncCmd(0xB7)).split_copy(ATTR_CT_REV, ["arg2", "arg1"], 1000.0),
+            Trans(CTLightCmd().act(ATTR_BR), EncCmd(0xB5)).split_copy(ATTR_BR, ["arg2", "arg1"], 1000.0).no_direct(),
+            Trans(CTLightCmd().act(ATTR_BR).act(ATTR_CT_REV), EncCmd(0xB5)).split_copy(ATTR_BR, ["arg2", "arg1"], 1000.0).no_reverse(),
+        ]
+    )
+
+
 CODECS = [
     # Zhi Mei standard Android App
     ZhimeiEncoderV0().id("zhimei_fan_v0").header([0x55]).ble(0x19, 0x03)
@@ -331,16 +351,24 @@ CODECS = [
         .add_translators(TRANS_FAN_V1)
         .add_rev_only_trans(TRANS_REMOTE)
         .add_translator_set("rev_on_off", TRANS_FAN_V1_REV),
-    ZhimeiEncoderV1().id("zhimei_v1").header([0x48, 0x46, 0x4B, 0x4A]).ble(0x1A, 0x03).add_translators(TRANS_V1),
-    ZhimeiEncoderV2().id("zhimei_v2").header([0xF9, 0x08, 0x49]).ble(0x1A, 0x03).prefix([0x33, 0xAA, 0x55]).add_translators(TRANS_V2),
+    ZhimeiEncoderV1().id("zhimei_v1").header([0x48, 0x46, 0x4B, 0x4A]).ble(0x1A, 0x03)
+        .add_translators(TRANS_V1)
+        .add_translator_set(BR_AFTER_CT, br_after_ct(TRANS_V1)),
+    ZhimeiEncoderV2().id("zhimei_v2").header([0xF9, 0x08, 0x49]).ble(0x1A, 0x03).prefix([0x33, 0xAA, 0x55])
+        .add_translators(TRANS_V2)
+        .add_translator_set(BR_AFTER_CT, br_after_ct(TRANS_V2)),
     # Zhi Mei Remotes
     ZhimeiEncoderV0().fid("zhimei_fan_vr0", "zhimei_fan_v0").header([0x55]).ble(None, 0).add_translators(TRANS_REMOTE),
     ZhimeiEncoderV1().fid("zhimei_fan_vr1", "zhimei_fan_v1").header([0x48, 0x46, 0x4B, 0x4A], 3).ble(None, 0xFF).add_translators(TRANS_REMOTE),
     ZhimeiEncoderV1().fid("zhimei_fan_v1b", "zhimei_fan_v1").header([0x00, 0x00, 0x00, 0x48, 0x46, 0x4B, 0x4A]).ble(None, 0xFF)
         .add_translators(TRANS_FAN_V1)
         .add_translator_set("rev_on_off", TRANS_FAN_V1_REV),
-    ZhimeiEncoderV1().fid("zhimei_v1b", "zhimei_v1").header([0x58, 0x55, 0x18, 0x48, 0x46, 0x4B, 0x4A]).ble(0x1A, 0xFF).add_translators(TRANS_V1),
+    ZhimeiEncoderV1().fid("zhimei_v1b", "zhimei_v1").header([0x58, 0x55, 0x18, 0x48, 0x46, 0x4B, 0x4A]).ble(0x1A, 0xFF)
+        .add_translators(TRANS_V1)
+        .add_translator_set(BR_AFTER_CT, br_after_ct(TRANS_V1)),
     ZhimeiEncoderV1().fid("zhimei_vr1", "zhimei_v1").header([0xFF, 0xFF, 0xFF, 0x48, 0x46, 0x4B, 0x4A]).footer([0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF]).ble(None, 0xFF).add_translators(TRANS_V1),
     # Zhi Guang 2
-    ZhimeiEncoderV2().id("zhiguang2_v2").header([0xF9, 0x08, 0x49]).ble(0x1A, 0xFF).prefix([0x33, 0xAA, 0x55]).add_translators(TRANS_V2),
+    ZhimeiEncoderV2().id("zhiguang2_v2").header([0xF9, 0x08, 0x49]).ble(0x1A, 0xFF).prefix([0x33, 0xAA, 0x55])
+        .add_translators(TRANS_V2)
+        .add_translator_set(BR_AFTER_CT, br_after_ct(TRANS_V2)),
 ]  # fmt: skip
