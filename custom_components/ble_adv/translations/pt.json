@@ -363,7 +363,8 @@
         "fl": "Cintilação",
         "no_nm": "Sem Modo Noturno",
         "nm_as_effect": "Modo Noturno como Efeito",
-        "nm_as_second_light": "Modo Noturno como Segunda Luz"
+        "nm_as_second_light": "Modo Noturno como Segunda Luz",
+        "br_after_ct": "Reenviar o brilho após a temperatura de cor"
       }
     }
   },

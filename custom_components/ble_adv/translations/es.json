@@ -363,7 +363,8 @@
         "fl": "Parpadeante",
         "no_nm": "Sin modo noche",
         "nm_as_effect": "Modo noche como efecto",
-        "nm_as_second_light": "Modo noche como segunda luz"
+        "nm_as_second_light": "Modo noche como segunda luz",
+        "br_after_ct": "Reenviar el brillo después de la temperatura de color"
       }
     }
   },
