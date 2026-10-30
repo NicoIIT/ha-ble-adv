@@ -60,11 +60,13 @@ class BleAdvShellyAdapter(BleAdvAdapter):
 class _MonitoredDevice:
     WAIT_MONITOR: float = 1.0
 
-    def __init__(self, hass: HomeAssistant, connected_callback: ConnectedCallback, state_chg_clbk: OnConnectionStateChange) -> None:
+    def __init__(
+        self, adapter_name: str, hass: HomeAssistant, connected_callback: ConnectedCallback, state_chg_clbk: OnConnectionStateChange
+    ) -> None:
         self._connected_callback = connected_callback
         self._state_chg_callback = state_chg_clbk
         self.connected: bool = self._connected_callback()
-        self._mon_task: asyncio.Task = hass.async_create_task(self._monitor())
+        self._mon_task: asyncio.Task = hass.async_create_background_task(self._monitor(), f"MonitoredDevice.{adapter_name}_monitor")
 
     async def _monitor(self) -> None:
         try:
@@ -237,7 +239,7 @@ class BleAdvShellyBtManager(BleAdvBtManager):
         def _is_connected() -> bool:
             return rpc_coord.connected and rpc_coord.device.connected and rpc_coord.device.initialized
 
-        self._mon_devices[entry.entry_id] = _MonitoredDevice(self.hass, _is_connected, _conn_state_changed)
+        self._mon_devices[entry.entry_id] = _MonitoredDevice(adapter_name, self.hass, _is_connected, _conn_state_changed)
 
         if not _is_connected():
             self._add_diag(f"Pending '{adapter_name}': Not connected - will assess later", logging.INFO)
