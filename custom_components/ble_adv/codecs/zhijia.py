@@ -384,10 +384,24 @@ TRANS_VR1 = [
     # //  Missing: AF / A7 / A9 / AC / AB / AA
 ]
 
+class ZhijiaEncoderV1Unwhitened(ZhijiaEncoderV1):
+    """Zhi Jia V1 unwhitened remote encoder (AD type 0x16, header FF F0)."""
+
+    _len = 17
+
+    def decrypt(self, buffer: bytearray) -> bytearray | None:
+        """Return buffer directly without whitening/CRC."""
+        return buffer
+
+    def encrypt(self, buffer: bytearray) -> bytearray:
+        """Return buffer directly without whitening/CRC."""
+        return buffer
+
+
 CODECS = [
     # Zhi Jia standard Android App
     ZhijiaEncoderV0().id("zhijia_v0").header([0xF9, 0x08, 0x49]).prefix([0x08, 0x80, 0x98]).ble(0x1A, 0xFF).add_translators(TRANS_V0),
-    ZhijiaEncoderV1([0x19, 0x01, 0x10]).id("zhijia_v1").header([0xF9, 0x08, 0x49]).prefix([0x55, 0x08, 0x80, 0x98]).ble(0x1A, 0xFF).add_translators(TRANS_V1),
+    ZhijiaEncoderV1([0x19, 0x01, 0x10]).id("zhijia_v1").header([0xF9, 0x08, 0x49]).prefix([0x55, 0x08, 0x80, 0x98]).ble(0x1A, 0xFF).add_translators(TRANS_V1).add_translator_set("fl", TRANS_V2_FL),
     ZhijiaEncoderV2([0x19, 0x01, 0x10]).id("zhijia_v2").header([0x22, 0x9D]).ble(0x1A, 0xFF).add_translators(TRANS_V2).add_translator_set("fl", TRANS_V2_FL),
     # Zhi Guang standard Android App
     ZhijiaEncoderV0().id("zhiguang_v0").header([0xF9, 0x08, 0x49]).prefix([0x33, 0xAA, 0x55]).ble(0x1A, 0xFF).add_translators(TRANS_V0),
@@ -395,4 +409,6 @@ CODECS = [
     ZhijiaEncoderV2([0x20, 0x03, 0x05]).id("zhiguang_v2").header([0x22, 0x9D]).ble(0x1A, 0xFF).add_translators(TRANS_V2),
     # Zhi Jia Remote
     ZhijiaEncoderRemote([0x20, 0x03, 0x05]).fid("zhijia_vr1", "zhijia_v1").header([0xF0, 0xFF]).ble(0x1A, 0xFF).add_translators(TRANS_VR1),
+    ZhijiaEncoderV1Unwhitened([0x19, 0x01, 0x10]).fid("zhijia_vr2", "zhijia_v1").header([0xFF, 0xF0]).ble(0x1A, 0x16).add_translators(TRANS_V1).add_translator_set("fl", TRANS_V2_FL),
 ]  # fmt: skip
+
