@@ -181,3 +181,21 @@ async def test_entity(device: _Device) -> None:
     ent.set_state_attribute(ATTR_IS_ON, True)
     await ent.handle_change([ATTR_ON], ent.get_attrs())
     device.assert_apply_change(ent, [ATTR_ON])
+
+
+async def test_repair_keeps_configured_id(hass: HomeAssistant, coord: BleAdvCoordinator) -> None:
+    """Re-pair advertises the pair command for the id the device already uses."""
+    conf = BleAdvConfig(0xEA2, 255, translator_set="br_after_ct")
+    device = BleAdvDevice(hass, "dining", "Dining Table Light", "zhimei_v1", ["hci/test"], 1, 30, 100, conf, coord)
+    assert device.has_pair_command()
+    coord.advertise = mock.AsyncMock()
+    await device.async_repair()
+    coord.advertise.assert_awaited_once()
+    raw = coord.advertise.await_args.args[2].data[0]
+    enc_cmd, decoded = device.codec.decode_adv(BleAdvAdvertisement.FromRaw(raw))
+    assert decoded is not None
+    assert decoded.id == 0xEA2
+    assert decoded.index == 255
+    assert enc_cmd is not None
+    assert enc_cmd.cmd == 0xB4
+    assert (enc_cmd.arg0, enc_cmd.arg1, enc_cmd.arg2) == (0xAA, 0x66, 0x55)
