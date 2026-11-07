@@ -149,11 +149,13 @@ class AgarceFanTrans(Trans):
     def ent_to_enc(self, ent_attr: BleAdvEntAttr) -> BleAdvEncCmd:
         """Apply transformations to Encoder Attributes: direct."""
         enc_cmd = super().ent_to_enc(ent_attr)
-        enc_cmd.arg0 = 0x80 if ent_attr.attrs[ATTR_ON] else 0x00
-        enc_cmd.arg0 |= ent_attr.attrs[ATTR_SPEED]
-        enc_cmd.arg0 |= 0x00 if ent_attr.attrs[ATTR_DIR] else 0x10
-        enc_cmd.arg0 |= 0x20 if ent_attr.attrs[ATTR_PRESET] == ATTR_PRESET_BREEZE else 0x00
-        enc_cmd.arg1 = int(ent_attr.attrs[ATTR_OSC])
+        # Optional fan state attributes can be missing from synthetic pairing-test commands,
+        # fall back to the entity default state (forward direction, no preset, not oscillating).
+        enc_cmd.arg0 = 0x80 if ent_attr.attrs.get(ATTR_ON, False) else 0x00
+        enc_cmd.arg0 |= ent_attr.attrs.get(ATTR_SPEED, 0)
+        enc_cmd.arg0 |= 0x00 if ent_attr.attrs.get(ATTR_DIR, True) else 0x10
+        enc_cmd.arg0 |= 0x20 if ent_attr.attrs.get(ATTR_PRESET) == ATTR_PRESET_BREEZE else 0x00
+        enc_cmd.arg1 = int(ent_attr.attrs.get(ATTR_OSC, False))
         enc_cmd.arg2 = 0x01 if ATTR_SPEED in ent_attr.chg_attrs else 0x00
         enc_cmd.arg2 |= 0x02 if ATTR_DIR in ent_attr.chg_attrs else 0x00
         enc_cmd.arg2 |= 0x04 if ATTR_PRESET in ent_attr.chg_attrs else 0x00

@@ -169,3 +169,15 @@ async def test_config_flow(hass: HomeAssistant, coord: BleAdvCoordinator) -> Non
     await flow.async_step_pair({CONF_PHONE_APP: "Fan Lamp Pro", CONF_ADAPTER_ID: "test"})
     await flow.async_test_light()
     await flow.async_test_fan()
+
+
+async def test_config_flow_agarce_fan_test(hass: HomeAssistant, coord: BleAdvCoordinator) -> None:
+    """Test fan blink for the Smart Light (agarce) pairing flow, regression test for issue #364."""
+    flow = BleAdvConfigFlow()
+    flow.hass = hass
+    flow.coordinator = coord
+    flow.WAIT_TEST_FAN = 0.1
+    await flow.async_step_user()
+    await flow.async_step_pair({CONF_PHONE_APP: "Smart Light", CONF_ADAPTER_ID: "test"})
+    await flow.async_test_fan()
+    assert not any("Exception running Action" in diag for diag in flow._diags)  # noqa: SLF001

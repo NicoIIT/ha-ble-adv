@@ -416,8 +416,34 @@ class BleAdvConfigFlow(ConfigFlow, domain=DOMAIN):
         """Blink."""
         self.add_diag(f"Start FAN blink - {self._confs.selected_adapter()} / {self._confs.selected()}.")
         tmp_device: BleAdvBaseDevice = self._get_device("cf", self._confs.selected_adapter(), self._confs.selected())
-        on_cmd = BleAdvEntAttr([ATTR_ON, ATTR_SPEED], {ATTR_ON: True, ATTR_SPEED: 1, ATTR_SPEED_COUNT: 6}, FAN_TYPE, 0)
-        off_cmd = BleAdvEntAttr([ATTR_ON, ATTR_SPEED], {ATTR_ON: False, ATTR_SPEED: 1, ATTR_SPEED_COUNT: 6}, FAN_TYPE, 0)
+        # The full fan state is required by codecs packing dir/osc/preset into the status bytes,
+        # use the same default state as a freshly created fan entity (forward, not oscillating, no preset).
+        on_cmd = BleAdvEntAttr(
+            [ATTR_ON, ATTR_SPEED],
+            {
+                ATTR_ON: True,
+                ATTR_SPEED: 1,
+                ATTR_SPEED_COUNT: 6,
+                ATTR_DIR: True,
+                ATTR_OSC: False,
+                ATTR_PRESET: None,
+            },
+            FAN_TYPE,
+            0,
+        )
+        off_cmd = BleAdvEntAttr(
+            [ATTR_ON, ATTR_SPEED],
+            {
+                ATTR_ON: False,
+                ATTR_SPEED: 1,
+                ATTR_SPEED_COUNT: 6,
+                ATTR_DIR: True,
+                ATTR_OSC: False,
+                ATTR_PRESET: None,
+            },
+            FAN_TYPE,
+            0,
+        )
         self.async_update_progress(0)
         await tmp_device.advertise(on_cmd)
         await asyncio.sleep(self.WAIT_TEST_FAN)

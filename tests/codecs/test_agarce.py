@@ -4,9 +4,12 @@
 import pytest
 from ble_adv.codecs.agarce import TRANS, AgarceEncoder
 from ble_adv.codecs.const import (
+    ATTR_DIR,
     ATTR_ON,
+    ATTR_OSC,
     ATTR_PRESET,
     ATTR_PRESET_BREEZE,
+    ATTR_SPEED,
     ATTR_SPEED_COUNT,
     ATTR_SUB_TYPE,
     FAN_TYPE,
@@ -14,7 +17,7 @@ from ble_adv.codecs.const import (
     LIGHT_TYPE_CWW,
     LIGHT_TYPE_ONOFF,
 )
-from ble_adv.codecs.models import BleAdvCodec
+from ble_adv.codecs.models import BleAdvCodec, BleAdvEntAttr
 
 from . import _TestEncoderBase, _TestEncoderFull
 
@@ -281,3 +284,52 @@ def test_supported_features() -> None:
         {ATTR_ON: {False, True}, ATTR_SUB_TYPE: {LIGHT_TYPE_ONOFF, LIGHT_TYPE_CWW}}
     ]
     assert codec.get_supported_features(FAN_TYPE, BleAdvCodec.DEF_TRANS_NAME) == [{ATTR_SPEED_COUNT: {6}, ATTR_PRESET: {ATTR_PRESET_BREEZE}}]
+
+
+def test_fan_sparse_pairing_attrs_do_not_raise() -> None:
+    """Regression test for issue #364: pairing flow fan test only provides on/speed/speed_count."""
+    codec = AgarceEncoder().add_translators(TRANS)
+
+    on_sparse = BleAdvEntAttr([ATTR_ON, ATTR_SPEED], {ATTR_ON: True, ATTR_SPEED: 1, ATTR_SPEED_COUNT: 6}, FAN_TYPE, 0)
+    on_full = BleAdvEntAttr(
+        [ATTR_ON, ATTR_SPEED],
+        {ATTR_ON: True, ATTR_SPEED: 1, ATTR_SPEED_COUNT: 6, ATTR_DIR: True, ATTR_OSC: False, ATTR_PRESET: None},
+        FAN_TYPE,
+        0,
+    )
+    on_sparse_cmd = codec.ent_to_enc(on_sparse, BleAdvCodec.DEF_TRANS_NAME)
+    on_full_cmd = codec.ent_to_enc(on_full, BleAdvCodec.DEF_TRANS_NAME)
+    assert len(on_sparse_cmd) == 1
+    assert [on_sparse_cmd[0].cmd, on_sparse_cmd[0].arg0, on_sparse_cmd[0].arg1, on_sparse_cmd[0].arg2] == [
+        0x80,
+        0x81,
+        0,
+        0x09,
+    ]
+    assert (on_sparse_cmd[0].arg0, on_sparse_cmd[0].arg1, on_sparse_cmd[0].arg2) == (
+        on_full_cmd[0].arg0,
+        on_full_cmd[0].arg1,
+        on_full_cmd[0].arg2,
+    )
+
+    off_sparse = BleAdvEntAttr([ATTR_ON, ATTR_SPEED], {ATTR_ON: False, ATTR_SPEED: 1, ATTR_SPEED_COUNT: 6}, FAN_TYPE, 0)
+    off_full = BleAdvEntAttr(
+        [ATTR_ON, ATTR_SPEED],
+        {ATTR_ON: False, ATTR_SPEED: 1, ATTR_SPEED_COUNT: 6, ATTR_DIR: True, ATTR_OSC: False, ATTR_PRESET: None},
+        FAN_TYPE,
+        0,
+    )
+    off_sparse_cmd = codec.ent_to_enc(off_sparse, BleAdvCodec.DEF_TRANS_NAME)
+    off_full_cmd = codec.ent_to_enc(off_full, BleAdvCodec.DEF_TRANS_NAME)
+    assert len(off_sparse_cmd) == 1
+    assert [off_sparse_cmd[0].cmd, off_sparse_cmd[0].arg0, off_sparse_cmd[0].arg1, off_sparse_cmd[0].arg2] == [
+        0x80,
+        0x01,
+        0,
+        0x09,
+    ]
+    assert (off_sparse_cmd[0].arg0, off_sparse_cmd[0].arg1, off_sparse_cmd[0].arg2) == (
+        off_full_cmd[0].arg0,
+        off_full_cmd[0].arg1,
+        off_full_cmd[0].arg2,
+    )
