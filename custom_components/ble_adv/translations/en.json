@@ -379,6 +379,11 @@
         "name": "No Command Mode"
       }
     },
+    "button": {
+      "repair": {
+        "name": "Re-pair with this id"
+      }
+    },
     "fan": {
       "fan_0": {
         "name": "Main Fan",

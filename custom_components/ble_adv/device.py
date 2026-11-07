@@ -8,6 +8,7 @@ from dataclasses import asdict
 from datetime import datetime, timedelta
 from typing import Any
 
+from homeassistant.components.button import ButtonEntity
 from homeassistant.components.event import EventDeviceClass, EventEntity
 from homeassistant.components.switch import SwitchDeviceClass, SwitchEntity
 from homeassistant.const import EntityCategory
@@ -30,7 +31,7 @@ from .codecs.const import (
     DEVICE_TYPE,
 )
 from .codecs.models import BleAdvConfig, BleAdvEncCmd, BleAdvEntAttr
-from .const import CONF_FORCED_OFF, CONF_FORCED_ON, DOMAIN, EVENT_TYPE, TRIGGER_TYPE_EVENT_ENC_CMD
+from .const import CONF_FORCED_OFF, CONF_FORCED_ON, DOMAIN, EVENT_TYPE, REPAIR_BUTTON_TYPE, TRIGGER_TYPE_EVENT_ENC_CMD
 from .coordinator import BleAdvBaseDevice, BleAdvCoordinator
 
 _LOGGER = logging.getLogger(__name__)
@@ -108,6 +109,20 @@ class BleAdvSwitch(BleAdvDeviceEntity, SwitchEntity):
         await super().async_added_to_hass()
         last_state = await self.async_get_last_state()
         self._attr_is_on = last_state.state == "on" if last_state else False
+
+
+class BleAdvRepairButton(BleAdvDeviceEntity, ButtonEntity):
+    """Re-send the pair command for this device's existing controller id."""
+
+    _attr_entity_category = EntityCategory.CONFIG
+    _attr_icon = "mdi:link-variant"
+
+    def __init__(self, device: BleAdvDevice) -> None:
+        super().__init__(REPAIR_BUTTON_TYPE, device)
+
+    async def async_press(self) -> None:
+        """Re-pair the device to the id it is already configured with."""
+        await self._device.async_repair()
 
 
 class BleAdvEntity(BleAdvDeviceEntity):
@@ -306,6 +321,21 @@ class BleAdvDevice(BleAdvBaseDevice):
             await self.advertise(ent_attr)
         except Exception:
             self.logger.exception("Exception applying changes")
+
+    async def async_repair(self) -> None:
+        """Advertise the pair command using this device's existing controller id.
+
+        The lamp accepts the command only during the pairing window opened by cutting and restoring its power.
+        The id is the one already configured, so a remote that uses the same id keeps working.
+        """
+        ent_attr = BleAdvEntAttr([ATTR_CMD], {ATTR_CMD: ATTR_CMD_PAIR}, DEVICE_TYPE, 0)
+        enc_cmds = self.codec.ent_to_enc(ent_attr, self.translator_set)
+        if not enc_cmds:
+            self.logger.warning(f"No pair command for codec '{self.codec_name}' / translator '{self.translator_set}'")
+            return
+        self.logger.info(f"Re-pairing with existing id 0x{self.config.id:X} / index {self.config.index}")
+        for enc_cmd in enc_cmds:
+            await self.apply_cmd(enc_cmd)
 
     async def async_on_enc_cmd(self, enc_cmd: BleAdvEncCmd) -> None:
         """Call on matching command received."""
