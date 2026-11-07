@@ -187,6 +187,7 @@ async def test_repair_keeps_configured_id(hass: HomeAssistant, coord: BleAdvCoor
     """Re-pair advertises the pair command for the id the device already uses."""
     conf = BleAdvConfig(0xEA2, 255, translator_set="br_after_ct")
     device = BleAdvDevice(hass, "dining", "Dining Table Light", "zhimei_v1", ["hci/test"], 1, 30, 100, conf, coord)
+    assert device.has_pair_command()
     coord.advertise = mock.AsyncMock()
     await device.async_repair()
     coord.advertise.assert_awaited_once()

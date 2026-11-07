@@ -12,4 +12,5 @@ from .device import BleAdvDevice, BleAdvRepairButton
 async def async_setup_entry(_: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback) -> None:
     """Entry setup."""
     device: BleAdvDevice = entry.runtime_data
-    async_add_entities([BleAdvRepairButton(device)], True)
+    entities = [BleAdvRepairButton(device)] if device.has_pair_command() else []
+    async_add_entities(entities, True)

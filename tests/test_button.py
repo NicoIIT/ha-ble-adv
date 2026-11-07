@@ -1,5 +1,6 @@
 """Button Entity tests."""
 
+# ruff: noqa: S101
 from unittest import mock
 
 from ble_adv.button import async_setup_entry
@@ -12,6 +13,7 @@ from .conftest import create_base_entry
 async def test_setup(hass: HomeAssistant) -> None:
     """Test async_setup_entry."""
     ent = await create_base_entry(hass, "ent_id", {})
+    ent.runtime_data.has_pair_command = mock.Mock(return_value=True)
     add_ent_mock = mock.MagicMock()
     await async_setup_entry(hass, ent, add_ent_mock)
     add_ent_mock.assert_called_once()
@@ -19,9 +21,19 @@ async def test_setup(hass: HomeAssistant) -> None:
     assert isinstance(button, BleAdvRepairButton)
 
 
+async def test_setup_skips_device_without_a_pair_command(hass: HomeAssistant) -> None:
+    """A codec without a direct pair command does not get the re-pair button."""
+    ent = await create_base_entry(hass, "ent_id", {})
+    ent.runtime_data.has_pair_command = mock.Mock(return_value=False)
+    add_ent_mock = mock.MagicMock()
+    await async_setup_entry(hass, ent, add_ent_mock)
+    add_ent_mock.assert_called_once_with([], True)
+
+
 async def test_press_repairs_with_the_device(hass: HomeAssistant) -> None:
     """Pressing the button re-pairs the device it belongs to."""
     ent = await create_base_entry(hass, "ent_id", {})
+    ent.runtime_data.has_pair_command = mock.Mock(return_value=True)
     add_ent_mock = mock.MagicMock()
     await async_setup_entry(hass, ent, add_ent_mock)
     button = add_ent_mock.call_args.args[0][0]

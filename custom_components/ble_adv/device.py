@@ -322,14 +322,22 @@ class BleAdvDevice(BleAdvBaseDevice):
         except Exception:
             self.logger.exception("Exception applying changes")
 
+    def _pair_commands(self) -> list[BleAdvEncCmd]:
+        """Return the direct pair commands for this device's codec and translator set."""
+        ent_attr = BleAdvEntAttr([ATTR_CMD], {ATTR_CMD: ATTR_CMD_PAIR}, DEVICE_TYPE, 0)
+        return self.codec.ent_to_enc(ent_attr, self.translator_set)
+
+    def has_pair_command(self) -> bool:
+        """Return True when this device can send a pair command."""
+        return bool(self._pair_commands())
+
     async def async_repair(self) -> None:
         """Advertise the pair command using this device's existing controller id.
 
-        The lamp accepts the command only during the pairing window opened by cutting and restoring its power.
-        The id is the one already configured, so a remote that uses the same id keeps working.
+        The Device accepts the command only during the pairing window opened by cutting and restoring its power.
+        The id is the one already configured, so a Remote that uses the same id keeps working.
         """
-        ent_attr = BleAdvEntAttr([ATTR_CMD], {ATTR_CMD: ATTR_CMD_PAIR}, DEVICE_TYPE, 0)
-        enc_cmds = self.codec.ent_to_enc(ent_attr, self.translator_set)
+        enc_cmds = self._pair_commands()
         if not enc_cmds:
             self.logger.warning(f"No pair command for codec '{self.codec_name}' / translator '{self.translator_set}'")
             return
