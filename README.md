@@ -76,6 +76,15 @@ The main steps of the configuration flow are the following:
 * **Definition**: Define the **Entities** to be created (Main Light, Second Light, Fan, ...) and their characteristics (RGB / Cold White Warm / Binary / Fan Speed / Min Brightness...), add a supplementary remote controller or modify the technical parameters. This step can be modified afterwards by reconfiguring the integration (see [Wiki](https://github.com/NicoIIT/ha-ble-adv/wiki/Configuration-Guide)).
 * **Finalization**: Specify the name of the Device and save your changes.
 
+## Re-pairing a Device that lost its pairing
+
+A configured Device page has a **Re-pair with this id** button when its codec can send a pair command. It advertises that pair command with the id and index already saved on the integration entry.
+
+1. Cut the power supply of the Device and reinstate it. The Device accepts a pair command only during the few seconds after power is restored.
+2. Press **Re-pair with this id** within 5 seconds. You have to be in the same room as the Device.
+
+The Pairing config flow creates a new id and replaces the existing controller. **Re-pair with this id** keeps the id already saved on the entry, so a Remote or Phone App duplicated onto that same id keeps controlling the Device.
+
 
 ## Future Developments
 Future developments are tracked in [github feature requests](https://github.com/NicoIIT/ha-ble-adv/issues?q=is%3Aissue%20state%3Aopen%20label%3Aenhancement), do not hesitate to vote for them if you need them giving it a :thumbsup:, or open new ones!
