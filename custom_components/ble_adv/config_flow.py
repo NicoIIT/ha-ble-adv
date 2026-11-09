@@ -5,6 +5,7 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
+import traceback
 from abc import abstractmethod
 from collections.abc import Awaitable, Callable, Coroutine
 from dataclasses import dataclass
@@ -30,10 +31,8 @@ from .codecs.const import (
     ATTR_CMD_PAIR,
     ATTR_DIR,
     ATTR_EFFECT,
-    ATTR_ON,
     ATTR_OSC,
     ATTR_PRESET,
-    ATTR_SPEED,
     ATTR_SPEED_COUNT,
     ATTR_SUB_TYPE,
     DEVICE_TYPE,
@@ -82,7 +81,10 @@ from .const import (
     CONF_USE_OSC,
     DOMAIN,
 )
-from .coordinator import BleAdvBaseDevice, BleAdvCoordinator
+from .coordinator import BleAdvCoordinator
+from .device import BleAdvDevice
+from .fan import FAN_BASE_FEATURES, BleAdvFan
+from .light import BleAdvLightCWW
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -188,8 +190,8 @@ class BleAdvProgressFlow(BleAdvProgressFlowBase):
         if self._action is not None:
             try:
                 await self._action()
-            except Exception as err:
-                self._flow.add_diag(f"Exception running Action: {err}")
+            except Exception:
+                self._flow.add_diag(f"Exception running Action: {traceback.format_exc()}")
             self._action = None
         else:
             await asyncio.sleep(0.1)
@@ -386,46 +388,53 @@ class BleAdvConfigFlow(ConfigFlow, domain=DOMAIN):
         codec_name = codec_from_dyn(conf[CONF_CODEC_ID], conf.get(CONF_PARAMS, []))
         return {"name": conf[CONF_NAME], "codec": codec_name, "id": f"0x{conf[CONF_FORCED_ID]:X}", "index": str(conf[CONF_INDEX])}
 
-    def _get_device(self, name: str, adapter_id: str, config: _CodecConfig, duration: int | None = None) -> BleAdvBaseDevice:
+    def _get_device(self, name: str, adapter_id: str, config: _CodecConfig, duration: int | None = None) -> BleAdvDevice:
         codec: BleAdvCodec = self.coordinator.codecs[config.codec_id]
         duration = duration if duration is not None else codec.duration
-        return BleAdvBaseDevice(self.coordinator, name, config.codec_id, [adapter_id], codec.repeat, codec.interval, duration, config)
+        return BleAdvDevice(
+            self.hass, self.flow_id, name, config.codec_id, [adapter_id], codec.repeat, codec.interval, duration, config, self.coordinator
+        )
 
     async def async_test_light(self) -> None:
-        """Blink."""
+        """Blink Light."""
         self.add_diag(f"Start blink - {self._confs.selected_adapter()} / {self._confs.selected()}.")
-        tmp_device: BleAdvBaseDevice = self._get_device("cf", self._confs.selected_adapter(), self._confs.selected())
-        on_cmd = BleAdvEntAttr([ATTR_ON], {ATTR_ON: True}, LIGHT_TYPE, 0)
-        off_cmd = BleAdvEntAttr([ATTR_ON], {ATTR_ON: False}, LIGHT_TYPE, 0)
-        self.async_update_progress(0)
-        await tmp_device.advertise(on_cmd)
+        tmp_device: BleAdvDevice = self._get_device("cf", self._confs.selected_adapter(), self._confs.selected())
+        light = BleAdvLightCWW(LIGHT_TYPE_CWW, tmp_device, 0, 0.1)
+        light.init_with_default()
+        self.async_update_progress(0.01)
+        await light.async_turn_on()
         await asyncio.sleep(self.WAIT_TEST_LIGHT)
         self.async_update_progress(0.25)
-        await tmp_device.advertise(off_cmd)
+        await light.async_turn_off()
         await asyncio.sleep(self.WAIT_TEST_LIGHT)
         self.async_update_progress(0.50)
-        await tmp_device.advertise(on_cmd)
+        await light.async_turn_on()
         await asyncio.sleep(self.WAIT_TEST_LIGHT)
         self.async_update_progress(0.75)
-        await tmp_device.advertise(off_cmd)
+        await light.async_turn_off()
         await asyncio.sleep(self.WAIT_TEST_LIGHT)
         self.async_update_progress(1)
         self.add_diag("Stop blink.")
 
     async def async_test_fan(self) -> None:
-        """Blink."""
-        self.add_diag(f"Start FAN blink - {self._confs.selected_adapter()} / {self._confs.selected()}.")
-        tmp_device: BleAdvBaseDevice = self._get_device("cf", self._confs.selected_adapter(), self._confs.selected())
-        on_cmd = BleAdvEntAttr([ATTR_ON, ATTR_SPEED], {ATTR_ON: True, ATTR_SPEED: 1, ATTR_SPEED_COUNT: 6}, FAN_TYPE, 0)
-        off_cmd = BleAdvEntAttr([ATTR_ON, ATTR_SPEED], {ATTR_ON: False, ATTR_SPEED: 1, ATTR_SPEED_COUNT: 6}, FAN_TYPE, 0)
-        self.async_update_progress(0)
-        await tmp_device.advertise(on_cmd)
+        """Blink Fan."""
+        fan_feats = self.coordinator.codecs[self._confs.selected().codec_id].get_supported_features(FAN_TYPE, BleAdvCodec.DEF_TRANS_NAME)
+        if not fan_feats or (fan_speed_counts := fan_feats[0].get(ATTR_SPEED_COUNT)) is None:
+            self.add_diag(f"FAN not supported by the codec {self._confs.selected()}, skipping test.")
+            return
+        fan_max_speed_count = max(fan_speed_counts)
+        self.add_diag(f"Start FAN {fan_max_speed_count} - {self._confs.selected_adapter()} / {self._confs.selected()}.")
+        tmp_device: BleAdvDevice = self._get_device("cf", self._confs.selected_adapter(), self._confs.selected())
+        fan = BleAdvFan(tmp_device, 0, fan_max_speed_count, FAN_BASE_FEATURES, [])
+        fan.init_with_default()
+        self.async_update_progress(0.01)
+        await fan.async_set_percentage(100)
         await asyncio.sleep(self.WAIT_TEST_FAN)
         self.async_update_progress(0.50)
-        await tmp_device.advertise(off_cmd)
+        await fan.async_set_percentage(0)
         await asyncio.sleep(self.WAIT_TEST_FAN)
         self.async_update_progress(1)
-        self.add_diag("Stop FAN blink.")
+        self.add_diag("Stop FAN.")
 
     async def async_pair_all(self) -> None:
         """Pair."""
@@ -433,7 +442,7 @@ class BleAdvConfigFlow(ConfigFlow, domain=DOMAIN):
         pair_cmd = BleAdvEntAttr([ATTR_CMD], {ATTR_CMD: ATTR_CMD_PAIR}, DEVICE_TYPE, 0)
         adapter_id = self._confs.selected_adapter()
         for i, config in enumerate(self._confs.selected_confs()):
-            tmp_device: BleAdvBaseDevice = self._get_device(f"cf{i}", adapter_id, config, 300)
+            tmp_device: BleAdvDevice = self._get_device(f"cf{i}", adapter_id, config, 300)
             await tmp_device.advertise(pair_cmd)
             await asyncio.sleep(0.3)
         await asyncio.sleep(2)

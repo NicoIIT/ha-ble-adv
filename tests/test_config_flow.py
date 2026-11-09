@@ -169,3 +169,31 @@ async def test_config_flow(hass: HomeAssistant, coord: BleAdvCoordinator) -> Non
     await flow.async_step_pair({CONF_PHONE_APP: "Fan Lamp Pro", CONF_ADAPTER_ID: "test"})
     await flow.async_test_light()
     await flow.async_test_fan()
+
+
+async def test_light_blink(hass: HomeAssistant, coord: BleAdvCoordinator) -> None:
+    """Test light blink."""
+    flow = BleAdvConfigFlow()
+    flow.flow_id = "test_id"
+    flow.hass = hass
+    flow.coordinator = coord
+    flow.WAIT_TEST_LIGHT = 0.1
+    await flow.async_step_user()
+    await flow.async_step_pair({CONF_PHONE_APP: "Smart Light", CONF_ADAPTER_ID: "adapter_id"})
+    coord.advertise = mock.AsyncMock()
+    await flow.async_test_light()
+    coord.advertise.assert_has_awaits([mock.call("adapter_id", flow.flow_id, mock.ANY)] * 4)
+
+
+async def test_fan_blink(hass: HomeAssistant, coord: BleAdvCoordinator) -> None:
+    """Test fan blink."""
+    flow = BleAdvConfigFlow()
+    flow.flow_id = "test_id"
+    flow.hass = hass
+    flow.coordinator = coord
+    flow.WAIT_TEST_FAN = 0.1
+    await flow.async_step_user()
+    await flow.async_step_pair({CONF_PHONE_APP: "Smart Light", CONF_ADAPTER_ID: "adapter_id"})
+    coord.advertise = mock.AsyncMock()
+    await flow.async_test_fan()
+    coord.advertise.assert_has_awaits([mock.call("adapter_id", flow.flow_id, mock.ANY)] * 2)

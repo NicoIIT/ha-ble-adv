@@ -10,7 +10,7 @@ updates:
     directory: "/.devcontainer"
     schedule:
       interval: "monthly"
-    ignore:
-      # Dependabot should not update Home Assistant as that should match the homeassistant key in hacs.json
-      - dependency-name: "homeassistant"
-      - dependency-name: "pytest-homeassistant-custom-component"
+    allow:
+      # Dependabot should only update unit tests dependencies
+      - dependency-name: "colorlog"
+      - dependency-name: "ruff"
