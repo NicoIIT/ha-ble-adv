@@ -41,10 +41,12 @@ from .const import (
 )
 from .device import ATTR_IS_ON, BleAdvDevice, BleAdvEntAttr, BleAdvEntity, BleAdvStateAttribute
 
+FAN_BASE_FEATURES = FanEntityFeature.TURN_ON | FanEntityFeature.TURN_OFF | FanEntityFeature.SET_SPEED
+
 
 def create_entity(options: dict[str, Any], device: BleAdvDevice, index: int) -> BleAdvFan:
     """Create a Fan Entity from the entry."""
-    features = FanEntityFeature.TURN_ON | FanEntityFeature.TURN_OFF | FanEntityFeature.SET_SPEED
+    features = FAN_BASE_FEATURES
     presets = options.get(CONF_PRESETS, [])
     if options.get(CONF_USE_OSC, False):
         features |= FanEntityFeature.OSCILLATE

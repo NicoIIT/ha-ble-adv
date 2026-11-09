@@ -215,6 +215,12 @@ class BleAdvEntity(BleAdvDeviceEntity):
         """List Forced changed attributes on start."""
         return []
 
+    def init_with_default(self) -> None:
+        """Initialize the entity with default values."""
+        self.logger.debug(f"Initialize state from default: { {x.name: x.default for x in self._state_attributes} }")
+        for state_attr in self._state_attributes:
+            self.set_state_attribute(state_attr.name, state_attr.default)
+
     async def async_added_to_hass(self) -> None:
         """Restore state and state attributes."""
         await super().async_added_to_hass()
@@ -225,9 +231,7 @@ class BleAdvEntity(BleAdvDeviceEntity):
                 val = last_state.attributes.get(f"last_{state_attr.name}", last_state.attributes.get(state_attr.name, state_attr.default))
                 self.set_state_attribute(state_attr.name, val)
         else:
-            self.logger.debug(f"Initialize state from default: { {x.name: x.default for x in self._state_attributes} }")
-            for state_attr in self._state_attributes:
-                self.set_state_attribute(state_attr.name, state_attr.default)
+            self.init_with_default()
 
 
 class BleAdvDevice(BleAdvBaseDevice):
