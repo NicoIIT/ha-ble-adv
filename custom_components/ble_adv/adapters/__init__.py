@@ -398,17 +398,15 @@ class BluetoothHCIAdapter(BleAdvAdapter):
 
     async def _advertise(self, item: BleAdvAdapterAdvItem) -> None:
         """Advertise the 'data' for the given interval."""
-        # Patch the adv data to have full len 31
-        patched_data = bytes([*item.data] + [0x00] * (31 - len(item.data)))
         async with self._adv_lock:
             min_adv = max(0x20, int(item.interval * 1.6))
             duration = float(0.0009 * item.repeat * item.interval)
             if self._use_ext_adv:
-                await self._hci_ext_advertise(min_adv, duration, patched_data)
+                await self._hci_ext_advertise(min_adv, duration, item.data)
             elif self._use_mgmt_adv:
-                await self._mgmt_advertise(duration, patched_data)
+                await self._mgmt_advertise(duration, item.data)
             else:
-                await self._hci_advertise(min_adv, duration, patched_data)
+                await self._hci_advertise(min_adv, duration, item.data)
 
     async def _set_advertise_enable(self, *, enabled: bool = True) -> int:
         ret, _ = await self._send_hci_cmd(self.OCF_LE_SET_ADVERTISE_ENABLE, bytearray([0x01 if enabled else 0x00]), log_on_error=enabled)
@@ -422,8 +420,8 @@ class BluetoothHCIAdapter(BleAdvAdapter):
         await self._send_hci_cmd(self.OCF_LE_SET_ADVERTISING_PARAMETERS, params)
 
     async def _set_advertising_data(self, data: bytes) -> None:
-        # btmon will give error 'invalid packet size' if data not of len 31, but the command is successful.
-        await self._send_hci_cmd(self.OCF_LE_SET_ADVERTISING_DATA, bytearray([len(data), *data]))
+        # The full packet size must be 32 bytes (len on one byte, data on 31 bytes even if shorter), so if needed we pad with 0x00
+        await self._send_hci_cmd(self.OCF_LE_SET_ADVERTISING_DATA, bytearray([len(data), *data.ljust(31, b"\x00")]))
 
     async def _hci_advertise(self, min_adv: int, duration: float, data: bytes) -> None:
         await self._set_advertise_enable(enabled=False)
@@ -574,7 +572,7 @@ class BleAdvBtManager:
 class BleAdvBtHciManager(BleAdvBtManager):
     """Manage the bluetooth Adapters using MGMT api.
 
-    Bluez mgmt-api: https://web.git.kernel.org/pub/scm/bluetooth/bluez.git/tree/doc/mgmt.rst
+    Bluez mgmt-api: https://web.git.kernel.org/pub/scm/bluetooth/bluez.git/tree/doc/mgmt-protocol.rst
     """
 
     MGMT_CMD_RTO: float = 3.0
